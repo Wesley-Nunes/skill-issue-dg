@@ -13,7 +13,7 @@ This file is the canonical workflow state for the repository. It is maintained b
 | Active phase | `Design decisions` |
 | Active agent | `design` |
 | Git branch | `feature/0.1.0-001-playable-slice` |
-| Last accepted commit | `52f7ddf` (branch base); docs handoff commit pending |
+| Last accepted commit | `879c1af` (docs handoff) |
 | Pull request | `Not created` |
 | Blocking questions remaining | `0` (3 answered during docs discovery) |
 | Overall status | `In progress` — docs handoff accepted, design stage next |
@@ -58,7 +58,7 @@ Append one entry for each meaningful phase transition:
 | Date | Version / task | From → To | Result / evidence | Commit |
 |---|---|---|---|---|
 | 2026-11-01 | — | Setup → Docs discovery | Operator approved version `0.1.0`, playable-slice scope, and real asset pack; branch created | `52f7ddf` (base) |
-| 2026-11-01 | 0.1.0/001 | Docs discovery → Design decisions | Three task handoffs created; docs handoff accepted by orchestrator; asset license verified as CC0 | Pending |
+| 2026-11-01 | 0.1.0/001 | Docs discovery → Design decisions | Three task handoffs created; docs handoff accepted by orchestrator; asset license verified as CC0 | `879c1af` |
 
 ## Status vocabulary
 
