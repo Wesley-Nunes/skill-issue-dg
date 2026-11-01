@@ -20,6 +20,7 @@ Source links: `docs/about-the-project.md` §2 (visual direction, assets), §3.1�
 - The playable space is **one hand-authored room**. Procedural floors, safe rooms, and multi-floor runs are out of scope for this version.
 - The player, enemy, room tiles, and HUD heart sprites come from DungeonTileset II v1.7 (CC0), stored in `public/assets/dungeon-tileset-ii/`.
 - The asset pack has **no attack and no death animations**. Combat feedback must therefore be built from existing frames plus code-drawn effects.
+- The player hurt state has a **single frame** (`knight_m_hit_anim_f0.png`) rather than a sequence, so hurt feedback must combine that frame with a code-drawn flash.
 - Only one enemy type is in scope: a melee chaser (`chort` frames).
 
 ## Objective

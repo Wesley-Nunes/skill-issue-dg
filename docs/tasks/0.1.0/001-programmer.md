@@ -19,7 +19,7 @@ Source links: `docs/about-the-project.md` §3, §5.1, §7, §8, §9, §11 priori
 - There is no `package.json`, no `src/`, and no build configuration yet.
 - `docs/about-the-project.md` §8 defines the target source layout; §7 fixes native Canvas + TypeScript, with Vite allowed as dev server/build tool.
 - Version `0.1.0` implements development priorities 1–3 only: application foundation, player foundation, and combat foundation.
-- Art comes from `public/assets/dungeon-tileset-ii/frames/` (CC0, DungeonTileset II v1.7).
+- Art comes from `public/assets/dungeon-tileset-ii/frames/` (CC0, DungeonTileset II v1.7). The pack ships a single player hurt frame and no attack/death frames; hurt feedback uses that frame plus a code-drawn flash.
 
 ## Objective
 
