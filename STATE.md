@@ -7,16 +7,16 @@ This file is the canonical workflow state for the repository. It is maintained b
 | Field | Value |
 |---|---|
 | Project | skill issue dg |
-| Goal | MVP — scope and success criteria to be agreed with the operator |
-| Current SemVer ID | `TBD` |
-| Current task ID | `TBD` |
-| Active phase | `Not started` |
-| Active agent | `Orchestrator` |
-| Git branch | `TBD` |
-| Last accepted commit | `TBD` |
+| Goal | MVP — first playable slice (`0.1.0`) defined and in progress |
+| Current SemVer ID | `0.1.0` |
+| Current task ID | `001` |
+| Active phase | `Design decisions` |
+| Active agent | `design` |
+| Git branch | `feature/0.1.0-001-playable-slice` |
+| Last accepted commit | `52f7ddf` (branch base); docs handoff commit pending |
 | Pull request | `Not created` |
-| Blocking questions remaining | `TBD — establish during docs discovery` |
-| Overall status | `Needs repository setup / discovery` |
+| Blocking questions remaining | `0` (3 answered during docs discovery) |
+| Overall status | `In progress` — docs handoff accepted, design stage next |
 
 Update this snapshot whenever a value changes. Do not leave stale status after a handoff.
 
@@ -39,10 +39,17 @@ The state manager must not invent decisions, change product scope, edit game cod
 Populate these links when the version and task have been approved:
 
 - Product overview: `docs/about-the-project.md`
-- Discovery/task directory: `docs/tasks/<sem-ver-id>/`
-- Design decisions: `design/<sem-ver-id>/design-decisions.md`
-- Implementation decision log: `programmer/<sem-ver-id>/CoT.md`
-- QA report: `qa/<sem-ver-id>/`
+- Task package: `docs/tasks/0.1.0/001-design.md`, `001-programmer.md`, `001-qa.md`
+- Design decisions: `design/0.1.0/design-decisions.md` (not created yet)
+- Implementation decision log: `programmer/0.1.0/CoT.md` (not created yet)
+- QA report: `qa/0.1.0/001-report.md` (not created yet)
+
+### Version 0.1.0 scope (operator-approved 2026-11-01)
+
+- **Deliverable:** first playable combat slice — development priorities 1–3 in `docs/about-the-project.md` §11.
+- **Included:** Vite/TypeScript browser app, canvas and game loop, asset loading, one hand-authored room, WASD movement, mouse aim, camera follow, wall collision, basic melee attack, dodge, HP/heart HUD, one melee enemy, minimal death/restart.
+- **Excluded:** combos, secondary attack, skills/skill points, consumables, currency, loot, shop/safe rooms, boss, procedural generation, persistence, audio, menus.
+- **Art:** DungeonTileset II v1.7 (CC0) frames supplied by the operator under `public/assets/dungeon-tileset-ii/`.
 
 ## Handoff record
 
@@ -50,7 +57,8 @@ Append one entry for each meaningful phase transition:
 
 | Date | Version / task | From → To | Result / evidence | Commit |
 |---|---|---|---|---|
-| TBD | TBD | Setup → Docs discovery | Awaiting repository and project-document availability | TBD |
+| 2026-11-01 | — | Setup → Docs discovery | Operator approved version `0.1.0`, playable-slice scope, and real asset pack; branch created | `52f7ddf` (base) |
+| 2026-11-01 | 0.1.0/001 | Docs discovery → Design decisions | Three task handoffs created; docs handoff accepted by orchestrator; asset license verified as CC0 | Pending |
 
 ## Status vocabulary
 

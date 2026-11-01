@@ -102,6 +102,12 @@ Before shipping, verify the asset pack's current license and attribution
 requirements from its official distribution page and retain any required
 license information with the project.
 
+**Verified 2026-11-01:** DungeonTileset II v1.7 is released by 0x72 as
+**CC0 1.0 Universal**; credit is appreciated but not required. The pack
+and its attribution note are stored under
+`public/assets/dungeon-tileset-ii/`. The pack has no attack or death
+animations, so combat feedback for those states is drawn in code.
+
 ------------------------------------------------------------------------
 
 ## 3. Core gameplay
