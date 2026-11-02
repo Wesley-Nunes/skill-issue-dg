@@ -71,6 +71,33 @@ export interface GameState {
   pointer: Vec2;
 }
 
+/** Read-only view of the run used by development tooling and browser tests. */
+export interface DebugSnapshot {
+  time: number;
+  status: GameStatus;
+  player: {
+    x: number;
+    y: number;
+    hp: number;
+    maxHp: number;
+    aimX: number;
+    aimY: number;
+    dodging: boolean;
+    invulnerable: number;
+  };
+  enemy: {
+    x: number;
+    y: number;
+    hp: number;
+    maxHp: number;
+    status: string;
+  };
+  camera: Vec2;
+  pointer: Vec2;
+  viewport: Viewport;
+  zoom: number;
+}
+
 export interface InputFrame {
   move: Vec2;
   aim: Vec2;

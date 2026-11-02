@@ -13,14 +13,14 @@ import {
 import { startDodge, tickDodgeTimers } from "../systems/dodge";
 import { updateEnemy } from "../systems/enemy";
 import { movePlayer } from "../systems/movement";
-import type { DebugSnapshot } from "../../ui/debug";
-import { createInitialState } from "../../state/initialState";
 import type {
+  DebugSnapshot,
   GameEvent,
   GameState,
   InputFrame,
   Viewport,
 } from "../types";
+import { createInitialState } from "../../state/initialState";
 
 export interface ViewportSource {
   worldViewport(): Viewport;
