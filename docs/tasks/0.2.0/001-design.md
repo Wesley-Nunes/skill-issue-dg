@@ -7,7 +7,7 @@
 | Version | `0.2.0` |
 | Task ID | `001` |
 | Owning agent | `design` |
-| Status | `Not started` |
+| Status | `Passed` |
 | Depends on | Docs task `001` (this package), operator asset handoff (`imp` frames) |
 | Produces | `design/0.2.0/design-decisions.md` |
 | Next task | `docs/tasks/0.2.0/001-programmer.md` |
