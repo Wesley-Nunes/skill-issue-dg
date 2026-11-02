@@ -19,9 +19,12 @@ export function movePlayer(
   const dodging = player.dodgeTime > 0;
   const direction = dodging ? player.dodgeDir : normalizeMove(move);
   const speed = dodging ? DODGE.distance / DODGE.duration : PLAYER.speed;
+  // A dodge only advances for the time left in its window, so a long frame
+  // cannot push the player past the configured distance.
+  const step = dodging ? Math.min(dt, player.dodgeTime) : dt;
   const position = clampToRoom(
-    player.x + direction.x * speed * dt,
-    player.y + direction.y * speed * dt,
+    player.x + direction.x * speed * step,
+    player.y + direction.y * speed * step,
     player.radius,
     room,
   );

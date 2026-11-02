@@ -54,4 +54,16 @@ describe("startDodge", () => {
     }
     expect(player.x).toBe(ROOM.bounds.minX + player.radius);
   });
+
+  it("does not overshoot the distance on long frames", () => {
+    let player = startDodge(createPlayer(), { x: 1, y: 0 });
+    const startX = player.x;
+
+    for (let frame = 0; frame < 4; frame += 1) {
+      player = movePlayer(player, { x: 1, y: 0 }, 0.05, ROOM);
+      player = tickDodgeTimers(player, 0.05);
+    }
+
+    expect(player.x - startX).toBeCloseTo(DODGE.distance);
+  });
 });
