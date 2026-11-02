@@ -7,16 +7,16 @@ This file is the canonical workflow state for the repository. It is maintained b
 | Field | Value |
 |---|---|
 | Project | skill issue dg |
-| Goal | MVP — first playable slice (`0.1.0`) defined and in progress |
+| Goal | MVP — first playable slice (`0.1.0`) implemented, verified and ready for review |
 | Current SemVer ID | `0.1.0` |
 | Current task ID | `001` |
-| Active phase | `QA verification` |
-| Active agent | `qa` |
+| Active phase | `Complete — awaiting operator review` |
+| Active agent | `orchestrator` |
 | Git branch | `feature/0.1.0-001-playable-slice` |
-| Last accepted commit | `860a060` (design handoff); implementation `ab61870` awaiting QA |
+| Last accepted commit | `88e6865` (QA pass) |
 | Pull request | `Not created` |
 | Blocking questions remaining | `0` (3 answered during docs discovery) |
-| Overall status | `In progress` — implementation complete, QA verification pending |
+| Overall status | `Done` — all stages passed; pull request not created (no GitHub CLI installed) |
 
 Update this snapshot whenever a value changes. Do not leave stale status after a handoff.
 
@@ -42,7 +42,7 @@ Populate these links when the version and task have been approved:
 - Task package: `docs/tasks/0.1.0/001-design.md`, `001-programmer.md`, `001-qa.md`
 - Design decisions: `design/0.1.0/design-decisions.md` (approved)
 - Implementation decision log: `programmer/0.1.0/CoT.md` (written)
-- QA report: `qa/0.1.0/001-report.md` (not created yet)
+- QA report: `qa/0.1.0/001-report.md` (pass, 2 findings fixed)
 
 ### Version 0.1.0 scope (operator-approved 2026-11-01)
 
@@ -61,6 +61,7 @@ Append one entry for each meaningful phase transition:
 | 2026-11-01 | 0.1.0/001 | Docs discovery → Design decisions | Three task handoffs created; docs handoff accepted by orchestrator; asset license verified as CC0; 35 asset frames delivered and integrity-checked | `879c1af` |
 | 2026-11-01 | 0.1.0/001 | Design decisions → Implementation | Operator approved framing, combat baseline, feedback, HUD, and room composition; design spec written | `860a060` |
 | 2026-11-02 | 0.1.0/001 | Implementation → QA verification | App, systems, 55 unit tests, 5 Cypress tests and the implementation log delivered; `typecheck`, `test`, `build`, `e2e` pass | `ab61870` |
+| 2026-11-02 | 0.1.0/001 | QA verification → Complete | Clean install and all scripts pass; 56 unit + 11 Cypress tests; two findings fixed (dodge overshoot, debug type layering); verdict pass | `88e6865` |
 
 ## Status vocabulary
 
