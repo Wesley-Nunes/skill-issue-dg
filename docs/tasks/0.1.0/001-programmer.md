@@ -7,7 +7,7 @@
 | Version | `0.1.0` |
 | Task ID | `001` |
 | Owning agent | `programmer` |
-| Status | `Not started` |
+| Status | `Passed` |
 | Depends on | Approved `design/0.1.0/design-decisions.md` |
 | Produces | `src/`, `index.html`, project scripts, tests, `programmer/0.1.0/CoT.md` |
 | Next task | `docs/tasks/0.1.0/001-qa.md` |

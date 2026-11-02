@@ -26,7 +26,7 @@ All coordinates and distances below are **world pixels** (1 tile = 16 world px).
   - row 1: `wall_mid` across the full width (gives the top wall visual thickness);
   - column 0 and column 39: `wall_left` / `wall_right`;
   - row 23: `wall_mid` across the full width.
-- Floor: `floor_1`…`floor_8`, chosen by `((x * 73856093) ^ (y * 19349663)) % 8` for each walkable tile, so variation is deterministic across reloads.
+- Floor: `floor_1`…`floor_8`, chosen by a deterministic coordinate hash (a mixed bit hash of the column and row), so variation is deterministic across reloads.
 - Spawns: player feet at `(320, 320)`; enemy feet at `(448, 128)`. Facing: player aim starts up-right; enemy starts facing down-left.
 
 ## 3. Draw order and entity anchoring
