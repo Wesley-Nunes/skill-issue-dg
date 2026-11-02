@@ -145,9 +145,17 @@ Combat should reward deliberate execution. Automatic targeting is not
 the intended default; attacks should use the mouse aim direction or
 position as appropriate to the attack.
 
-The player should have basic attacks and combo sequences. The precise
-combo rules, attack timing, damage model, and ability cooldowns remain
-to be designed.
+The player has basic attacks and a three-hit light combo
+(operator-approved for `0.2.0` on 2026-11-02):
+
+-   Pressing attack inside the chain window advances to the next step;
+    input during a swing is buffered into the next step.
+-   Damage escalates across the chain, and the third hit (the finisher)
+    has a wider arc and briefly staggers its target.
+-   A whiff, or letting the chain window expire, returns the chain to
+    its first step.
+-   Final timings, window lengths, and damage values live in the
+    version's design decisions; ability cooldowns remain open.
 
 ### 3.3 Skill challenges and skill points
 
@@ -159,11 +167,18 @@ Known challenge examples:
 -   Execute a combo attack.
 -   Avoid being hit for a specified number of seconds.
 
-Skill points can be spent on items and/or skills to improve the player's
-current run and help them progress faster.
+The first implemented challenge (`0.2.0`, operator-approved 2026-11-02)
+is combo execution: the player earns **1 skill point** the first time in
+a run that all three hits of one combo chain connect. The point is shown
+in the HUD, is lost on death, and is cleared by the restart action.
+Spending is not implemented yet, so the point only accumulates.
 
-Challenge definitions, reward amounts, difficulty tiers, and the full
-purchase catalog are still open design work.
+Skill points will be spent on items and/or skills to improve the
+player's current run and help them progress faster.
+
+Additional challenge definitions, repeatable or tiered rewards,
+difficulty tiers, and the full purchase catalog are still open design
+work.
 
 ### 3.4 Health and survivability
 
@@ -256,6 +271,12 @@ Initial archetype examples:
 -   **Fast:** Moves quickly and pressures the player.
 
 These are examples for the initial enemy roster, not a final list.
+
+Two archetypes are implemented so far (`0.2.0`, operator-approved
+2026-11-02): the **melee** chaser and a **ranged** enemy that keeps a
+mid-range distance band, fires only with line of sight after a
+telegraph, and uses a slow projectile that is destroyed by walls. Tank
+and fast remain future archetypes.
 
 ### 5.2 Bosses
 
@@ -508,7 +529,8 @@ playtesting.
 
 ### Gameplay and combat
 
--   Exact combo inputs, sequence rules, and rewards.
+-   Further combo variants beyond the first three-hit chain specified in
+    §3.2.
 -   Basic and secondary attack behavior.
 -   Skill definitions, cooldowns, and resource costs (if any).
 -   Dodge distance, duration, and invulnerability behavior.
@@ -529,7 +551,8 @@ playtesting.
 ### Rewards and economy
 
 -   Currency types and sources.
--   Skill-point rewards and challenge conditions.
+-   Additional skill challenges, difficulty tiers, and reward scaling
+    beyond the combo challenge specified in §3.3.
 -   Shop inventory, prices, and refresh behavior.
 -   What can be purchased after death and how that purchase flow works.
 -   Consumable inventory limits and usage rules.
