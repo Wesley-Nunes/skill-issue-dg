@@ -10,13 +10,13 @@ This file is the canonical workflow state for the repository. It is maintained b
 | Goal | MVP — combat depth (`0.2.0`): combo chain, ranged enemy, earn-only combo challenge |
 | Current SemVer ID | `0.2.0` |
 | Current task ID | `001` |
-| Active phase | `Docs discovery` |
-| Active agent | `docs` |
+| Active phase | `Design decisions` |
+| Active agent | `design` |
 | Git branch | `feature/0.2.0-001-combat-depth` |
-| Last accepted commit | `169d2f3` (merge of `0.1.0` into `dev`) |
+| Last accepted commit | `c2eff05` (docs handoff) |
 | Pull request | PR #1 merged (`0.1.0`); `0.2.0` not created |
-| Blocking questions remaining | `TBD` during docs discovery |
-| Overall status | `In progress` — version opened, discovery starting |
+| Blocking questions remaining | `0` (5 answered during docs discovery) |
+| Overall status | `In progress` — docs handoff accepted, design next |
 
 Update this snapshot whenever a value changes. Do not leave stale status after a handoff.
 
@@ -39,7 +39,7 @@ The state manager must not invent decisions, change product scope, edit game cod
 Populate these links when the version and task have been approved:
 
 - Product overview: `docs/about-the-project.md`
-- Task package: `docs/tasks/0.2.0/001-design.md`, `001-programmer.md`, `001-qa.md` (not created yet — discovery in progress)
+- Task package: `docs/tasks/0.2.0/001-design.md`, `001-programmer.md`, `001-qa.md` (created)
 - Design decisions: `design/0.2.0/design-decisions.md` (not created yet)
 - Implementation decision log: `programmer/0.2.0/CoT.md` (not created yet)
 - QA report: `qa/0.2.0/001-report.md` (not created yet)
@@ -70,6 +70,7 @@ Append one entry for each meaningful phase transition:
 | 2026-11-02 | 0.1.0/001 | Implementation → QA verification | App, systems, 55 unit tests, 5 Cypress tests and the implementation log delivered; `typecheck`, `test`, `build`, `e2e` pass | `ab61870` |
 | 2026-11-02 | 0.1.0/001 | QA verification → Complete | Clean install and all scripts pass; 56 unit + 11 Cypress tests; two findings fixed (dodge overshoot, debug type layering); verdict pass | `88e6865` |
 | 2026-11-02 | 0.2.0/001 | Complete → Docs discovery | `0.1.0` merged to `dev` via PR #1; operator approved `0.2.0` combat-depth scope (option A); branch created | `169d2f3` |
+| 2026-11-02 | 0.2.0/001 | Docs discovery → Design decisions | Five operator decisions (combo shape, kiting ranged enemy, room composition, earn-only challenge, imp art); `imp` frames verified; product overview updated; three task handoffs created | `c2eff05` |
 
 ## Status vocabulary
 
