@@ -10,13 +10,13 @@ This file is the canonical workflow state for the repository. It is maintained b
 | Goal | MVP — combat depth (`0.2.0`): combo chain, ranged enemy, earn-only combo challenge |
 | Current SemVer ID | `0.2.0` |
 | Current task ID | `001` |
-| Active phase | `QA verification` |
-| Active agent | `qa` |
+| Active phase | `Complete` |
+| Active agent | `orchestrator` |
 | Git branch | `feature/0.2.0-001-combat-depth` |
-| Last accepted commit | `7743e81` (programmer handoff) |
-| Pull request | PR #1 merged (`0.1.0`); `0.2.0` not created |
+| Last accepted commit | `4156994` (QA pass) |
+| Pull request | PR #1 merged (`0.1.0`); `0.2.0` not created — branch push blocked (no SSH credentials, no `gh` CLI) |
 | Blocking questions remaining | `0` (5 answered during docs discovery) |
-| Overall status | `In progress` — design and implementation accepted; QA verification next |
+| Overall status | `Done` for the version workflow — QA passed; operator action needed to push the branch and open the PR |
 
 Update this snapshot whenever a value changes. Do not leave stale status after a handoff.
 
@@ -42,7 +42,7 @@ Populate these links when the version and task have been approved:
 - Task package: `docs/tasks/0.2.0/001-design.md`, `001-programmer.md`, `001-qa.md` (created)
 - Design decisions: `design/0.2.0/design-decisions.md` (created)
 - Implementation decision log: `programmer/0.2.0/CoT.md` (created)
-- QA report: `qa/0.2.0/001-report.md` (not created yet)
+- QA report: `qa/0.2.0/001-report.md` (created, verdict Passed)
 
 ### Version 0.2.0 scope (operator-approved 2026-11-02)
 
@@ -73,6 +73,7 @@ Append one entry for each meaningful phase transition:
 | 2026-11-02 | 0.2.0/001 | Docs discovery → Design decisions | Five operator decisions (combo shape, kiting ranged enemy, room composition, earn-only challenge, imp art); `imp` frames verified; product overview updated; three task handoffs created | `c2eff05` |
 | 2026-11-03 | 0.2.0/001 | Design decisions → Implementation | Design spec approved with full timing/value tables; combo, ranged enemy, projectile, HUD, challenge and spawn decisions recorded | `58da410` |
 | 2026-11-03 | 0.2.0/001 | Implementation → QA verification | Combo chain, ranged enemy, projectiles, challenge HUD, room clear and restart delivered; 105 unit + 14 Cypress tests; `typecheck`, `test`, `build`, `e2e` pass; QA scenarios reconciled with the convex-room LOS no-op | `7743e81` (QA task notes `8f67d5a`) |
+| 2026-11-03 | 0.2.0/001 | QA verification → Complete | Clean install; 105 unit + 14 Cypress tests pass twice; typecheck/build/e2e pass; visual checks of finisher, award notice, telegraph, projectile and death; verdict Passed with 0 blocking findings; branch not pushed (SSH key/`gh` unavailable) | `4156994` |
 
 ## Status vocabulary
 
