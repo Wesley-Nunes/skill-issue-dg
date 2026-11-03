@@ -10,13 +10,14 @@ This file is the canonical workflow state for the repository. It is maintained b
 | Goal | MVP — combat depth (`0.2.0`): combo chain, ranged enemy, earn-only combo challenge |
 | Current SemVer ID | `0.2.0` |
 | Current task ID | `001` |
-| Active phase | `Complete` |
+| Active phase | `Integration — PR + merge` |
 | Active agent | `orchestrator` |
 | Git branch | `feature/0.2.0-001-combat-depth` |
 | Last accepted commit | `b8de512` (QA pass) |
-| Pull request | PR #1 merged (`0.1.0`); `0.2.0` not created — branch push blocked (no SSH credentials, no `gh` CLI) |
+| Pushed HEAD | `fea3002` on `origin/feature/0.2.0-001-combat-depth` (pushed by the operator) |
+| Pull request | PR #1 merged (`0.1.0`); `0.2.0` PR not created — no `gh`/`hub` and no GitHub token in this environment, so the operator must open it |
 | Blocking questions remaining | `0` (5 answered during docs discovery) |
-| Overall status | `Done` for the version workflow — QA passed; operator action needed to push the branch and open the PR |
+| Overall status | `Blocked` — QA passed and branch pushed at `fea3002`; PR creation is blocked by missing `gh`/`hub` and GitHub token, and merging to `dev` needs operator review and authorization |
 
 Update this snapshot whenever a value changes. Do not leave stale status after a handoff.
 
@@ -73,7 +74,8 @@ Append one entry for each meaningful phase transition:
 | 2026-11-02 | 0.2.0/001 | Docs discovery → Design decisions | Five operator decisions (combo shape, kiting ranged enemy, room composition, earn-only challenge, imp art); `imp` frames verified; product overview updated; three task handoffs created | `c2eff05` |
 | 2026-11-03 | 0.2.0/001 | Design decisions → Implementation | Design spec approved with full timing/value tables; combo, ranged enemy, projectile, HUD, challenge and spawn decisions recorded | `58da410` |
 | 2026-11-03 | 0.2.0/001 | Implementation → QA verification | Combo chain, ranged enemy, projectiles, challenge HUD, room clear and restart delivered; 105 unit + 14 Cypress tests; `typecheck`, `test`, `build`, `e2e` pass; QA scenarios reconciled with the convex-room LOS no-op | `7743e81` (QA task notes `8f67d5a`) |
-| 2026-11-03 | 0.2.0/001 | QA verification → Complete | Clean install; 105 unit + 14 Cypress tests pass twice; typecheck/build/e2e pass; visual checks of finisher, award notice, telegraph, projectile and death; verdict Passed with 0 blocking findings; branch not pushed (SSH key/`gh` unavailable) | `4156994`, `b8de512` |
+| 2026-11-03 | 0.2.0/001 | QA verification → Complete | Clean install; 105 unit + 14 Cypress tests pass twice; typecheck/build/e2e pass; visual checks of finisher, award notice, telegraph, projectile and death; verdict Passed with 0 blocking findings | `4156994`, `b8de512` |
+| 2026-11-03 | 0.2.0/001 | Complete → Pushed, PR pending | Operator pushed the branch; `origin/feature/0.2.0-001-combat-depth` matches local HEAD at `fea3002`; PR creation blocked by missing `gh`/`hub` and GitHub token; merge to `dev` awaits operator review | `fea3002` |
 
 ## Status vocabulary
 
