@@ -1,4 +1,4 @@
-import type { Room, Vec2 } from "../types";
+import type { ComboStep, EnemyKind, Room, Vec2 } from "../types";
 
 export const TILE = 16;
 export const ZOOM = 3;
@@ -17,7 +17,17 @@ export const ROOM: Room = {
 };
 
 export const PLAYER_SPAWN: Vec2 = { x: 320, y: 320 };
-export const ENEMY_SPAWN: Vec2 = { x: 448, y: 128 };
+
+export const ENEMY_SPAWNS: ReadonlyArray<{
+  id: string;
+  kind: EnemyKind;
+  x: number;
+  y: number;
+}> = [
+  { id: "melee-a", kind: "melee", x: 448, y: 128 },
+  { id: "melee-b", kind: "melee", x: 224, y: 112 },
+  { id: "ranged", kind: "ranged", x: 560, y: 96 },
+];
 
 export const PLAYER = {
   speed: 120,
@@ -28,27 +38,70 @@ export const PLAYER = {
   hurtFlashWhite: 0.08,
 } as const;
 
-export const ENEMY = {
+export const COMBO = {
+  steps: [
+    {
+      windup: 0.08,
+      active: 0.1,
+      recovery: 0.12,
+      reach: 34,
+      halfAngle: (55 * Math.PI) / 180,
+      damage: 2,
+    },
+    {
+      windup: 0.07,
+      active: 0.09,
+      recovery: 0.1,
+      reach: 36,
+      halfAngle: (55 * Math.PI) / 180,
+      damage: 2,
+    },
+    {
+      windup: 0.12,
+      active: 0.12,
+      recovery: 0.2,
+      reach: 40,
+      halfAngle: (80 * Math.PI) / 180,
+      damage: 4,
+    },
+  ] satisfies ComboStep[],
+  window: 0.3,
+  hitstop: 0.06,
+  knockback: 6,
+  stagger: 0.15,
+} as const;
+
+export const MELEE = {
   speed: 55,
   radius: 6,
-  maxHp: 6,
+  maxHp: 10,
   aggroRadius: 160,
   attackRange: 26,
   windup: 0.45,
   active: 0.1,
   attackCooldown: 1.1,
-  fade: 0.25,
   damage: 1,
 } as const;
 
-export const ATTACK = {
-  windup: 0.08,
-  active: 0.1,
-  recovery: 0.12,
-  cooldown: 0.45,
-  reach: 34,
-  halfAngle: (55 * Math.PI) / 180,
-  damage: 2,
+export const RANGED = {
+  speed: 70,
+  radius: 6,
+  maxHp: 6,
+  aggroRadius: 260,
+  nearRange: 110,
+  farRange: 240,
+  telegraph: 0.5,
+  attackCooldown: 1.6,
+} as const;
+
+export const ENEMY_FADE = 0.25;
+
+export const PROJECTILE = {
+  speed: 150,
+  radius: 4,
+  life: 1.6,
+  damage: 1,
+  spawnOffset: 10,
 } as const;
 
 export const DODGE = {
@@ -60,6 +113,10 @@ export const DODGE = {
 
 export const CAMERA = {
   tau: 0.12,
+} as const;
+
+export const IMPACT = {
+  flash: 0.08,
 } as const;
 
 export const ASSET_BASE = "/assets/dungeon-tileset-ii/frames/";

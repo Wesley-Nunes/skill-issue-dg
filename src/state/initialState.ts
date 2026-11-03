@@ -1,8 +1,9 @@
 import {
-  ENEMY,
-  ENEMY_SPAWN,
+  ENEMY_SPAWNS,
+  MELEE,
   PLAYER,
   PLAYER_SPAWN,
+  RANGED,
 } from "../game/data/config";
 import type { Enemy, GameState, Player } from "../game/types";
 
@@ -20,22 +21,34 @@ export function createPlayer(): Player {
     dodgeTime: 0,
     dodgeCooldown: 0,
     dodgeDir: { x: 0, y: 0 },
-    attackTime: -1,
-    attackCooldown: 0,
-    attackHit: false,
+    comboStep: 0,
+    comboTime: 0,
+    comboHits: 0,
+    comboQueued: false,
+    comboResolved: false,
+    comboHitThisStep: false,
     moving: false,
   };
 }
 
-export function createEnemy(): Enemy {
+export function createEnemy(
+  spawn: (typeof ENEMY_SPAWNS)[number],
+): Enemy {
+  const ranged = spawn.kind === "ranged";
+  const stats = ranged ? RANGED : MELEE;
+
   return {
-    x: ENEMY_SPAWN.x,
-    y: ENEMY_SPAWN.y,
-    radius: ENEMY.radius,
-    hp: ENEMY.maxHp,
-    maxHp: ENEMY.maxHp,
+    id: spawn.id,
+    kind: spawn.kind,
+    x: spawn.x,
+    y: spawn.y,
+    radius: stats.radius,
+    hp: stats.maxHp,
+    maxHp: stats.maxHp,
     status: "alive",
     fade: 0,
+    hurtFlash: 0,
+    stagger: 0,
     aggro: false,
     windup: 0,
     active: 0,
@@ -45,13 +58,21 @@ export function createEnemy(): Enemy {
   };
 }
 
+export function createEnemies(): Enemy[] {
+  return ENEMY_SPAWNS.map((spawn) => createEnemy(spawn));
+}
+
 export function createInitialState(): GameState {
   return {
     time: 0,
     status: "playing",
     player: createPlayer(),
-    enemy: createEnemy(),
+    enemies: createEnemies(),
+    projectiles: [],
+    nextProjectileId: 1,
+    hitstop: 0,
     camera: { x: 0, y: 0 },
     pointer: { x: PLAYER_SPAWN.x + 80, y: PLAYER_SPAWN.y - 80 },
+    run: { skillPoints: 0, challengeEarned: false, roomCleared: false },
   };
 }

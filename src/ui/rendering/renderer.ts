@@ -1,6 +1,7 @@
 import {
-  ATTACK,
-  ENEMY,
+  COMBO,
+  ENEMY_FADE,
+  MELEE,
   PLAYER,
   TILE,
   WORLD,
@@ -9,6 +10,7 @@ import {
 import { floorTileAt, wallTiles } from "../../game/data/room";
 import { SPRITES } from "../../game/data/sprites";
 import type {
+  Enemy,
   GameEvent,
   GameState,
   Viewport,
@@ -20,11 +22,20 @@ const VOID_COLOR = "#0b0a0f";
 const HUD_INSET = 24;
 const HEART_SIZE = { width: 39, height: 36 };
 const HEART_GAP = 6;
-const SPARK_LENGTH = 8;
-const SWING_HALF_ANGLE = (55 * Math.PI) / 180;
+const SKILL_POINT_COLOR = "#f2d38a";
+const SKILL_POINT_TOP = 74;
+const NOTICE_LIFE = 1.6;
+const NOTICE_FADE_IN = 0.15;
+const NOTICE_FADE_OUT = 0.35;
+const PROJECTILE_BODY = "rgba(200, 166, 255, 0.85)";
+const PROJECTILE_CORE = "rgba(255, 255, 255, 0.95)";
 
 function clamp(value: number, min: number, max: number): number {
   return Math.min(Math.max(value, min), max);
+}
+
+function stepDefinition(step: number) {
+  return COMBO.steps[step - 1] ?? COMBO.steps[0];
 }
 
 export class Renderer {
@@ -80,14 +91,15 @@ export class Renderer {
     this.drawShadows(state);
     this.drawEntities(state);
     this.drawAfterimages(state);
+    this.drawProjectiles(state);
     this.drawSword(state);
     this.drawSwing(state);
-    this.drawTelegraph(state);
+    this.drawTelegraphs(state);
     this.drawSparks(state);
     this.drawAim(state);
 
     context.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
-    this.drawHud(state, cssHeight);
+    this.drawHud(state, cssWidth, cssHeight);
     if (state.status === "dead") {
       this.drawDeathOverlay(cssWidth, cssHeight);
     }
@@ -176,8 +188,8 @@ export class Renderer {
     };
 
     draw(state.player.x, state.player.y);
-    if (state.enemy.status !== "dead") {
-      draw(state.enemy.x, state.enemy.y);
+    for (const enemy of state.enemies) {
+      if (enemy.status !== "dead") draw(enemy.x, enemy.y);
     }
   }
 
@@ -199,22 +211,16 @@ export class Renderer {
   }
 
   private drawEntities(state: GameState): void {
-    const drawPlayer = (): void => {
-      this.drawPlayerSprite(state);
-    };
-
-    const drawEnemy = (): void => {
-      if (state.enemy.status === "dead") return;
-      this.drawEnemySprite(state);
-    };
-
-    if (state.player.y <= state.enemy.y) {
-      drawPlayer();
-      drawEnemy();
-    } else {
-      drawEnemy();
-      drawPlayer();
+    const items: Array<{ y: number; draw: () => void }> = [
+      { y: state.player.y, draw: () => this.drawPlayerSprite(state) },
+    ];
+    for (const enemy of state.enemies) {
+      if (enemy.status === "dead") continue;
+      items.push({ y: enemy.y, draw: () => this.drawEnemySprite(state, enemy) });
     }
+
+    items.sort((a, b) => a.y - b.y);
+    for (const item of items) item.draw();
   }
 
   private drawPlayerSprite(state: GameState): void {
@@ -227,9 +233,7 @@ export class Renderer {
         ? SPRITES.playerRun
         : SPRITES.playerIdle;
     const fps = hurt ? 1 : player.moving ? 12 : 6;
-    const index = hurt
-      ? 0
-      : Math.floor(state.time * fps) % frames.length;
+    const index = hurt ? 0 : Math.floor(state.time * fps) % frames.length;
     const file = frames[index] ?? frames[0];
     if (!file) return;
     const flash = player.hurtFlash > PLAYER.hurtFlash - PLAYER.hurtFlashWhite;
@@ -246,34 +250,75 @@ export class Renderer {
     context.globalAlpha = 1;
   }
 
-  private drawEnemySprite(state: GameState): void {
-    const enemy = state.enemy;
+  private drawEnemySprite(state: GameState, enemy: Enemy): void {
     const context = this.context;
-    const frames = enemy.moving ? SPRITES.enemyRun : SPRITES.enemyIdle;
+    const ranged = enemy.kind === "ranged";
+    const frames = enemy.moving
+      ? ranged
+        ? SPRITES.rangedRun
+        : SPRITES.enemyRun
+      : ranged
+        ? SPRITES.rangedIdle
+        : SPRITES.enemyIdle;
     const fps = enemy.moving ? 10 : 6;
     const index = Math.floor(state.time * fps) % frames.length;
     const file = frames[index] ?? frames[0];
     if (!file) return;
 
-    const hit = state.time - this.effects.enemyHitAt < 0.08;
     const telegraphing = enemy.windup > 0;
-    const sprite = hit
-      ? this.tint(file, "rgba(255, 255, 255, 0.85)")
-      : telegraphing
-        ? this.tint(file, "rgba(255, 70, 60, 0.55)")
-        : this.image(file);
+    const sprite =
+      enemy.hurtFlash > 0
+        ? this.tint(file, "rgba(255, 255, 255, 0.85)")
+        : enemy.stagger > 0
+          ? this.tint(file, "rgba(180, 200, 255, 0.35)")
+          : telegraphing
+            ? this.tint(file, "rgba(255, 70, 60, 0.55)")
+            : this.image(file);
 
     const facing = state.player.x < enemy.x ? -1 : 1;
     const alpha =
-      enemy.status === "dying" ? clamp(enemy.fade / ENEMY.fade, 0, 1) : 1;
+      enemy.status === "dying" ? clamp(enemy.fade / ENEMY_FADE, 0, 1) : 1;
+    const height = ranged ? 16 : 23;
 
     context.save();
     context.globalAlpha = alpha;
     context.translate(Math.round(enemy.x), Math.round(enemy.y));
     context.scale(facing, 1);
-    context.drawImage(sprite, -8, -23);
+    context.drawImage(sprite, -8, -height);
     context.restore();
     context.globalAlpha = 1;
+  }
+
+  private drawProjectiles(state: GameState): void {
+    const context = this.context;
+    for (const projectile of state.projectiles) {
+      const speed = Math.hypot(projectile.vx, projectile.vy) || 1;
+      const direction = { x: projectile.vx / speed, y: projectile.vy / speed };
+
+      for (let index = 1; index <= 3; index += 1) {
+        const offset = index * 3;
+        context.fillStyle = `rgba(200, 166, 255, ${0.45 / index})`;
+        context.beginPath();
+        context.arc(
+          Math.round(projectile.x - direction.x * offset),
+          Math.round(projectile.y - direction.y * offset),
+          2,
+          0,
+          Math.PI * 2,
+        );
+        context.fill();
+      }
+
+      context.fillStyle = PROJECTILE_BODY;
+      context.beginPath();
+      context.arc(projectile.x, projectile.y, projectile.radius, 0, Math.PI * 2);
+      context.fill();
+
+      context.fillStyle = PROJECTILE_CORE;
+      context.beginPath();
+      context.arc(projectile.x, projectile.y, 2, 0, Math.PI * 2);
+      context.fill();
+    }
   }
 
   private drawSword(state: GameState): void {
@@ -283,13 +328,14 @@ export class Renderer {
     const aimAngle = Math.atan2(player.aim.y, player.aim.x);
     let swordAngle = aimAngle;
 
-    if (
-      player.attackTime >= 0 &&
-      player.attackTime < ATTACK.windup + ATTACK.active
-    ) {
-      const progress =
-        player.attackTime / (ATTACK.windup + ATTACK.active);
-      swordAngle = aimAngle + (-70 + 140 * progress) * (Math.PI / 180);
+    if (player.comboStep > 0) {
+      const definition = stepDefinition(player.comboStep);
+      const sweep = definition.windup + definition.active;
+      if (player.comboTime < sweep) {
+        const progress = player.comboTime / sweep;
+        const range = player.comboStep === 3 ? 90 : 70;
+        swordAngle = aimAngle + (-range + 2 * range * progress) * (Math.PI / 180);
+      }
     }
 
     context.save();
@@ -304,42 +350,65 @@ export class Renderer {
 
   private drawSwing(state: GameState): void {
     const context = this.context;
-    const player = state.player;
-    const activeEnd = ATTACK.windup + ATTACK.active;
 
     for (const swing of this.effects.swings) {
+      const definition = stepDefinition(swing.step);
       const elapsed = state.time - swing.born;
-      if (elapsed < ATTACK.windup || elapsed >= activeEnd + 0.12) continue;
+      const activeEnd = definition.windup + definition.active;
+      const fade = swing.step === 3 ? 0.18 : 0.12;
+      if (elapsed < definition.windup || elapsed >= activeEnd + fade) continue;
 
       const alpha =
         elapsed < activeEnd
-          ? 0.35
-          : 0.35 * (1 - (elapsed - activeEnd) / 0.12);
-      context.fillStyle = `rgba(255, 214, 120, ${alpha})`;
+          ? swing.step === 3
+            ? 0.55
+            : 0.35
+          : (swing.step === 3 ? 0.55 : 0.35) *
+            (1 - (elapsed - activeEnd) / fade);
+      const color =
+        swing.step === 3
+          ? `rgba(255, 226, 150, ${alpha})`
+          : `rgba(255, 214, 120, ${alpha})`;
+
+      context.fillStyle = color;
       context.beginPath();
-      context.moveTo(player.x, player.y);
+      context.moveTo(state.player.x, state.player.y);
       context.arc(
-        player.x,
-        player.y,
-        ATTACK.reach,
-        swing.angle - SWING_HALF_ANGLE,
-        swing.angle + SWING_HALF_ANGLE,
+        state.player.x,
+        state.player.y,
+        definition.reach,
+        swing.angle - definition.halfAngle,
+        swing.angle + definition.halfAngle,
       );
       context.closePath();
       context.fill();
     }
   }
 
-  private drawTelegraph(state: GameState): void {
-    const enemy = state.enemy;
-    if (enemy.windup <= 0) return;
-
+  private drawTelegraphs(state: GameState): void {
     const context = this.context;
-    context.strokeStyle = "rgba(255, 70, 60, 0.35)";
-    context.lineWidth = 3;
-    context.beginPath();
-    context.arc(enemy.x, enemy.y, ENEMY.attackRange, 0, Math.PI * 2);
-    context.stroke();
+
+    for (const enemy of state.enemies) {
+      if (enemy.status !== "alive" || enemy.windup <= 0) continue;
+
+      if (enemy.kind === "melee") {
+        context.strokeStyle = "rgba(255, 70, 60, 0.35)";
+        context.lineWidth = 3;
+        context.beginPath();
+        context.arc(enemy.x, enemy.y, MELEE.attackRange, 0, Math.PI * 2);
+        context.stroke();
+        continue;
+      }
+
+      // The sight line is the ranged enemy's non-color telegraph cue and
+      // mirrors the line-of-sight rule.
+      context.strokeStyle = "rgba(255, 70, 60, 0.35)";
+      context.lineWidth = 1;
+      context.beginPath();
+      context.moveTo(enemy.x, enemy.y);
+      context.lineTo(state.player.x, state.player.y);
+      context.stroke();
+    }
   }
 
   private drawSparks(state: GameState): void {
@@ -348,19 +417,21 @@ export class Renderer {
 
     for (const spark of this.effects.sparks) {
       const age = state.time - spark.born;
-      if (age < 0 || age >= 0.12) continue;
-      const alpha = 1 - age / 0.12;
-      context.strokeStyle = `rgba(255, 255, 255, ${alpha})`;
-      for (let index = 0; index < 4; index += 1) {
-        const angle = (Math.PI / 4) * (index * 2 + 1);
-        const dx = Math.cos(angle) * SPARK_LENGTH;
-        const dy = Math.sin(angle) * SPARK_LENGTH;
+      if (age < 0 || age >= spark.life) continue;
+      const alpha = 1 - age / spark.life;
+      context.globalAlpha = alpha;
+      context.strokeStyle = spark.color;
+      for (let index = 0; index < spark.count; index += 1) {
+        const angle = (Math.PI * 2 * index) / spark.count + Math.PI / 4;
+        const dx = Math.cos(angle) * spark.length;
+        const dy = Math.sin(angle) * spark.length;
         context.beginPath();
         context.moveTo(spark.x, spark.y);
         context.lineTo(spark.x + dx, spark.y + dy);
         context.stroke();
       }
     }
+    context.globalAlpha = 1;
   }
 
   private drawAim(state: GameState): void {
@@ -391,6 +462,7 @@ export class Renderer {
 
   private drawHud(
     state: GameState,
+    cssWidth: number,
     cssHeight: number,
   ): void {
     const context = this.context;
@@ -413,18 +485,58 @@ export class Renderer {
       );
     }
 
-    context.font = "14px system-ui, sans-serif";
+    // The earned point is not part of the death screen; it is only shown
+    // while the run is playable.
+    if (state.status === "playing") {
+      context.font = "14px system-ui, sans-serif";
+      context.textBaseline = "top";
+      context.textAlign = "left";
+      context.fillStyle =
+        state.run.skillPoints > 0
+          ? SKILL_POINT_COLOR
+          : "rgba(255, 255, 255, 0.7)";
+      context.fillText(
+        `Skill point: ${state.run.skillPoints}`,
+        HUD_INSET,
+        SKILL_POINT_TOP,
+      );
+    }
+
+    this.drawNotice(state, cssWidth);
+
     context.textBaseline = "bottom";
-    context.textAlign = "left";
     context.fillStyle = "rgba(255, 255, 255, 0.7)";
     context.fillText(
-      "WASD move · Mouse aim · LMB attack · Space dodge · R restart",
+      "WASD move · Mouse aim · LMB combo · Space dodge · R restart",
       HUD_INSET,
       cssHeight - HUD_INSET,
     );
 
     context.textAlign = "left";
     context.textBaseline = "alphabetic";
+  }
+
+  private drawNotice(state: GameState, cssWidth: number): void {
+    if (state.status !== "playing") return;
+    const elapsed = state.time - this.effects.noticeAt;
+    if (elapsed < 0 || elapsed >= NOTICE_LIFE) return;
+
+    const alpha =
+      elapsed < NOTICE_FADE_IN
+        ? elapsed / NOTICE_FADE_IN
+        : elapsed > NOTICE_LIFE - NOTICE_FADE_OUT
+          ? (NOTICE_LIFE - elapsed) / NOTICE_FADE_OUT
+          : 1;
+
+    const context = this.context;
+    context.globalAlpha = clamp(alpha, 0, 1);
+    context.fillStyle = SKILL_POINT_COLOR;
+    context.font = "18px system-ui, sans-serif";
+    context.textAlign = "center";
+    context.textBaseline = "top";
+    context.fillText("Combo complete · +1 skill point", cssWidth / 2, 72);
+    context.globalAlpha = 1;
+    context.textAlign = "left";
   }
 
   private drawDeathOverlay(cssWidth: number, cssHeight: number): void {

@@ -7,7 +7,7 @@
 | Version | `0.2.0` |
 | Task ID | `001` |
 | Owning agent | `programmer` |
-| Status | `Not started` |
+| Status | `Passed` |
 | Depends on | Approved `design/0.2.0/design-decisions.md` |
 | Produces | Implementation in `src/`, unit and Cypress tests, `programmer/0.2.0/CoT.md` |
 | Next task | `docs/tasks/0.2.0/001-qa.md` |

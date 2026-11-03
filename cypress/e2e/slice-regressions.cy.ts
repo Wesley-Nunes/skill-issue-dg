@@ -9,20 +9,91 @@ function snap(): Cypress.Chainable<DebugSnapshot> {
     .then((win) => win.__gameDebug!.getSnapshot());
 }
 
-function approach(attempt = 0): void {
+/** The first living melee enemy, or the first enemy as a fallback. */
+function meleeTarget(snapshot: DebugSnapshot) {
+  return (
+    snapshot.enemies.find(
+      (enemy) => enemy.kind === "melee" && enemy.status === "alive",
+    ) ?? snapshot.enemies[0]!
+  );
+}
+
+function clamp(value: number, min: number, max: number): number {
+  return Math.min(Math.max(value, min), max);
+}
+
+/** True once the smoothed camera has caught up with its clamped target. */
+function cameraSettled(s: DebugSnapshot): boolean {
+  const targetX = clamp(s.player.x - s.viewport.width / 2, 0, 640 - s.viewport.width);
+  const targetY = clamp(
+    s.player.y - s.viewport.height / 2,
+    0,
+    384 - s.viewport.height,
+  );
+  return Math.abs(s.camera.x - targetX) < 1 && Math.abs(s.camera.y - targetY) < 1;
+}
+
+function walkToward(
+  worldX: number,
+  worldY: number,
+  stop: number,
+  attempt = 0,
+): void {
   snap().then((s) => {
-    const dx = s.enemy.x - s.player.x;
-    const dy = s.enemy.y - s.player.y;
-    if (Math.hypot(dx, dy) < 30 || attempt >= 60) return;
+    const dx = worldX - s.player.x;
+    const dy = worldY - s.player.y;
+    if (Math.hypot(dx, dy) < stop) {
+      // The pointer is stored in screen space, so wait for the camera to stop
+      // moving before the caller aims at a world position.
+      if (cameraSettled(s) || attempt >= 40) return;
+      cy.wait(100);
+      cy.then(() => walkToward(worldX, worldY, stop, attempt + 1));
+      return;
+    }
+    if (attempt >= 60) return;
+
     const keys: string[] = [];
     if (dy < -6) keys.push("w");
     else if (dy > 6) keys.push("s");
     if (dx < -6) keys.push("a");
     else if (dx > 6) keys.push("d");
+    if (keys.length === 0) return;
+
     keys.forEach((key) => cy.document().trigger("keydown", { key }));
     cy.wait(120);
     keys.forEach((key) => cy.document().trigger("keyup", { key }));
-    cy.then(() => approach(attempt + 1));
+    cy.then(() => walkToward(worldX, worldY, stop, attempt + 1));
+  });
+}
+
+function approachMelee(): void {
+  snap().then((s) => {
+    const target = meleeTarget(s);
+    walkToward(target.x, target.y, 28);
+  });
+}
+
+function clickWorld(worldX: number, worldY: number): void {
+  snap().then((s) => {
+    const clientX = (worldX - s.camera.x) * s.zoom;
+    const clientY = (worldY - s.camera.y) * s.zoom;
+    cy.get("canvas#game").trigger("mousemove", {
+      clientX,
+      clientY,
+      force: true,
+    });
+    cy.get("canvas#game").trigger("mousedown", {
+      button: 0,
+      clientX,
+      clientY,
+      force: true,
+    });
+    cy.get("canvas#game").trigger("mouseup", {
+      button: 0,
+      clientX,
+      clientY,
+      force: true,
+    });
   });
 }
 
@@ -53,9 +124,39 @@ function pollUntil(
   });
 }
 
+/**
+ * Presses attack whenever the chain is idle or a resolved hit needs its next
+ * step buffered. Returns once the challenge awards a point or attempts run out.
+ */
+function playComboStep(attempts = 80): void {
+  snap().then((s) => {
+    if (s.skillPoints > 0) return;
+    expect(attempts, "combo attempts").to.be.greaterThan(0);
+
+    const target = meleeTarget(s);
+    const readyToPress =
+      s.player.comboStep === 0 ||
+      (s.player.comboResolved && !s.player.comboQueued);
+    const stepsDone = s.player.comboStep === 3 ? 3 : s.player.comboStep;
+
+    if (readyToPress && stepsDone < 3) {
+      clickWorld(target.x, target.y);
+    }
+
+    if (stepsDone === 3 && s.player.comboResolved) {
+      // The award is already granted in the same frame as the finisher hit.
+      pollUntil((after) => after.skillPoints > 0, "the combo skill point", 20);
+      return;
+    }
+
+    cy.wait(90);
+    cy.then(() => playComboStep(attempts - 1));
+  });
+}
+
 const exceptions: string[] = [];
 
-describe("0.1.0 QA verification", () => {
+describe("0.2.0 QA verification", () => {
   beforeEach(() => {
     exceptions.length = 0;
     cy.on("uncaught:exception", (error) => {
@@ -152,70 +253,106 @@ describe("0.1.0 QA verification", () => {
     });
   });
 
-  it("damages the enemy exactly once per swing", () => {
-    approach();
+  it("damages a melee enemy exactly once per press", () => {
+    approachMelee();
     snap().then((s) => {
-      const x = (s.enemy.x - s.camera.x) * s.zoom;
-      const y = (s.enemy.y - s.camera.y) * s.zoom;
-      cy.get("canvas#game").trigger("mousemove", {
-        clientX: x,
-        clientY: y,
-        force: true,
-      });
-      cy.get("canvas#game").trigger("mousedown", {
-        button: 0,
-        clientX: x,
-        clientY: y,
-        force: true,
-      });
-      cy.wait(100);
-      cy.get("canvas#game").trigger("mouseup", { button: 0, force: true });
-      cy.wait(900);
+      const target = meleeTarget(s);
+      clickWorld(target.x, target.y);
 
+      pollUntil(
+        (after) =>
+          (after.enemies.find((enemy) => enemy.id === target.id)?.hp ?? 10) <
+          10,
+        "the first combo hit",
+      );
       snap().then((after) => {
-        expect(after.enemy.hp, "hp after one swing").to.equal(4);
+        const hp = after.enemies.find((enemy) => enemy.id === target.id)!.hp;
+        expect(hp, "hp after one press").to.equal(8);
       });
     });
   });
 
-  it("does not damage the enemy when the swing aims away", () => {
-    approach();
+  it("does not damage a melee enemy when the swing aims away", () => {
+    approachMelee();
     snap().then((s) => {
-      const length = Math.hypot(s.player.x - s.enemy.x, s.player.y - s.enemy.y) || 1;
-      const awayX = s.player.x + ((s.player.x - s.enemy.x) / length) * 40;
-      const awayY = s.player.y + ((s.player.y - s.enemy.y) / length) * 40;
-      const clientX = Math.min(
-        Math.max((awayX - s.camera.x) * s.zoom, 1),
-        1438,
-      );
-      const clientY = Math.min(
-        Math.max((awayY - s.camera.y) * s.zoom, 1),
-        808,
-      );
-
-      cy.get("canvas#game").trigger("mousemove", {
-        clientX,
-        clientY,
-        force: true,
-      });
-      cy.get("canvas#game").trigger("mousedown", {
-        button: 0,
-        clientX,
-        clientY,
-        force: true,
-      });
-      cy.wait(100);
-      cy.get("canvas#game").trigger("mouseup", { button: 0, force: true });
+      const target = meleeTarget(s);
+      const length =
+        Math.hypot(s.player.x - target.x, s.player.y - target.y) || 1;
+      const awayX = s.player.x + ((s.player.x - target.x) / length) * 40;
+      const awayY = s.player.y + ((s.player.y - target.y) / length) * 40;
+      clickWorld(awayX, awayY);
       cy.wait(900);
 
       snap().then((after) => {
-        expect(after.enemy.hp, "hp after aiming away").to.equal(6);
+        const hp = after.enemies.find((enemy) => enemy.id === target.id)!.hp;
+        expect(hp, "hp after aiming away").to.equal(10);
       });
+    });
+  });
+
+  it("chains three connected hits and awards one skill point", () => {
+    approachMelee();
+    playComboStep();
+
+    pollUntil(
+      (s) => s.skillPoints === 1 && s.challengeEarned,
+      "the combo challenge award",
+      40,
+    );
+    snap().then((s) => {
+      expect(s.skillPoints).to.equal(1);
+      expect(s.challengeEarned).to.equal(true);
+      const melee = s.enemies.find((enemy) => enemy.kind === "melee");
+      expect(melee!.hp).to.be.lessThan(10);
+    });
+  });
+
+  it("awards one skill point per run and clears it on restart", () => {
+    approachMelee();
+    playComboStep();
+    pollUntil((s) => s.skillPoints === 1, "the combo skill point", 60);
+
+    // A second qualified chain must not award again.
+    approachMelee();
+    playComboStep(40);
+    snap().then((s) => {
+      expect(s.skillPoints).to.equal(1);
+    });
+
+    // Restarting is only offered after death, so fall in combat first.
+    waitForDeath();
+    cy.document().trigger("keydown", { key: "r" });
+    cy.document().trigger("keyup", { key: "r" });
+    cy.wait(150);
+    snap().then((s) => {
+      expect(s.status).to.equal("playing");
+      expect(s.skillPoints).to.equal(0);
+      expect(s.challengeEarned).to.equal(false);
+      expect(s.enemies).to.have.length(3);
+    });
+  });
+
+  it("fires projectiles that can hit the player", () => {
+    // Walk into the ranged enemy's aggro band without entering its retreat ring.
+    walkToward(560, 96, 200);
+
+    pollUntil(
+      (s) => s.projectiles.length > 0,
+      "a ranged projectile",
+      60,
+    );
+    pollUntil(
+      (s) => s.player.hp < 6,
+      "projectile damage",
+      80,
+    );
+    snap().then((s) => {
+      expect(s.player.hp).to.be.lessThan(6);
     });
   });
 
   it("freezes after death and restores the initial state on repeated restarts", () => {
-    approach();
+    approachMelee();
     waitForDeath();
 
     snap().then((dead) => {
@@ -236,7 +373,7 @@ describe("0.1.0 QA verification", () => {
       snap().then((frozen) => {
         expect(frozen.player.x).to.equal(dead.player.x);
         expect(frozen.player.y).to.equal(dead.player.y);
-        expect(frozen.enemy.hp).to.equal(dead.enemy.hp);
+        expect(frozen.enemies).to.deep.equal(dead.enemies);
         expect(frozen.status).to.equal("dead");
       });
     });
@@ -251,10 +388,16 @@ describe("0.1.0 QA verification", () => {
           expect(s.player.hp).to.equal(6);
           expect(s.player.x).to.be.closeTo(320, 1);
           expect(s.player.y).to.be.closeTo(320, 1);
-          expect(s.enemy.hp).to.equal(6);
-          expect(s.enemy.status).to.equal("alive");
-          expect(s.enemy.x).to.be.closeTo(448, 1);
-          expect(s.enemy.y).to.be.closeTo(128, 1);
+          expect(s.enemies.map((enemy) => enemy.hp)).to.deep.equal([
+            10, 10, 6,
+          ]);
+          expect(s.enemies.map((enemy) => enemy.status)).to.deep.equal([
+            "alive",
+            "alive",
+            "alive",
+          ]);
+          expect(s.skillPoints).to.equal(0);
+          expect(s.projectiles).to.have.length(0);
         });
       });
     }

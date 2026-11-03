@@ -4,7 +4,7 @@ import type { InputFrame, Player, Vec2 } from "../../game/types";
 export class Input {
   private readonly keys = new Set<string>();
   private readonly mouse = { x: 0, y: 0 };
-  private mouseDown = false;
+  private attackQueued = false;
   private dodgeQueued = false;
   private restartQueued = false;
 
@@ -13,7 +13,6 @@ export class Input {
     document.addEventListener("keyup", this.onKeyUp);
     document.addEventListener("mousemove", this.onMouseMove);
     document.addEventListener("mousedown", this.onMouseDown);
-    document.addEventListener("mouseup", this.onMouseUp);
     document.addEventListener("contextmenu", this.onContextMenu);
   }
 
@@ -35,15 +34,17 @@ export class Input {
         ? { x: dx / length, y: dy / length }
         : { x: Math.SQRT1_2, y: -Math.SQRT1_2 };
 
+    const attack = this.attackQueued;
     const dodge = this.dodgeQueued;
     const restart = this.restartQueued;
+    this.attackQueued = false;
     this.dodgeQueued = false;
     this.restartQueued = false;
 
     return {
       move,
       aim,
-      attack: this.mouseDown,
+      attack,
       dodge,
       restart,
       pointer,
@@ -74,11 +75,8 @@ export class Input {
   };
 
   private readonly onMouseDown = (event: MouseEvent): void => {
-    if (event.button === 0) this.mouseDown = true;
-  };
-
-  private readonly onMouseUp = (event: MouseEvent): void => {
-    if (event.button === 0) this.mouseDown = false;
+    // One press advances one chain step; holding the button does not repeat.
+    if (event.button === 0) this.attackQueued = true;
   };
 
   private readonly onContextMenu = (event: MouseEvent): void => {
