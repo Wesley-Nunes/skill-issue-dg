@@ -30,7 +30,7 @@ Inputs: `docs/tasks/0.2.0/001-programmer.md`, `docs/tasks/0.2.0/001-qa.md`, `des
 
 A4/A5 follow-ups: the normal production build contains 43 asset frames (35 existing + 8 `imp`) matching `public/assets/dungeon-tileset-ii/frames/`, and **no** `__gameDebug` reference (`grep -c` = 0). The debug hook exists only in the `VITE_E2E=1` build.
 
-A5 details: `playable-slice.cy.ts` (boot with three enemies, painted floor/hearts, WASD, one-press damage, death + `R`), `slice-regressions.cy.ts` (no console errors/uncaught exceptions, resize/camera/pointer, dodge distance, one hit per press, aim-away miss, full-chain award, once-per-run gating + restart clear, projectile fired and damaging, death freeze + three consecutive restarts).
+A5 details: `playable-slice.cy.ts` (boot with three enemies, painted floor/hearts, WASD, one-press damage, death + `R`), `slice-regressions.cy.ts` (no console errors/uncaught exceptions, resize/camera/pointer, dodge distance, one hit per press, aim-away miss, full-chain award, point persistence until restart, restart clear, projectile fired and damaging, death freeze + three consecutive restarts).
 
 ## B. Acceptance criteria — `001-programmer.md`
 
@@ -43,13 +43,13 @@ A5 details: `playable-slice.cy.ts` (boot with three enemies, painted floor/heart
 | 5 | A step damages every enemy in the arc, once per step | Pass | `game.test.ts` two-enemies-in-arc test (both lose 2 HP) and exact HP after one press; `comboResolved` guard inspected in `game.ts` |
 | 6 | Ranged retreats inside the near band, closes beyond the far band, holds otherwise, respects walls, no fire without LOS/telegraph | Pass | `enemy.test.ts` retreat/close/hold, cooldown block, telegraph release, wall clamp, no-LOS no-fire; `vision.test.ts` open/blocked/same-point segments. In-play LOS is a documented no-op in the convex room |
 | 7 | Projectile speed/lifetime/damage, invulnerability gate, wall/hit destruction, no tunneling | Pass | `projectile.test.ts` spawn/travel/wall/lifetime/overlap; `game.test.ts` projectile damage, dodge avoids, i-frames block; `dt` clamp (≤0.05 s) limits a frame to 7.5 px and any outside-bounds position is destroyed |
-| 8 | First fully connected chain awards exactly one point, HUD reflects it, later chains award nothing | Pass | `challenge.test.ts` predicate; `game.test.ts` award + once-per-run; Cypress award, notice capture, and second-chain no-award test |
+| 8 | First fully connected chain awards exactly one point, HUD reflects it, later chains award nothing | Pass | `challenge.test.ts` predicate; `game.test.ts` award and a second fully connected chain that awards nothing; Cypress award, notice capture, and point persistence |
 | 9 | `R` resets points, flag, combo state, projectiles and enemies; death loses the point from the HUD | Pass | `game.test.ts` restart reset; Cypress restart test asserts 0 points, three full-HP enemies, no projectiles; the counter and notice are not drawn while dead (code inspection + death capture) |
 | 10 | Killing all three marks the room clear without ending the run | Pass | `game.test.ts` room-clear flag/event with status `playing`; renderer/engine inspection; no respawn path exists |
 | 11 | Gameplay including projectiles freezes while dead; only `R` accepted | Pass | Cypress death-freeze test compares player and enemy snapshots after input; restart gating inspected in `Game.step` |
 | 12 | Debug snapshot exposes enemies, projectiles, combo state, points, flag, room clear; read-only | Pass | `types/index.ts` snapshot shape; `game.snapshot()` is a pure read; hook only installed in dev/`VITE_E2E=1` builds |
 | 13 | `typecheck`, `test`, `build`, `e2e` pass; unit coverage of every new rule | Pass | A1–A5 above; 105 unit tests across combo, challenge, vision, projectile, enemy/ranged, damage/knockback, effects, engine |
-| 14 | Cypress verifies combo damage, ranged fire/dodge, award + HUD, restart clear | Pass (dodge via unit + observed projectile) | Cypress covers one-press damage, full-chain award, notice screenshot, second-chain gating, restart clear, projectile fire+hit. Dodge immunity to a projectile is covered by `game.test.ts`; the browser run did not script a frame-perfect dodge |
+| 14 | Cypress verifies combo damage, ranged fire/dodge, award + HUD, restart clear | Pass (dodge via unit + observed projectile) | Cypress covers one-press damage, full-chain award, notice screenshot, point persistence, restart clear, projectile fire+hit. Dodge immunity to a projectile and the once-per-run gate are covered by `game.test.ts`; the browser run did not script a frame-perfect dodge |
 | 15 | No out-of-scope implementation; `0.1.0` behaviour still passes | Pass | Diff inspection (see G); all `0.1.0` regressions in `slice-regressions.cy.ts` pass |
 
 ## C. Design compliance (spot checks)
