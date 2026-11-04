@@ -124,29 +124,13 @@ function pollUntil(
   });
 }
 
-/**
- * Starts the chain, then presses only while the input window is open. Polls
- * are short because the window lasts 0.10 s.
- */
-function playComboStep(attempts = 120): void {
-  snap().then((s) => {
-    if (s.skillPoints > 0) return;
-    expect(attempts, "combo attempts").to.be.greaterThan(0);
-
-    const target = meleeTarget(s);
-    if (s.player.comboStep === 0 || s.player.comboWindowOpen) {
-      clickWorld(target.x, target.y);
-    }
-
-    if (s.player.comboStep === 3) {
-      // The finisher lands on its own and the award follows the connecting hit.
-      pollUntil((after) => after.skillPoints > 0, "the combo skill point", 20);
-      return;
-    }
-
-    cy.wait(25);
-    cy.then(() => playComboStep(attempts - 1));
-  });
+/** World-space centre of the upper-right intact fragment. */
+function fragmentPoint(enemy: DebugSnapshot["enemies"][number]) {
+  const angle = (-45 * Math.PI) / 180;
+  return {
+    x: enemy.x + Math.cos(angle) * 12,
+    y: enemy.y - 10 + Math.sin(angle) * 12,
+  };
 }
 
 const exceptions: string[] = [];
@@ -285,20 +269,31 @@ describe("0.2.0 QA verification", () => {
     });
   });
 
-  it("chains three connected hits and awards one skill point", () => {
-    approachMelee();
-    playComboStep();
+  it("breaks a spirit fragment with the light attack", () => {
+    snap().then((s) => {
+      const target = meleeTarget(s);
+      walkToward(target.x, target.y, 16);
+    });
+
+    snap().then((s) => {
+      const target = meleeTarget(s);
+      const point = fragmentPoint(target);
+      clickWorld(point.x, point.y);
+    });
 
     pollUntil(
-      (s) => s.skillPoints === 1 && s.challengeEarned,
-      "the combo challenge award",
+      (s) => {
+        const enemy = s.enemies.find((entry) => entry.kind === "melee");
+        return enemy !== undefined && enemy.fragments.includes(false);
+      },
+      "a spirit fragment to break",
       40,
     );
+
     snap().then((s) => {
-      expect(s.skillPoints).to.equal(1);
-      expect(s.challengeEarned).to.equal(true);
-      const melee = s.enemies.find((enemy) => enemy.kind === "melee");
-      expect(melee!.hp).to.be.lessThan(10);
+      const enemy = s.enemies.find((entry) => entry.kind === "melee")!;
+      expect(enemy.fragments.filter(Boolean).length).to.be.lessThan(2);
+      expect(s.spirit).to.equal(0);
     });
   });
 
@@ -313,37 +308,43 @@ describe("0.2.0 QA verification", () => {
     }
 
     snap().then((s) => {
-      expect(s.skillPoints).to.equal(0);
-      expect(s.challengeEarned).to.equal(false);
       expect(s.player.comboStep, "mashing never reaches the finisher").to.be.lessThan(
         3,
       );
+      expect(s.spirit).to.equal(0);
     });
   });
 
-  it("keeps the earned skill point until restart", () => {
-    approachMelee();
-    playComboStep();
-    pollUntil((s) => s.skillPoints === 1, "the combo skill point", 60);
-
-    // The once-per-run gate itself is covered by the engine unit test
-    // (a second fully connected chain awards nothing).
-    cy.wait(500);
+  it("resets spirit and fragments on restart", () => {
     snap().then((s) => {
-      expect(s.skillPoints).to.equal(1);
-      expect(s.challengeEarned).to.equal(true);
+      const target = meleeTarget(s);
+      walkToward(target.x, target.y, 16);
     });
+    snap().then((s) => {
+      const point = fragmentPoint(meleeTarget(s));
+      clickWorld(point.x, point.y);
+    });
+    pollUntil(
+      (s) =>
+        s.enemies.some(
+          (enemy) => enemy.kind === "melee" && enemy.fragments.includes(false),
+        ),
+      "a spirit fragment to break",
+      40,
+    );
 
-    // Restarting is only offered after death, so fall in combat first.
     waitForDeath();
     cy.document().trigger("keydown", { key: "r" });
     cy.document().trigger("keyup", { key: "r" });
     cy.wait(150);
     snap().then((s) => {
       expect(s.status).to.equal("playing");
-      expect(s.skillPoints).to.equal(0);
-      expect(s.challengeEarned).to.equal(false);
+      expect(s.spirit).to.equal(0);
+      expect(s.floorPurified).to.equal(false);
       expect(s.enemies).to.have.length(3);
+      expect(
+        s.enemies.every((enemy) => enemy.fragments.every((intact) => intact)),
+      ).to.equal(true);
     });
   });
 
@@ -411,7 +412,13 @@ describe("0.2.0 QA verification", () => {
             "alive",
             "alive",
           ]);
-          expect(s.skillPoints).to.equal(0);
+          expect(s.spirit).to.equal(0);
+          expect(s.floorPurified).to.equal(false);
+          expect(
+            s.enemies.every((enemy) =>
+              enemy.fragments.every((intact) => intact),
+            ),
+          ).to.equal(true);
           expect(s.projectiles).to.have.length(0);
         });
       });

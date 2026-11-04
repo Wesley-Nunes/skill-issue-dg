@@ -3,6 +3,7 @@ import {
   MELEE,
   PLAYER,
   PLAYER_SPAWN,
+  PURIFICATION,
   RANGED,
 } from "../game/data/config";
 import type { Enemy, GameState, Player } from "../game/types";
@@ -41,6 +42,8 @@ export function createEnemy(
     kind: spawn.kind,
     x: spawn.x,
     y: spawn.y,
+    homeX: spawn.x,
+    homeY: spawn.y,
     radius: stats.radius,
     hp: stats.maxHp,
     maxHp: stats.maxHp,
@@ -54,6 +57,9 @@ export function createEnemy(
     attackCooldown: 0,
     attackHit: false,
     moving: false,
+    fragments: PURIFICATION.angles.map(() => true),
+    rested: false,
+    respawn: 0,
   };
 }
 
@@ -72,6 +78,6 @@ export function createInitialState(): GameState {
     hitstop: 0,
     camera: { x: 0, y: 0 },
     pointer: { x: PLAYER_SPAWN.x + 80, y: PLAYER_SPAWN.y - 80 },
-    run: { skillPoints: 0, challengeEarned: false, roomCleared: false },
+    run: { spirit: 0, floorPurified: false },
   };
 }

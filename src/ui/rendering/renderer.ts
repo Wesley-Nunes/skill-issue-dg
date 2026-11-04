@@ -3,6 +3,7 @@ import {
   ENEMY_FADE,
   MELEE,
   PLAYER,
+  PURIFICATION,
   TILE,
   WORLD,
   ZOOM,
@@ -10,6 +11,10 @@ import {
 import { floorTileAt, wallTiles } from "../../game/data/room";
 import { SPRITES } from "../../game/data/sprites";
 import { comboWindowOpen } from "../../game/systems/combo";
+import {
+  fragmentPosition,
+  hasAllFragmentsBroken,
+} from "../../game/systems/purification";
 import type {
   Enemy,
   GameEvent,
@@ -23,11 +28,13 @@ const VOID_COLOR = "#0b0a0f";
 const HUD_INSET = 24;
 const HEART_SIZE = { width: 39, height: 36 };
 const HEART_GAP = 6;
-const SKILL_POINT_COLOR = "#f2d38a";
-const SKILL_POINT_TOP = 74;
-const NOTICE_LIFE = 1.6;
-const NOTICE_FADE_IN = 0.15;
-const NOTICE_FADE_OUT = 0.35;
+const SPIRIT_TEXT_TOP = 74;
+const SPIRIT_BAR_TOP = 92;
+const SPIRIT_BAR_WIDTH = 120;
+const SPIRIT_BAR_HEIGHT = 6;
+const SPIRIT_COLOR = "#bfe9ff";
+const SPIRIT_TRACK = "rgba(191, 233, 255, 0.16)";
+const SPIRIT_BORDER = "rgba(191, 233, 255, 0.45)";
 const PROJECTILE_BODY = "rgba(200, 166, 255, 0.85)";
 const PROJECTILE_CORE = "rgba(255, 255, 255, 0.95)";
 const COMBO_PIP_RADIUS = 2.2;
@@ -98,6 +105,7 @@ export class Renderer {
     context.drawImage(this.background, 0, 0);
     this.drawShadows(state);
     this.drawEntities(state);
+    this.drawFragments(state);
     this.drawAfterimages(state);
     this.drawProjectiles(state);
     this.drawSword(state);
@@ -108,9 +116,11 @@ export class Renderer {
     this.drawAim(state);
 
     context.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
-    this.drawHud(state, cssWidth, cssHeight);
+    this.drawHud(state, cssHeight);
     if (state.status === "dead") {
       this.drawDeathOverlay(cssWidth, cssHeight);
+    } else if (state.status === "purified") {
+      this.drawPurifiedOverlay(cssWidth, cssHeight);
     }
   }
 
@@ -275,6 +285,8 @@ export class Renderer {
     if (!file) return;
 
     const telegraphing = enemy.windup > 0;
+    const readyToRest =
+      enemy.status === "alive" && hasAllFragmentsBroken(enemy);
     const sprite =
       enemy.hurtFlash > 0
         ? this.tint(file, "rgba(255, 255, 255, 0.85)")
@@ -282,12 +294,23 @@ export class Renderer {
           ? this.tint(file, "rgba(180, 200, 255, 0.35)")
           : telegraphing
             ? this.tint(file, "rgba(255, 70, 60, 0.55)")
-            : this.image(file);
+            : readyToRest
+              ? this.tint(file, "rgba(191, 233, 255, 0.4)")
+              : this.image(file);
 
     const facing = state.player.x < enemy.x ? -1 : 1;
     const alpha =
       enemy.status === "dying" ? clamp(enemy.fade / ENEMY_FADE, 0, 1) : 1;
     const height = ranged ? 16 : 23;
+
+    if (enemy.status === "alive" && hasAllFragmentsBroken(enemy)) {
+      const pulse = 0.45 + 0.18 * Math.sin(state.time * 6);
+      context.strokeStyle = `rgba(191, 233, 255, ${pulse})`;
+      context.lineWidth = 1.4;
+      context.beginPath();
+      context.arc(enemy.x, enemy.y - 10, 13, 0, Math.PI * 2);
+      context.stroke();
+    }
 
     context.save();
     context.globalAlpha = alpha;
@@ -296,6 +319,39 @@ export class Renderer {
     context.drawImage(sprite, -8, -height);
     context.restore();
     context.globalAlpha = 1;
+  }
+
+  /** Intact spirit fragments orbiting each living enemy. */
+  private drawFragments(state: GameState): void {
+    const context = this.context;
+
+    for (const enemy of state.enemies) {
+      if (enemy.status !== "alive") continue;
+      enemy.fragments.forEach((intact, index) => {
+        if (!intact) return;
+        const position = fragmentPosition(enemy, index);
+        const bob =
+          Math.sin(state.time * PURIFICATION.bobSpeed + index * Math.PI) *
+          PURIFICATION.bobAmplitude;
+        const x = position.x;
+        const y = position.y + bob;
+
+        context.fillStyle = "rgba(191, 233, 255, 0.18)";
+        context.beginPath();
+        context.arc(x, y, PURIFICATION.fragmentRadius + 2.6, 0, Math.PI * 2);
+        context.fill();
+
+        context.fillStyle = PURIFICATION.fragmentColor;
+        context.beginPath();
+        context.arc(x, y, PURIFICATION.fragmentRadius, 0, Math.PI * 2);
+        context.fill();
+
+        context.fillStyle = "rgba(255, 255, 255, 0.9)";
+        context.beginPath();
+        context.arc(x, y - 0.6, 1.1, 0, Math.PI * 2);
+        context.fill();
+      });
+    }
   }
 
   private drawProjectiles(state: GameState): void {
@@ -522,11 +578,7 @@ export class Renderer {
     drawCross("rgba(255, 255, 255, 0.7)", 4);
   }
 
-  private drawHud(
-    state: GameState,
-    cssWidth: number,
-    cssHeight: number,
-  ): void {
+  private drawHud(state: GameState, cssHeight: number): void {
     const context = this.context;
     const full = Math.floor(state.player.hp / 2);
     const half = state.player.hp % 2;
@@ -547,24 +599,42 @@ export class Renderer {
       );
     }
 
-    // The earned point is not part of the death screen; it is only shown
-    // while the run is playable.
+    // The spirit meter is hidden on the death screen, which covers the HUD.
     if (state.status === "playing") {
+      const percent = Math.round(state.run.spirit);
+
       context.font = "14px system-ui, sans-serif";
       context.textBaseline = "top";
       context.textAlign = "left";
       context.fillStyle =
-        state.run.skillPoints > 0
-          ? SKILL_POINT_COLOR
-          : "rgba(255, 255, 255, 0.7)";
-      context.fillText(
-        `Skill point: ${state.run.skillPoints}`,
+        state.run.spirit > 0 ? SPIRIT_COLOR : "rgba(255, 255, 255, 0.7)";
+      context.fillText(`Spirit: ${percent}%`, HUD_INSET, SPIRIT_TEXT_TOP);
+
+      context.fillStyle = SPIRIT_TRACK;
+      context.fillRect(
         HUD_INSET,
-        SKILL_POINT_TOP,
+        SPIRIT_BAR_TOP,
+        SPIRIT_BAR_WIDTH,
+        SPIRIT_BAR_HEIGHT,
+      );
+      context.fillStyle = SPIRIT_COLOR;
+      context.fillRect(
+        HUD_INSET,
+        SPIRIT_BAR_TOP,
+        Math.round(
+          (SPIRIT_BAR_WIDTH * state.run.spirit) / PURIFICATION.spiritThreshold,
+        ),
+        SPIRIT_BAR_HEIGHT,
+      );
+      context.strokeStyle = SPIRIT_BORDER;
+      context.lineWidth = 1;
+      context.strokeRect(
+        HUD_INSET + 0.5,
+        SPIRIT_BAR_TOP + 0.5,
+        SPIRIT_BAR_WIDTH - 1,
+        SPIRIT_BAR_HEIGHT - 1,
       );
     }
-
-    this.drawNotice(state, cssWidth);
 
     context.textBaseline = "bottom";
     context.fillStyle = "rgba(255, 255, 255, 0.7)";
@@ -578,26 +648,25 @@ export class Renderer {
     context.textBaseline = "alphabetic";
   }
 
-  private drawNotice(state: GameState, cssWidth: number): void {
-    if (state.status !== "playing") return;
-    const elapsed = state.time - this.effects.noticeAt;
-    if (elapsed < 0 || elapsed >= NOTICE_LIFE) return;
-
-    const alpha =
-      elapsed < NOTICE_FADE_IN
-        ? elapsed / NOTICE_FADE_IN
-        : elapsed > NOTICE_LIFE - NOTICE_FADE_OUT
-          ? (NOTICE_LIFE - elapsed) / NOTICE_FADE_OUT
-          : 1;
-
+  private drawPurifiedOverlay(cssWidth: number, cssHeight: number): void {
     const context = this.context;
-    context.globalAlpha = clamp(alpha, 0, 1);
-    context.fillStyle = SKILL_POINT_COLOR;
-    context.font = "18px system-ui, sans-serif";
+    context.fillStyle = "rgba(5, 10, 16, 0.72)";
+    context.fillRect(0, 0, cssWidth, cssHeight);
+
     context.textAlign = "center";
-    context.textBaseline = "top";
-    context.fillText("Combo complete · +1 skill point", cssWidth / 2, 72);
-    context.globalAlpha = 1;
+    context.textBaseline = "middle";
+    context.fillStyle = "#e8f7ff";
+    context.font = "48px system-ui, sans-serif";
+    context.fillText("Floor purified", cssWidth / 2, cssHeight / 2 - 30);
+
+    context.fillStyle = "rgba(191, 233, 255, 0.9)";
+    context.font = "20px system-ui, sans-serif";
+    context.fillText("The boss awaits", cssWidth / 2, cssHeight / 2 + 22);
+
+    context.fillStyle = "rgba(255, 255, 255, 0.75)";
+    context.font = "16px system-ui, sans-serif";
+    context.fillText("Press R to restart", cssWidth / 2, cssHeight / 2 + 60);
+
     context.textAlign = "left";
   }
 

@@ -3,7 +3,7 @@ export interface Vec2 {
   y: number;
 }
 
-export type GameStatus = "playing" | "dead";
+export type GameStatus = "playing" | "dead" | "purified";
 
 /** Why a combo chain stopped being available. */
 export type ComboEndReason =
@@ -67,6 +67,9 @@ export interface Enemy {
   kind: EnemyKind;
   x: number;
   y: number;
+  /** Spawn position a failed rite returns the enemy to. */
+  homeX: number;
+  homeY: number;
   radius: number;
   hp: number;
   maxHp: number;
@@ -80,6 +83,12 @@ export interface Enemy {
   attackCooldown: number;
   attackHit: boolean;
   moving: boolean;
+  /** One entry per spirit fragment; true while the fragment is intact. */
+  fragments: boolean[];
+  /** True once the enemy has been permanently put to rest. */
+  rested: boolean;
+  /** Seconds left before a failed-rite respawn; 0 when not pending. */
+  respawn: number;
 }
 
 export interface Projectile {
@@ -93,9 +102,10 @@ export interface Projectile {
 }
 
 export interface RunState {
-  skillPoints: number;
-  challengeEarned: boolean;
-  roomCleared: boolean;
+  /** Spirit gained from enemies put to rest, capped at the threshold. */
+  spirit: number;
+  /** True when the spirit meter is full and the floor is purified. */
+  floorPurified: boolean;
 }
 
 export type GameEvent =
@@ -111,8 +121,11 @@ export type GameEvent =
   | { type: "projectile-fired"; x: number; y: number; angle: number }
   | { type: "projectile-hit"; x: number; y: number }
   | { type: "projectile-blocked"; x: number; y: number }
-  | { type: "challenge-complete"; points: number }
-  | { type: "room-cleared" }
+  | { type: "fragment-broken"; x: number; y: number }
+  | { type: "fragments-restored"; x: number; y: number }
+  | { type: "enemy-rested"; x: number; y: number; spirit: number }
+  | { type: "enemy-respawned"; x: number; y: number }
+  | { type: "floor-purified" }
   | { type: "run-reset" };
 
 export interface GameState {
@@ -156,11 +169,13 @@ export interface DebugSnapshot {
     hp: number;
     maxHp: number;
     status: EnemyStatus;
+    fragments: boolean[];
+    rested: boolean;
+    respawn: number;
   }>;
   projectiles: Array<{ x: number; y: number }>;
-  skillPoints: number;
-  challengeEarned: boolean;
-  roomCleared: boolean;
+  spirit: number;
+  floorPurified: boolean;
   camera: Vec2;
   pointer: Vec2;
   viewport: Viewport;

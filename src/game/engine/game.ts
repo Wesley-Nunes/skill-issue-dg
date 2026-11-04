@@ -1,4 +1,4 @@
-import { CAMERA, COMBO, PROJECTILE, ROOM, ZOOM } from "../data/config";
+import { CAMERA, COMBO, PROJECTILE, PURIFICATION, ROOM, ZOOM } from "../data/config";
 import {
   comboPhase,
   comboWindowOpen,
@@ -7,7 +7,6 @@ import {
   stepDefinition,
   tickCombo,
 } from "../systems/combo";
-import { comboAwardsPoint } from "../systems/challenge";
 import { isInAttackArc } from "../systems/attack";
 import { clampCamera, updateCamera } from "../systems/camera";
 import {
@@ -24,6 +23,13 @@ import {
   projectileHitsPlayer,
   spawnProjectile,
 } from "../systems/projectile";
+import {
+  addSpirit,
+  breakFragmentsInArc,
+  canRest,
+  restoreFragments,
+  tickRespawn,
+} from "../systems/purification";
 import type {
   DebugSnapshot,
   Enemy,
@@ -65,7 +71,7 @@ export class Game {
   }
 
   step(dt: number, input: InputFrame): GameEvent[] {
-    if (this.state.status === "dead") {
+    if (this.state.status !== "playing") {
       if (input.restart) {
         this.reset();
         return [{ type: "run-reset" }];
@@ -137,14 +143,6 @@ export class Game {
       player = state.player;
     }
 
-    if (
-      !state.run.roomCleared &&
-      state.enemies.every((enemy) => enemy.status === "dead")
-    ) {
-      state.run.roomCleared = true;
-      events.push({ type: "room-cleared" });
-    }
-
     const view = this.viewportSource.worldViewport();
     const cameraTarget = clampCamera(
       {
@@ -163,29 +161,55 @@ export class Game {
     return events;
   }
 
-  /** Applies the current step's damage to every enemy inside its arc. */
+  /**
+   * Applies the current step to every fragment and enemy inside its arc.
+   * Fragments resolve before damage so a final blow can break the last
+   * fragment and put the mob to rest on the same swing.
+   */
   private resolveComboStep(player: GameState["player"], events: GameEvent[]) {
     const definition = stepDefinition(player.comboStep);
     const finisher = player.comboStep === 3;
+    const origin = { x: player.x, y: player.y };
     let hitAny = false;
 
     this.state.enemies = this.state.enemies.map((enemy) => {
       if (enemy.status !== "alive") return enemy;
+
+      const fragmentHit = breakFragmentsInArc(
+        enemy,
+        origin,
+        player.aim,
+        definition.reach,
+        definition.halfAngle,
+      );
+      let next = fragmentHit.enemy;
+      if (fragmentHit.broken.length > 0) {
+        hitAny = true;
+        for (const position of fragmentHit.broken) {
+          events.push({
+            type: "fragment-broken",
+            x: position.x,
+            y: position.y,
+          });
+        }
+      }
+
       if (
         !isInAttackArc(
-          { x: player.x, y: player.y },
+          origin,
           player.aim,
           enemy,
           definition.reach,
           definition.halfAngle,
         )
       ) {
-        return enemy;
+        return next;
       }
 
       hitAny = true;
-      const result = damageEnemy(enemy, definition.damage);
-      let next = result.enemy;
+      const restable = canRest(next);
+      const result = damageEnemy(next, definition.damage);
+      next = result.enemy;
       if (finisher) {
         next = staggerEnemy(next, COMBO.stagger);
         next = knockbackEnemy(next, player.aim, COMBO.knockback, ROOM);
@@ -197,30 +221,37 @@ export class Game {
         y: enemy.y,
         finisher,
       });
-      if (result.died) {
+
+      if (!result.died) return next;
+
+      if (restable) {
+        // The rite is complete: the mob rests permanently and yields spirit.
+        next = { ...next, rested: true, respawn: 0 };
+        const gained = addSpirit(this.state.run.spirit, PURIFICATION.spiritPerMob);
+        this.state.run.spirit = gained.spirit;
+        events.push({
+          type: "enemy-rested",
+          x: enemy.x,
+          y: enemy.y,
+          spirit: gained.spirit,
+        });
+
+        if (gained.purified && !this.state.run.floorPurified) {
+          this.state.run.floorPurified = true;
+          this.state.status = "purified";
+          events.push({ type: "floor-purified" });
+        }
+      } else {
+        // A conventional kill is a failed rite; the mob will return.
+        next = { ...next, rested: false, respawn: PURIFICATION.respawnDelay };
         events.push({ type: "enemy-died", x: enemy.x, y: enemy.y });
       }
+
       return next;
     });
 
     const resolved = markStepResolved(player, hitAny);
     if (finisher && hitAny) this.state.hitstop = COMBO.hitstop;
-
-    if (
-      comboAwardsPoint(
-        resolved.comboHits,
-        resolved.comboStep,
-        resolved.comboResolved,
-        this.state.run.challengeEarned,
-      )
-    ) {
-      this.state.run.challengeEarned = true;
-      this.state.run.skillPoints += 1;
-      events.push({
-        type: "challenge-complete",
-        points: this.state.run.skillPoints,
-      });
-    }
 
     return resolved;
   }
@@ -233,8 +264,17 @@ export class Game {
     const state = this.state;
     const target = { x: player.x, y: player.y };
 
-    return state.enemies.map((enemy) => {
-      const update = updateEnemy(enemy, target, ROOM, dt);
+    return state.enemies.map((current) => {
+      const revived = tickRespawn(current, dt);
+      if (revived.respawned) {
+        events.push({
+          type: "enemy-respawned",
+          x: revived.enemy.x,
+          y: revived.enemy.y,
+        });
+      }
+
+      const update = updateEnemy(revived.enemy, target, ROOM, dt);
       const next = update.enemy;
 
       if (update.attackStarted) {
@@ -317,6 +357,19 @@ export class Game {
     const damaged = damagePlayer(state.player, amount);
     if (!damaged.applied) return;
 
+    // Losing HP breaks the rite: every broken fragment returns. A dodge or an
+    // i-frame that prevents the HP loss never reaches this point.
+    state.enemies = state.enemies.map((enemy) => {
+      const restored = restoreFragments(enemy);
+      if (restored === enemy) return enemy;
+      events.push({
+        type: "fragments-restored",
+        x: enemy.x,
+        y: enemy.y,
+      });
+      return restored;
+    });
+
     let player = damaged.player;
     if (player.comboStep > 0) {
       // Taking damage ends the chain. A swing already resolved in its active
@@ -385,14 +438,16 @@ export class Game {
         hp: enemy.hp,
         maxHp: enemy.maxHp,
         status: enemy.status,
+        fragments: [...enemy.fragments],
+        rested: enemy.rested,
+        respawn: enemy.respawn,
       })),
       projectiles: projectiles.map((projectile) => ({
         x: projectile.x,
         y: projectile.y,
       })),
-      skillPoints: run.skillPoints,
-      challengeEarned: run.challengeEarned,
-      roomCleared: run.roomCleared,
+      spirit: run.spirit,
+      floorPurified: run.floorPurified,
       camera: { x: camera.x, y: camera.y },
       pointer,
       viewport: view,

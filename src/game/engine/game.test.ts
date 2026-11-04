@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { COMBO, ENEMY_SPAWNS, MELEE, ROOM } from "../data/config";
+import { COMBO, ENEMY_SPAWNS, MELEE, PURIFICATION, ROOM } from "../data/config";
 import { createInitialState } from "../../state/initialState";
 import { comboWindowOpen } from "../systems/combo";
 import type { GameEvent, InputFrame } from "../types";
@@ -90,6 +90,14 @@ describe("Game", () => {
     expect(game.state.enemies.map((enemy) => [enemy.x, enemy.y])).toEqual(
       ENEMY_SPAWNS.map((spawn) => [spawn.x, spawn.y]),
     );
+    expect(
+      game.state.enemies.every(
+        (enemy) =>
+          enemy.fragments.length === PURIFICATION.angles.length &&
+          enemy.fragments.every(Boolean),
+      ),
+    ).toBe(true);
+    expect(game.state.run).toEqual({ spirit: 0, floorPurified: false });
     expect(game.state.camera).toEqual({ x: 80, y: 114 });
   });
 
@@ -114,7 +122,7 @@ describe("Game", () => {
     expect(game.state.player.comboStep).toBe(0);
   });
 
-  it("chains three timed hits and awards one skill point", () => {
+  it("chains three timed hits", () => {
     const game = createGame();
     duel(game);
 
@@ -131,11 +139,6 @@ describe("Game", () => {
         (event) => event.type === "combo-ended" && event.reason !== "complete",
       ),
     ).toBe(false);
-    expect(game.state.run.skillPoints).toBe(1);
-    expect(game.state.run.challengeEarned).toBe(true);
-    expect(events.some((event) => event.type === "challenge-complete")).toBe(
-      true,
-    );
   });
 
   it("never chains while the attack is mashed", () => {
@@ -150,7 +153,6 @@ describe("Game", () => {
       ),
     ).toBe(false);
     expect(events.some((event) => event.type === "enemy-hit")).toBe(false);
-    expect(game.state.run.skillPoints).toBe(0);
     expect(game.state.player.comboStep).toBeLessThan(2);
   });
 
@@ -165,26 +167,173 @@ describe("Game", () => {
         (event) => event.type === "attack-started" && event.step > 1,
       ),
     ).toBe(false);
-    expect(game.state.run.skillPoints).toBe(0);
+    expect(game.state.player.comboStep).toBeLessThan(2);
   });
 
-  it("does not award a second point in the same run", () => {
+  it("breaks every intact fragment inside the swing arc", () => {
+    const game = createGame();
+    const [first, ...rest] = game.state.enemies;
+    game.state.enemies = [
+      {
+        ...first!,
+        x: game.state.player.x,
+        y: game.state.player.y,
+        stagger: 9,
+      },
+      ...rest.map((enemy) => ({ ...enemy, status: "dead" as const, hp: 0 })),
+    ];
+
+    const events = stepFor(game, 0.15, (frame) => ({
+      attack: frame === 0,
+      aim: { x: 0, y: -1 },
+    }));
+
+    expect(game.state.enemies[0]?.fragments).toEqual([false, false]);
+    expect(
+      events.filter((event) => event.type === "fragment-broken"),
+    ).toHaveLength(PURIFICATION.angles.length);
+  });
+
+  it("respawns a conventionally killed mob with its fragments restored", () => {
     const game = createGame();
     duel(game);
-    playTimedChain(game);
-    expect(game.state.run.skillPoints).toBe(1);
-
+    const home = {
+      x: game.state.enemies[0]!.homeX,
+      y: game.state.enemies[0]!.homeY,
+    };
     game.state.enemies[0] = {
       ...game.state.enemies[0]!,
-      hp: MELEE.maxHp,
-      status: "alive",
-      x: game.state.player.x + 20,
-      y: game.state.player.y,
-      stagger: 9,
+      hp: COMBO.steps[0].damage,
     };
-    playTimedChain(game);
 
-    expect(game.state.run.skillPoints).toBe(1);
+    stepFor(game, 0.15, pressOn([0]));
+
+    expect(game.state.enemies[0]?.status).toBe("dying");
+    expect(game.state.enemies[0]?.rested).toBe(false);
+    expect(game.state.enemies[0]?.respawn).toBeCloseTo(
+      PURIFICATION.respawnDelay,
+      5,
+    );
+    expect(game.state.run.spirit).toBe(0);
+
+    const events = stepFor(game, 2.6, {});
+
+    const revived = game.state.enemies[0]!;
+    expect(events.some((event) => event.type === "enemy-respawned")).toBe(true);
+    expect(revived.status).toBe("alive");
+    expect(revived.hp).toBe(MELEE.maxHp);
+    expect(revived.fragments).toEqual([true, true]);
+    expect([revived.x, revived.y]).toEqual([home.x, home.y]);
+  });
+
+  it("puts a fully broken mob to rest and grants spirit", () => {
+    const game = createGame();
+    duel(game);
+    game.state.enemies[0] = {
+      ...game.state.enemies[0]!,
+      hp: COMBO.steps[0].damage,
+      fragments: [false, false],
+    };
+
+    const events = stepFor(game, 0.15, pressOn([0]));
+
+    const rested = game.state.enemies[0]!;
+    expect(rested.rested).toBe(true);
+    expect(rested.respawn).toBe(0);
+    expect(game.state.run.spirit).toBe(PURIFICATION.spiritPerMob);
+    expect(events.some((event) => event.type === "enemy-rested")).toBe(true);
+    expect(events.some((event) => event.type === "enemy-died")).toBe(false);
+
+    stepFor(game, 3, {});
+    expect(game.state.enemies[0]?.status).toBe("dead");
+    expect(game.state.enemies[0]?.rested).toBe(true);
+  });
+
+  it("restores every broken fragment when the player loses HP", () => {
+    const game = createGame();
+    duel(game);
+    game.state.enemies[0] = {
+      ...game.state.enemies[0]!,
+      hp: MELEE.maxHp - 2,
+      fragments: [false, false],
+    };
+    game.state.projectiles = [
+      {
+        id: 1,
+        x: game.state.player.x + 2,
+        y: game.state.player.y,
+        vx: -150,
+        vy: 0,
+        radius: 4,
+        life: 1.6,
+      },
+    ];
+
+    const events = stepFor(game, 0.02, {});
+
+    expect(game.state.player.hp).toBe(5);
+    expect(game.state.enemies[0]?.fragments).toEqual([true, true]);
+    expect(
+      events.some((event) => event.type === "fragments-restored"),
+    ).toBe(true);
+  });
+
+  it("keeps fragments broken when invulnerability blocks the HP loss", () => {
+    const game = createGame();
+    duel(game);
+    game.state.enemies[0] = {
+      ...game.state.enemies[0]!,
+      fragments: [false, false],
+    };
+    game.state.player = { ...game.state.player, invulnerable: 1 };
+    game.state.projectiles = [
+      {
+        id: 1,
+        x: game.state.player.x + 2,
+        y: game.state.player.y,
+        vx: -150,
+        vy: 0,
+        radius: 4,
+        life: 1.6,
+      },
+    ];
+
+    const events = stepFor(game, 0.02, {});
+
+    expect(game.state.player.hp).toBe(6);
+    expect(game.state.enemies[0]?.fragments).toEqual([false, false]);
+    expect(
+      events.some((event) => event.type === "fragments-restored"),
+    ).toBe(false);
+  });
+
+  it("freezes the run when the spirit meter fills and restarts on R", () => {
+    const game = createGame();
+    duel(game);
+    game.state.run.spirit = PURIFICATION.spiritThreshold - 10;
+    game.state.enemies[0] = {
+      ...game.state.enemies[0]!,
+      hp: COMBO.steps[0].damage,
+      fragments: [false, false],
+    };
+
+    const events = stepFor(game, 0.15, pressOn([0]));
+
+    expect(game.state.run.spirit).toBe(PURIFICATION.spiritThreshold);
+    expect(game.state.run.floorPurified).toBe(true);
+    expect(game.state.status).toBe("purified");
+    expect(events.some((event) => event.type === "floor-purified")).toBe(true);
+
+    const time = game.state.time;
+    const x = game.state.player.x;
+    stepFor(game, 0.4, { move: { x: 1, y: 0 } });
+
+    expect(game.state.time).toBe(time);
+    expect(game.state.player.x).toBe(x);
+
+    game.step(0.01, idle({ restart: true }));
+    expect(game.state.status).toBe("playing");
+    expect(game.state.run).toEqual({ spirit: 0, floorPurified: false });
   });
 
   it("leaves the enemy untouched when the swing misses", () => {
@@ -198,6 +347,7 @@ describe("Game", () => {
     stepFor(game, 0.5, pressOn([0]));
 
     expect(game.state.enemies[0]?.hp).toBe(MELEE.maxHp);
+    expect(game.state.enemies[0]?.fragments).toEqual([true, true]);
   });
 
   it("hits every enemy inside the arc once per step", () => {
@@ -357,19 +507,30 @@ describe("Game", () => {
     expect(game.state.projectiles).toHaveLength(0);
   });
 
-  it("marks the room cleared when all enemies are dead without ending the run", () => {
+  it("keeps fragments broken when a dodge avoids the projectile", () => {
     const game = createGame();
-    game.state.enemies = game.state.enemies.map((enemy) => ({
-      ...enemy,
-      status: "dead" as const,
-      hp: 0,
-    }));
+    duel(game);
+    game.state.enemies[0] = {
+      ...game.state.enemies[0]!,
+      fragments: [false, false],
+    };
+    game.state.projectiles = [
+      {
+        id: 1,
+        x: game.state.player.x + 20,
+        y: game.state.player.y,
+        vx: -150,
+        vy: 0,
+        radius: 4,
+        life: 1.6,
+      },
+    ];
 
-    const events = stepFor(game, 0.05, {});
+    game.step(0.01, idle({ dodge: true }));
+    stepFor(game, 0.3, {});
 
-    expect(game.state.run.roomCleared).toBe(true);
-    expect(events.some((event) => event.type === "room-cleared")).toBe(true);
-    expect(game.state.status).toBe("playing");
+    expect(game.state.player.hp).toBe(6);
+    expect(game.state.enemies[0]?.fragments).toEqual([false, false]);
   });
 
   it("kills the player at 0 HP and restarts on R", () => {
@@ -397,9 +558,13 @@ describe("Game", () => {
     expect(game.state.enemies).toEqual(createInitialState().enemies);
   });
 
-  it("restores skill points, combo state, and projectiles on restart", () => {
+  it("restores spirit, fragments, combo state, and projectiles on restart", () => {
     const game = createGame();
-    game.state.run = { skillPoints: 1, challengeEarned: true, roomCleared: false };
+    game.state.run = { spirit: 80, floorPurified: false };
+    game.state.enemies[0] = {
+      ...game.state.enemies[0]!,
+      fragments: [false, false],
+    };
     game.state.projectiles = [
       {
         id: 4,
@@ -421,15 +586,12 @@ describe("Game", () => {
 
     game.step(0.01, idle({ restart: true }));
 
-    expect(game.state.run).toEqual({
-      skillPoints: 0,
-      challengeEarned: false,
-      roomCleared: false,
-    });
+    expect(game.state.run).toEqual({ spirit: 0, floorPurified: false });
     expect(game.state.projectiles).toHaveLength(0);
     expect(game.state.player.comboStep).toBe(0);
     expect(game.state.player.comboHits).toBe(0);
     expect(game.state.player.hp).toBe(6);
+    expect(game.state.enemies[0]?.fragments).toEqual([true, true]);
   });
 
   it("ignores gameplay input while dead", () => {

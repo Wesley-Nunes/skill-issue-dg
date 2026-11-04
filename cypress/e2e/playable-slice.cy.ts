@@ -134,8 +134,13 @@ describe("0.1.0 playable combat slice", () => {
       expect(
         snapshot.enemies.every((enemy) => enemy.status === "alive"),
       ).to.equal(true);
-      expect(snapshot.skillPoints).to.equal(0);
-      expect(snapshot.challengeEarned).to.equal(false);
+      expect(
+        snapshot.enemies.every((enemy) =>
+          enemy.fragments.every((intact) => intact),
+        ),
+      ).to.equal(true);
+      expect(snapshot.spirit).to.equal(0);
+      expect(snapshot.floorPurified).to.equal(false);
     });
   });
 
@@ -220,7 +225,13 @@ describe("0.1.0 playable combat slice", () => {
       expect(restarted!.enemies.map((enemy) => enemy.hp)).to.deep.equal([
         10, 10, 6,
       ]);
-      expect(restarted!.skillPoints).to.equal(0);
+      expect(restarted!.spirit).to.equal(0);
+      expect(restarted!.floorPurified).to.equal(false);
+      expect(
+        restarted!.enemies.every((enemy) =>
+          enemy.fragments.every((intact) => intact),
+        ),
+      ).to.equal(true);
       expect(restarted!.player.x).to.be.closeTo(320, 1);
       expect(restarted!.player.y).to.be.closeTo(320, 1);
     });

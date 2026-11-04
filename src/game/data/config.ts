@@ -104,6 +104,26 @@ export const RANGED = {
 
 export const ENEMY_FADE = 0.25;
 
+/**
+ * Spirit purification rules. A mob carries one fragment per angle; all of
+ * them must be broken without losing HP before the mob can rest.
+ */
+export const PURIFICATION = {
+  /** Fragment orbit angles around the enemy, measured from its body centre. */
+  angles: [(-135 * Math.PI) / 180, (-45 * Math.PI) / 180],
+  orbitRadius: 12,
+  /** Vertical offset of the orbit centre from the enemy's feet. */
+  orbitOffsetY: -10,
+  fragmentRadius: 3.2,
+  fragmentColor: "#bfe9ff",
+  bobAmplitude: 1.2,
+  bobSpeed: 3,
+  spiritPerMob: 34,
+  spiritThreshold: 100,
+  /** Delay before a conventionally killed mob returns at its spawn. */
+  respawnDelay: 2,
+} as const;
+
 export const PROJECTILE = {
   speed: 150,
   radius: 4,

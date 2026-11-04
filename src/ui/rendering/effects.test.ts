@@ -32,13 +32,20 @@ describe("VisualEffects", () => {
     expect(effects.swings[0]?.step).toBe(2);
   });
 
-  it("shows a notice when the challenge completes", () => {
+  it("records pale sparks when a fragment breaks", () => {
     const effects = new VisualEffects();
     const state = { ...createInitialState(), time: 3 };
 
-    effects.handle([{ type: "challenge-complete", points: 1 }], state);
+    effects.handle([{ type: "fragment-broken", x: 4, y: 8 }], state);
 
-    expect(effects.noticeAt).toBe(3);
+    expect(effects.sparks).toHaveLength(1);
+    expect(effects.sparks[0]).toMatchObject({
+      x: 4,
+      y: 8,
+      born: 3,
+      count: 6,
+      color: "rgba(191, 233, 255, 1)",
+    });
   });
 
   it("clears transient state on a run reset", () => {
@@ -48,7 +55,7 @@ describe("VisualEffects", () => {
       [
         { type: "enemy-hit", x: 0, y: 0, finisher: false },
         { type: "attack-started", angle: 0, step: 1 },
-        { type: "challenge-complete", points: 1 },
+        { type: "fragment-broken", x: 2, y: 3 },
       ],
       state,
     );
@@ -57,7 +64,6 @@ describe("VisualEffects", () => {
 
     expect(effects.sparks).toHaveLength(0);
     expect(effects.swings).toHaveLength(0);
-    expect(effects.noticeAt).toBe(Number.NEGATIVE_INFINITY);
   });
 
   it("captures exactly two afterimages per dodge", () => {

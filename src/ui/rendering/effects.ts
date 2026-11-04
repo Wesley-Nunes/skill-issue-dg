@@ -35,14 +35,16 @@ const SWING_LIFE = 0.6;
 export const CHAIN_BREAK_LIFE = 0.18;
 const SPARK_COLOR = "rgba(255, 255, 255, 1)";
 const WALL_SPARK_COLOR = "rgba(220, 210, 255, 0.9)";
+const FRAGMENT_COLOR = "rgba(191, 233, 255, 1)";
+const RESTORED_COLOR = "rgba(150, 220, 255, 0.9)";
+const RESTED_COLOR = "rgba(220, 245, 255, 1)";
+const RESPAWN_COLOR = "rgba(150, 120, 200, 0.85)";
 
 export class VisualEffects {
   sparks: Spark[] = [];
   afterimages: Afterimage[] = [];
   swings: Swing[] = [];
   chainBreaks: ChainBreak[] = [];
-  /** Timestamp of the last combo reward, or -Infinity when none is showing. */
-  noticeAt = Number.NEGATIVE_INFINITY;
 
   private lastCapture = 0;
   private dodgeCaptures = 0;
@@ -103,6 +105,50 @@ export class VisualEffects {
             born: state.time,
           });
           break;
+        case "fragment-broken":
+          this.sparks.push({
+            x: event.x,
+            y: event.y,
+            born: state.time,
+            count: 6,
+            length: 7,
+            life: 0.18,
+            color: FRAGMENT_COLOR,
+          });
+          break;
+        case "fragments-restored":
+          this.sparks.push({
+            x: event.x,
+            y: event.y,
+            born: state.time,
+            count: 5,
+            length: 9,
+            life: 0.22,
+            color: RESTORED_COLOR,
+          });
+          break;
+        case "enemy-rested":
+          this.sparks.push({
+            x: event.x,
+            y: event.y,
+            born: state.time,
+            count: 8,
+            length: 14,
+            life: 0.35,
+            color: RESTED_COLOR,
+          });
+          break;
+        case "enemy-respawned":
+          this.sparks.push({
+            x: event.x,
+            y: event.y,
+            born: state.time,
+            count: 4,
+            length: 8,
+            life: 0.2,
+            color: RESPAWN_COLOR,
+          });
+          break;
         case "combo-ended":
           if (event.reason !== "complete") {
             this.chainBreaks.push({
@@ -112,15 +158,11 @@ export class VisualEffects {
             });
           }
           break;
-        case "challenge-complete":
-          this.noticeAt = state.time;
-          break;
         case "run-reset":
           this.sparks = [];
           this.afterimages = [];
           this.swings = [];
           this.chainBreaks = [];
-          this.noticeAt = Number.NEGATIVE_INFINITY;
           this.lastCapture = 0;
           this.dodgeCaptures = 0;
           break;
