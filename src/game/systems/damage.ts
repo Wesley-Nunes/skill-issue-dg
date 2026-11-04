@@ -1,5 +1,6 @@
-import { ENEMY, PLAYER } from "../data/config";
-import type { Enemy, Player } from "../types";
+import { ENEMY_FADE, IMPACT, PLAYER } from "../data/config";
+import type { Enemy, Player, Room, Vec2 } from "../types";
+import { clampToRoom } from "./collision";
 
 export interface EnemyDamageResult {
   enemy: Enemy;
@@ -21,8 +22,9 @@ export function damageEnemy(enemy: Enemy, amount: number): EnemyDamageResult {
       enemy: {
         ...enemy,
         hp,
+        hurtFlash: IMPACT.flash,
         status: "dying",
-        fade: ENEMY.fade,
+        fade: ENEMY_FADE,
         windup: 0,
         active: 0,
         moving: false,
@@ -31,7 +33,27 @@ export function damageEnemy(enemy: Enemy, amount: number): EnemyDamageResult {
     };
   }
 
-  return { enemy: { ...enemy, hp }, died: false };
+  return {
+    enemy: { ...enemy, hp, hurtFlash: IMPACT.flash },
+    died: false,
+  };
+}
+
+/** Pushes an enemy along a direction, keeping it inside the room. */
+export function knockbackEnemy(
+  enemy: Enemy,
+  direction: Vec2,
+  distance: number,
+  room: Room,
+): Enemy {
+  if (enemy.status !== "alive") return enemy;
+  const position = clampToRoom(
+    enemy.x + direction.x * distance,
+    enemy.y + direction.y * distance,
+    enemy.radius,
+    room,
+  );
+  return { ...enemy, x: position.x, y: position.y };
 }
 
 export function damagePlayer(player: Player, amount: number): PlayerDamageResult {

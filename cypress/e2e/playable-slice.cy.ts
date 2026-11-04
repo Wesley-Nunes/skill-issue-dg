@@ -18,12 +18,49 @@ function getSnapshot(): Cypress.Chainable<DebugSnapshot> {
     });
 }
 
+/** The first living melee enemy, or the first enemy as a fallback. */
+function meleeTarget(snapshot: DebugSnapshot) {
+  return (
+    snapshot.enemies.find(
+      (enemy) => enemy.kind === "melee" && enemy.status === "alive",
+    ) ?? snapshot.enemies[0]!
+  );
+}
+
+function cameraSettled(snapshot: DebugSnapshot): boolean {
+  const clamp = (value: number, min: number, max: number) =>
+    Math.min(Math.max(value, min), max);
+  const targetX = clamp(
+    snapshot.player.x - snapshot.viewport.width / 2,
+    0,
+    640 - snapshot.viewport.width,
+  );
+  const targetY = clamp(
+    snapshot.player.y - snapshot.viewport.height / 2,
+    0,
+    384 - snapshot.viewport.height,
+  );
+  return (
+    Math.abs(snapshot.camera.x - targetX) < 1 &&
+    Math.abs(snapshot.camera.y - targetY) < 1
+  );
+}
+
 function approachEnemy(attempt = 0): void {
   getSnapshot().then((snapshot) => {
-    const dx = snapshot.enemy.x - snapshot.player.x;
-    const dy = snapshot.enemy.y - snapshot.player.y;
+    const target = meleeTarget(snapshot);
+    const dx = target.x - snapshot.player.x;
+    const dy = target.y - snapshot.player.y;
     const distance = Math.hypot(dx, dy);
-    if (distance < 45 || attempt >= 40) return;
+
+    if (distance < 28) {
+      // The pointer is stored in screen space; let the camera stop first.
+      if (cameraSettled(snapshot) || attempt >= 40) return;
+      cy.wait(100);
+      cy.then(() => approachEnemy(attempt + 1));
+      return;
+    }
+    if (attempt >= 40) return;
 
     const keys: string[] = [];
     if (dy < -6) keys.push("w");
@@ -47,12 +84,38 @@ function waitForDeath(attempt = 0): void {
   });
 }
 
+/** Clicks the canvas at a world position to aim and press attack once. */
+function pressAt(worldX: number, worldY: number): void {
+  getSnapshot().then((snapshot) => {
+    const clientX = (worldX - snapshot.camera.x) * snapshot.zoom;
+    const clientY = (worldY - snapshot.camera.y) * snapshot.zoom;
+
+    cy.get("canvas#game").trigger("mousemove", {
+      clientX,
+      clientY,
+      force: true,
+    });
+    cy.get("canvas#game").trigger("mousedown", {
+      button: 0,
+      clientX,
+      clientY,
+      force: true,
+    });
+    cy.get("canvas#game").trigger("mouseup", {
+      button: 0,
+      clientX,
+      clientY,
+      force: true,
+    });
+  });
+}
+
 describe("0.1.0 playable combat slice", () => {
   beforeEach(() => {
     cy.visit("/");
   });
 
-  it("boots with a canvas, the player at full health and the enemy alive", () => {
+  it("boots with a canvas, the player at full health and three enemies", () => {
     cy.get("canvas#game").should("be.visible");
     cy.get("pre.boot-error").should("not.exist");
     getSnapshot().then((snapshot) => {
@@ -60,8 +123,24 @@ describe("0.1.0 playable combat slice", () => {
       expect(snapshot.viewport.width).to.be.greaterThan(0);
       expect(snapshot.viewport.height).to.be.greaterThan(0);
       expect(snapshot.player.hp).to.equal(6);
-      expect(snapshot.enemy.hp).to.equal(6);
-      expect(snapshot.enemy.status).to.equal("alive");
+      expect(snapshot.enemies.map((enemy) => enemy.kind)).to.deep.equal([
+        "melee",
+        "melee",
+        "ranged",
+      ]);
+      expect(snapshot.enemies.map((enemy) => enemy.hp)).to.deep.equal([
+        10, 10, 6,
+      ]);
+      expect(
+        snapshot.enemies.every((enemy) => enemy.status === "alive"),
+      ).to.equal(true);
+      expect(
+        snapshot.enemies.every((enemy) =>
+          enemy.fragments.every((intact) => intact),
+        ),
+      ).to.equal(true);
+      expect(snapshot.spirit).to.equal(0);
+      expect(snapshot.floorPurified).to.equal(false);
     });
   });
 
@@ -111,33 +190,21 @@ describe("0.1.0 playable combat slice", () => {
     });
   });
 
-  it("damages the enemy with a basic attack", () => {
+  it("damages a melee enemy with one press of the combo", () => {
     approachEnemy();
     getSnapshot().then((snapshot) => {
-      const screenX = (snapshot.enemy.x - snapshot.camera.x) * snapshot.zoom;
-      const screenY = (snapshot.enemy.y - snapshot.camera.y) * snapshot.zoom;
-
-      cy.get("canvas#game").trigger("mousemove", {
-        clientX: screenX,
-        clientY: screenY,
-        force: true,
-      });
-      cy.get("canvas#game").trigger("mousedown", {
-        button: 0,
-        clientX: screenX,
-        clientY: screenY,
-        force: true,
-      });
-      cy.wait(1500);
-      cy.get("canvas#game").trigger("mouseup", { button: 0, force: true });
+      const target = meleeTarget(snapshot);
+      pressAt(target.x, target.y);
+      cy.wait(600);
 
       getSnapshot().then((after) => {
-        expect(after.enemy.hp).to.be.lessThan(6);
+        const hit = after.enemies.find((enemy) => enemy.id === target.id);
+        expect(hit!.hp).to.be.lessThan(10);
       });
     });
   });
 
-  it("dies to the enemy and restarts on R", () => {
+  it("dies to the enemies and restarts on R", () => {
     approachEnemy();
     waitForDeath();
 
@@ -154,8 +221,17 @@ describe("0.1.0 playable combat slice", () => {
       expect(restarted, "snapshot").to.exist;
       expect(restarted!.status).to.equal("playing");
       expect(restarted!.player.hp).to.equal(6);
-      expect(restarted!.enemy.hp).to.equal(6);
-      expect(restarted!.enemy.status).to.equal("alive");
+      expect(restarted!.enemies).to.have.length(3);
+      expect(restarted!.enemies.map((enemy) => enemy.hp)).to.deep.equal([
+        10, 10, 6,
+      ]);
+      expect(restarted!.spirit).to.equal(0);
+      expect(restarted!.floorPurified).to.equal(false);
+      expect(
+        restarted!.enemies.every((enemy) =>
+          enemy.fragments.every((intact) => intact),
+        ),
+      ).to.equal(true);
       expect(restarted!.player.x).to.be.closeTo(320, 1);
       expect(restarted!.player.y).to.be.closeTo(320, 1);
     });

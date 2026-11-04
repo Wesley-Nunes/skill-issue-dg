@@ -1,11 +1,15 @@
 import { describe, expect, it } from "vitest";
 import { PLAYER } from "../data/config";
 import { createEnemy, createPlayer } from "../../state/initialState";
+import { ENEMY_SPAWNS, ROOM } from "../data/config";
 import {
   damageEnemy,
   damagePlayer,
+  knockbackEnemy,
   tickPlayerTimers,
 } from "./damage";
+
+const meleeSpawn = ENEMY_SPAWNS[0];
 
 describe("damagePlayer", () => {
   it("applies damage and starts invulnerability", () => {
@@ -50,14 +54,18 @@ describe("damagePlayer", () => {
 });
 
 describe("damageEnemy", () => {
-  it("reduces enemy HP", () => {
-    const result = damageEnemy(createEnemy(), 2);
-    expect(result.enemy.hp).toBe(4);
+  it("reduces enemy HP and flashes the sprite", () => {
+    const result = damageEnemy(createEnemy(meleeSpawn), 2);
+    expect(result.enemy.hp).toBe(8);
+    expect(result.enemy.hurtFlash).toBeGreaterThan(0);
     expect(result.died).toBe(false);
   });
 
   it("enters dying state and stops attacking on lethal damage", () => {
-    const result = damageEnemy({ ...createEnemy(), hp: 2, windup: 0.3 }, 2);
+    const result = damageEnemy(
+      { ...createEnemy(meleeSpawn), hp: 2, windup: 0.3 },
+      2,
+    );
     expect(result.enemy.hp).toBe(0);
     expect(result.enemy.status).toBe("dying");
     expect(result.enemy.windup).toBe(0);
@@ -66,10 +74,34 @@ describe("damageEnemy", () => {
 
   it("ignores further damage after death", () => {
     const result = damageEnemy(
-      { ...createEnemy(), status: "dead", hp: 0 },
+      { ...createEnemy(meleeSpawn), status: "dead", hp: 0 },
       2,
     );
     expect(result.enemy.hp).toBe(0);
     expect(result.died).toBe(false);
+  });
+});
+
+describe("knockbackEnemy", () => {
+  it("pushes along the aim direction", () => {
+    const enemy = { ...createEnemy(meleeSpawn), x: 100, y: 100 };
+    const result = knockbackEnemy(enemy, { x: 1, y: 0 }, 6, ROOM);
+    expect(result.x).toBeCloseTo(106);
+    expect(result.y).toBeCloseTo(100);
+  });
+
+  it("keeps the enemy inside the room", () => {
+    const enemy = {
+      ...createEnemy(meleeSpawn),
+      x: ROOM.bounds.maxX - 2,
+      y: 100,
+    };
+    const result = knockbackEnemy(enemy, { x: 1, y: 0 }, 6, ROOM);
+    expect(result.x).toBe(ROOM.bounds.maxX - enemy.radius);
+  });
+
+  it("does not move a dying enemy", () => {
+    const enemy = { ...createEnemy(meleeSpawn), status: "dying" as const };
+    expect(knockbackEnemy(enemy, { x: 1, y: 0 }, 6, ROOM)).toBe(enemy);
   });
 });

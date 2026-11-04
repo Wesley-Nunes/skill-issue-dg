@@ -4,6 +4,10 @@ interface Spark {
   x: number;
   y: number;
   born: number;
+  count: number;
+  length: number;
+  life: number;
+  color: string;
 }
 
 interface Afterimage {
@@ -14,20 +18,33 @@ interface Afterimage {
 
 interface Swing {
   angle: number;
+  step: number;
   born: number;
 }
 
-const SPARK_LIFE = 0.12;
+interface ChainBreak {
+  x: number;
+  y: number;
+  born: number;
+}
+
 const AFTERIMAGE_LIFE = 0.2;
-const SWING_LIFE = 0.42;
 const AFTERIMAGE_INTERVAL = 0.04;
 const AFTERIMAGES_PER_DODGE = 2;
+const SWING_LIFE = 0.6;
+export const CHAIN_BREAK_LIFE = 0.18;
+const SPARK_COLOR = "rgba(255, 255, 255, 1)";
+const WALL_SPARK_COLOR = "rgba(220, 210, 255, 0.9)";
+const FRAGMENT_COLOR = "rgba(191, 233, 255, 1)";
+const RESTORED_COLOR = "rgba(150, 220, 255, 0.9)";
+const RESTED_COLOR = "rgba(220, 245, 255, 1)";
+const RESPAWN_COLOR = "rgba(150, 120, 200, 0.85)";
 
 export class VisualEffects {
   sparks: Spark[] = [];
   afterimages: Afterimage[] = [];
   swings: Swing[] = [];
-  enemyHitAt = Number.NEGATIVE_INFINITY;
+  chainBreaks: ChainBreak[] = [];
 
   private lastCapture = 0;
   private dodgeCaptures = 0;
@@ -36,14 +53,118 @@ export class VisualEffects {
     for (const event of events) {
       switch (event.type) {
         case "enemy-hit":
-          this.sparks.push({ x: event.x, y: event.y, born: state.time });
-          this.enemyHitAt = state.time;
+          this.sparks.push(
+            event.finisher
+              ? {
+                  x: event.x,
+                  y: event.y,
+                  born: state.time,
+                  count: 6,
+                  length: 12,
+                  life: 0.16,
+                  color: SPARK_COLOR,
+                }
+              : {
+                  x: event.x,
+                  y: event.y,
+                  born: state.time,
+                  count: 4,
+                  length: 8,
+                  life: 0.12,
+                  color: SPARK_COLOR,
+                },
+          );
           break;
         case "player-hit":
-          this.sparks.push({ x: event.x, y: event.y, born: state.time });
+        case "projectile-hit":
+          this.sparks.push({
+            x: event.x,
+            y: event.y,
+            born: state.time,
+            count: 4,
+            length: 8,
+            life: 0.12,
+            color: SPARK_COLOR,
+          });
+          break;
+        case "projectile-blocked":
+          this.sparks.push({
+            x: event.x,
+            y: event.y,
+            born: state.time,
+            count: 4,
+            length: 6,
+            life: 0.1,
+            color: WALL_SPARK_COLOR,
+          });
           break;
         case "attack-started":
-          this.swings.push({ angle: event.angle, born: state.time });
+          this.swings.push({
+            angle: event.angle,
+            step: event.step,
+            born: state.time,
+          });
+          break;
+        case "fragment-broken":
+          this.sparks.push({
+            x: event.x,
+            y: event.y,
+            born: state.time,
+            count: 6,
+            length: 7,
+            life: 0.18,
+            color: FRAGMENT_COLOR,
+          });
+          break;
+        case "fragments-restored":
+          this.sparks.push({
+            x: event.x,
+            y: event.y,
+            born: state.time,
+            count: 5,
+            length: 9,
+            life: 0.22,
+            color: RESTORED_COLOR,
+          });
+          break;
+        case "enemy-rested":
+          this.sparks.push({
+            x: event.x,
+            y: event.y,
+            born: state.time,
+            count: 8,
+            length: 14,
+            life: 0.35,
+            color: RESTED_COLOR,
+          });
+          break;
+        case "enemy-respawned":
+          this.sparks.push({
+            x: event.x,
+            y: event.y,
+            born: state.time,
+            count: 4,
+            length: 8,
+            life: 0.2,
+            color: RESPAWN_COLOR,
+          });
+          break;
+        case "combo-ended":
+          if (event.reason !== "complete") {
+            this.chainBreaks.push({
+              x: event.x,
+              y: event.y,
+              born: state.time,
+            });
+          }
+          break;
+        case "run-reset":
+          this.sparks = [];
+          this.afterimages = [];
+          this.swings = [];
+          this.chainBreaks = [];
+          this.lastCapture = 0;
+          this.dodgeCaptures = 0;
           break;
         default:
           break;
@@ -70,10 +191,13 @@ export class VisualEffects {
   }
 
   prune(time: number): void {
-    this.sparks = this.sparks.filter((spark) => time - spark.born < SPARK_LIFE);
+    this.sparks = this.sparks.filter((spark) => time - spark.born < spark.life);
     this.afterimages = this.afterimages.filter(
       (image) => time - image.born < AFTERIMAGE_LIFE,
     );
     this.swings = this.swings.filter((swing) => time - swing.born < SWING_LIFE);
+    this.chainBreaks = this.chainBreaks.filter(
+      (burst) => time - burst.born < CHAIN_BREAK_LIFE,
+    );
   }
 }
