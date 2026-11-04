@@ -1,20 +1,32 @@
-# Design decisions — 0.2.0 combat depth
+# Design decisions — 0.2.0 spirit purification
 
-Status: approved by the operator on 2026-11-02. The combo input model, in-world chain pips, and damage-break rule were revised with the operator on 2026-11-03 and supersede the original buffered-input text.
-Sources: `docs/tasks/0.2.0/001-design.md`, `docs/about-the-project.md` §3.2–§3.4, §5.1, §7; `design/0.1.0/design-decisions.md`; `programmer/0.1.0/CoT.md`.
+Status: approved by the operator on 2026-11-04. This document replaces the `001` skill-point/challenge scope; the hard-timed combo, in-world chain pips, and combat values are retained from the earlier `0.2.0` decisions (operator revisions 2026-11-03).
+Sources: `docs/tasks/0.2.0/002-design.md`, `docs/about-the-project.md` §3.2–§3.4, §5.1, §7; `design/0.1.0/design-decisions.md`; `programmer/0.1.0/CoT.md`.
 
 All coordinates and distances are **world pixels** (1 tile = 16 world px). Timings are seconds. `ZOOM = 3` CSS pixels per world pixel. Everything in `0.1.0` §1 (viewport, scaling, pointer mapping) and §10 (camera) is unchanged and is not repeated here.
 
-## 1. Combo chain
+## 1. Theme and loop
 
-### 1.1 Sequence
+The version is a dark-fantasy **liberation** slice. A mob is not defeated by damage alone: damage only sustains the fight. The player must break the spirit fragments binding it, then land the final blow. A mob killed before the rite is complete returns; a mob put to rest grants spirit and never returns.
+
+The approved loop is:
+
+1. Engage a mob carrying two spirit fragments.
+2. Break both fragments with the light attack without losing HP.
+3. Kill the mob permanently; it grants spirit and stays down.
+4. Fill the spirit meter.
+5. The run freezes on a **Floor purified** overlay; `R` restarts.
+
+## 2. Combo chain
+
+### 2.1 Sequence
 
 - The player has a **three-step chain**. The first press starts step 1; a further step advances only when the player presses attack **inside that step's reply window**.
-- There is **no input buffer**. A press before or after the window ends the chain. This is what makes the combo an execution test instead of a click rhythm: a steady mash cannot complete it.
+- There is **no input buffer**. A press before or after the window ends the chain. A steady mash cannot complete it.
 - Step 3 is the **finisher**: wider arc, more damage, knockback, stagger, and hitstop. It holds the completed chain on screen for a short beat after it lands. Presses after it lands are ignored; presses before it lands break the chain.
 - After the hold the chain returns to idle. The next press starts a fresh chain at step 1.
 
-### 1.2 Timing table
+### 2.2 Timing table
 
 | Step | Windup | Active | Recovery | Reach | Half-angle | Damage |
 |---|---|---|---|---|---|---|
@@ -28,125 +40,130 @@ Recovery is the visual tail of the swing; it does not gate the reply window. The
 - **Input model:** a press inside the reply window starts the next step immediately. A press at any other time — during windup, active, the 0.06 s beat before the window, or after it closes — ends the chain (`mistime`). A press that arrives while a step has not landed is early and ends the chain. There is no buffer.
 - **Presses while idle** always start step 1.
 - **No global attack cooldown.** The step timings are the cadence; `0.1.0`'s 0.45 s cooldown is removed.
-- **Whiff:** a step whose active window ends without damaging any enemy ends the chain (`whiff`). Presses during the whiffed step do not save it.
+- **Whiff:** a step whose active window ends without touching an enemy body or a spirit fragment ends the chain (`whiff`). Presses during the whiffed step do not save it.
 - **Timeout:** if no press arrives by the end of the reply window, the chain ends (`timeout`). Presses after that start step 1 (`mistime` or a new chain press).
-- **Hit resolution:** on the first active frame of a step, every alive enemy whose center is inside the step's reach and half-angle takes that step's damage, once per step.
+- **Hit resolution:** on the first active frame of a step, every alive enemy whose center is inside the step's reach and half-angle takes that step's damage, once per step. Every intact fragment inside the same arc breaks on that frame, before the enemy damage resolves.
 - **Hitstop:** presses during the finisher's 0.06 s hitstop are dropped, not punished; the reply window is frozen with the simulation.
 - **Dodge** during any step cancels the swing and returns the chain to step 1. Dodge still behaves as in `0.1.0`.
 - **Movement** stays available during every step (unchanged from `0.1.0`).
 - **Taking damage** ends the chain (`damage`). A swing that already resolved in its active window still lands; only the remaining chain is lost. Damage taken during death does not emit a chain break.
 
-### 1.3 Finisher impact
+### 2.3 Finisher impact
 
-- On the first enemy damaged by a finisher active frame: **0.06 s hitstop**. The simulation pauses (no timers, movement, projectiles, or enemy logic advance); rendering continues; attack presses made during the freeze are dropped rather than buffered or punished. Hitstop never applies while dead.
+- On the first enemy damaged by a finisher active frame: **0.06 s hitstop**. The simulation pauses (no timers, movement, projectiles, or enemy logic advance); rendering continues; attack presses made during the freeze are dropped rather than buffered or punished. Hitstop never applies while dead or purified.
 - **Hold:** once the finisher lands, it stays on screen for `0.12 s` before the chain hands back to idle.
 - **Knockback:** 6 px along the aim direction for every enemy hit by the finisher, clamped to the room bounds.
 - **Stagger:** 0.15 s per enemy hit by the finisher. Stagger cancels the enemy's windup/active windows and blocks movement and attacks; the enemy can still take damage and can be staggered again.
 - Multiple enemies hit by one finisher each get knockback, damage, and stagger; the hitstop is applied once.
 
-### 1.4 Combo presentation
+### 2.4 Combo presentation
 
 - **Swing arc:** steps 1–2 keep the `0.1.0` look — `rgba(255,214,120,0.35)`, thickness 8, radius 34 / 36, spanning `aim ± 55°`, fading for 0.12 s after the active window.
 - **Finisher arc:** radius 40, thickness 10, `rgba(255,226,150,0.55)`, spanning `aim ± 80°`, fading for 0.18 s after the active window.
 - **Sword sweep:** steps 1–2 sweep from `aim − 70°` to `aim + 70°` across windup + active (unchanged). The finisher sweeps from `aim − 90°` to `aim + 90°` across its 0.24 s windup + active.
 - **Hit spark:** steps 1–2 keep 4 lines × 8 px for 0.12 s. The finisher draws 6 lines × 12 px for 0.16 s.
-- **Chain pips:** three world-space dots centered above the player at `y − 34`, 7.6 px apart, radius 2.2 px (the finisher pip is 3.1 px), each with a 0.6 px `rgba(0,0,0,0.55)` outline. Connected steps are gold `#f2d38a`; the step in progress is white `rgba(255,255,255,0.92)`; the next step is dim `rgba(255,255,255,0.28)`. While the reply window is open, the next pip pulses between 1.3× and 1.5× its radius at about 8 Hz. The pips are hidden while idle and while dead.
+- **Chain pips:** three world-space dots centered above the player at `y − 34`, 7.6 px apart, radius 2.2 px (the finisher pip is 3.1 px), each with a 0.6 px `rgba(0,0,0,0.55)` outline. Connected steps are gold `#f2d38a`; the step in progress is white `rgba(255,255,255,0.92)`; the next step is dim `rgba(255,255,255,0.28)`. While the reply window is open, the next pip pulses between 1.3× and 1.5× its radius at about 8 Hz. The pips are hidden while idle, dead, or purified.
 - **Break feedback:** a non-completing chain end collapses the three pips into a red (`255, 92, 82`) burst at the break position for 0.18 s, shrinking and rising slightly. A completed finisher shows no break burst; its three pips stay gold during the 0.12 s hold and then disappear.
 - **No HUD combo meter, no hit counter, no screen shake.** The arc size, spark size, hitstop, knockback, and the in-world pips communicate the step.
-- **Reset feedback:** the red pip collapse is the only break cue; there is no failure message or text.
 
-## 2. Enemies
+## 3. Spirit fragments
 
-### 2.1 Shared
-
-- Enemies are drawn sorted with the player by feet `y` ascending; shadows under all living/dying entities.
-- Hit reaction: white flash for 0.08 s (a domain timer, `hurtFlash`), replacing the single global "last hit time". The `imp` has no hurt frame, so its flash is code-drawn only.
-- Death: 0.25 s fade, no collision, no damage, no projectiles.
-- Stagger visual: the moving animation stops and the sprite is tinted `rgba(180,200,255,0.35)` for the stagger duration. Movement pausing is the non-color cue.
-- Enemies do not collide with each other and projectiles do not hit enemies.
-
-### 2.2 Melee chaser
-
-Unchanged from `0.1.0` §5 and §9 except:
-
-- **Max HP 10** (was 6) so a full chain (8) does not delete it.
-- Stagger support as above.
-- Spawn at `(448, 128)`.
-
-### 2.3 Ranged kiter (`imp`)
+### 3.1 Layout and motion
 
 | Value | Setting |
 |---|---|
-| Max HP | 6 |
-| Move speed | 70 px/s |
-| Collision radius | 6 px |
-| Aggro radius | 260 px |
-| Near threshold (retreat inside) | 110 px |
-| Far threshold (approach beyond) | 240 px |
-| Telegraph | 0.5 s |
-| Attack cooldown | 1.6 s from the shot |
-| Projectile speed | 150 px/s |
-| Projectile radius | 4 px |
-| Projectile lifetime | 1.6 s |
-| Projectile damage | 1 HP |
-| Spawn offset | 10 px from the imp center toward the player center |
+| Fragments per mob | 2 |
+| Orbit centre | `10 px` above the enemy's feet |
+| Orbit radius | 12 px |
+| Fragment angles | `−135°` and `−45°` (upper-left and upper-right) |
+| Fragment radius | 3.2 px |
+| Fragment colour | `#bfe9ff` |
+| Fragment core | 1.1 px `rgba(255,255,255,0.9)`, offset `0.6 px` up |
+| Glow | radius 5.8 px, `rgba(191,233,255,0.18)` |
+| Idle bob | ±1.2 px vertical at 3 rad/s, opposite phase per fragment |
 
-Behaviour:
+Fragments are drawn above the enemy sprites and below projectiles, the swing arc, and sparks. They exist only while the enemy is `alive`; broken fragments are not drawn.
 
-- Ignore the player and idle when farther than 260 px.
-- Inside 260 px: retreat at 70 px/s when closer than 110 px, approach at 70 px/s when farther than 240 px, hold position between the thresholds.
-- Fire only when the cooldown is ready, the player is within 240 px, and the line of sight is clear. Line of sight is a segment from imp center to player center that must not cross a wall tile; it is sampled every 4 px.
-- The imp stops moving during the telegraph and fires one projectile at the end of it. Movement resumes during the cooldown.
-- No leading: the projectile travels toward the player's position at the moment of firing.
-- The imp keeps facing the player horizontally.
+### 3.2 Breaking
 
-Presentation:
+- The existing **light attack** breaks fragments. A fragment breaks when its centre lies inside the current step's reach and half-angle.
+- A single swing can break both fragments. Whether it does depends on positioning and aim; no separate purify input exists.
+- A swing that breaks a fragment counts as a connected step for the combo, even if it misses the enemy's body.
+- Fragment hits use the step's reach and arc from §2.2; the finisher's wider arc makes it the easiest step for lining up both fragments.
+- Each broken fragment emits **6 pale-blue lines × 7 px for 0.18 s** at the fragment's position.
 
-- Idle `imp_idle_anim_f0..f3` at 6 fps; moving `imp_run_anim_f0..f3` at 10 fps; sprite 16 × 16, drawn with its bottom edge on the feet `y`.
-- Telegraph: red tint `rgba(255,70,60,0.55)` plus a 1 px `rgba(255,70,60,0.35)` sight line from the imp center to the player center for the full 0.5 s. The line also communicates the line-of-sight rule.
-- No additional ring: the sprite is small and the sight line is the readable cue.
+### 3.3 Restoration
 
-### 2.4 Room composition
+- **Any HP loss** restores every broken fragment on every living enemy. This includes melee hits and projectiles.
+- A dodge, an i-frame, or any other effect that prevents the HP loss is **not** a failure and does not restore fragments.
+- Restoration does not heal, move, or otherwise reset the enemy; only a conventional death does that.
+- Each restored enemy emits **5 pale-blue lines × 9 px for 0.22 s** at its feet.
 
-- **Melee A** at `(448, 128)` — the `0.1.0` spot.
-- **Melee B** at `(224, 112)`.
-- **Ranged** at `(560, 96)`.
-- Player at `(320, 320)`. All three enemies start outside their aggro radii (229 / 229 / 328 px), so the fight begins when the player engages.
-- Room clears when all three enemies are dead (`status === "dead"`). Nothing respawns; clearing does not end the run.
+### 3.4 Ready to rest
 
-## 3. Projectile presentation
+When the enemy is alive and all fragments are broken:
 
-- Drawn above all entities and below the swing arc and sparks.
-- Core: 2 px radius, `rgba(255,255,255,0.95)`.
-- Body: 4 px radius, `rgba(200,166,255,0.85)`.
-- Trail: three dots of decreasing alpha (`0.45`, `0.28`, `0.14`), 3 px apart along the travel direction, radius 2 px.
-- Wall destruction: a 4-line white spark burst (`rgba(220,210,255,0.9)`, 6 px, 0.10 s). No sound.
-- Player hit: the standard hit spark plus the existing hurt flash and i-frame rules.
-- Projectiles are removed on wall contact, on hitting the player, or on lifetime expiry; they never pass through a wall.
+- Its sprite is tinted `rgba(191,233,255,0.4)` (below the red telegraph tint in priority).
+- A pale ring of radius 13 px and line width 1.4 px is drawn 10 px above its feet. Its alpha pulses between `0.27` and `0.63` at 6 rad/s.
+- The fragments are gone, so the empty orbit plus the tint and ring read as “the rite is complete; finish it.”
 
-## 4. HUD
+## 4. Death, respawn, and permanent rest
 
-- Hearts unchanged: top-left inset 24 px, three 39 × 36 px hearts with 6 px gaps.
-- **Skill point counter:** `Skill point: N` at x = 24, text top at y = 74 (10 px below the hearts), `14px system-ui, sans-serif`, baseline `top`. Colour `rgba(255,255,255,0.7)` at 0 and `#f2d38a` from 1 onward.
-- **Earn notice:** `Combo complete · +1 skill point`, centered horizontally, text top at y = 72, `18px system-ui, sans-serif`, `#f2d38a`. Fade in 0.15 s, hold 1.1 s, fade out 0.35 s (1.6 s total). One notice per award; a new award restarts the timer.
-- Controls hint updated to `WASD move · Mouse aim · LMB combo · Space dodge · R restart`.
-- No enemy health bars, no HUD combo meter (the chain pips are drawn in the world), no score.
+### 4.1 Permanent rest
 
-## 5. Challenge
+- A mob can be killed permanently only when it is alive and every fragment is broken at the moment of the killing blow.
+- Fragments resolve before damage on the same swing, so the final blow may also break the last fragment.
+- A rested mob stays in the `dying` → `dead` animation and never respawns. It emits an **8-line pale burst × 14 px for 0.35 s**.
+- Resting grants **34 spirit**, capped at the meter threshold, and emits `enemy-rested`.
 
-- A chain tracks how many of its three steps damaged at least one enemy.
-- When step 3 resolves and all three steps connected, the run earns **1 skill point**. Award happens once per run (`challengeEarned` flag), even if several chains qualify.
-- The award emits `challenge-complete`, updates the HUD counter, and shows the notice.
-- On death the point is lost from the HUD view; `R` resets the counter, the flag, and the notice.
-- No other challenge and no spending in this version.
+### 4.2 Failed rite
 
-## 6. Death, restart, and room clear
+- A mob killed while at least one fragment is intact is a failed rite.
+- It plays the normal `0.25 s` death fade, then waits **2 s** before returning.
+- It returns at its original spawn with full HP, every fragment restored, no aggro, no cooldown, no stagger, and no windup. This is a full reset of the mob.
+- It emits an `enemy-respawned` burst of **4 lines × 8 px for 0.20 s** in muted violet `rgba(150,120,200,0.85)`.
+- A failed rite grants no spirit.
+- Movement, attacks, projectiles, and respawn timers freeze while the player is dead.
 
-- Death freezes simulation and presentation as in `0.1.0`; projectiles, telegraphs, stagger, and hitstop all stop.
-- `R` restores: three enemies at their spawns with full HP and no timers, zero projectiles, idle chain, zero skill points, challenge flag false, no notice, full player HP, camera snapped, time 0.
-- Room clear sets a flag for the debug snapshot and a single `room-cleared` event; nothing else changes.
+## 5. Spirit meter
 
-## 7. Approved numeric values
+- **Text:** `Spirit: N%` where `N` is the rounded spirit value, at `x = 24`, text top at `y = 74`, `14px system-ui, sans-serif`, baseline `top`.
+- **Text colour:** `rgba(255,255,255,0.7)` at 0 spirit; `#bfe9ff` from 1 upward.
+- **Bar:** `x = 24`, `y = 92`, `120 × 6 px`.
+- **Track:** `rgba(191,233,255,0.16)`.
+- **Fill:** `#bfe9ff`, width `120 × spirit / 100`, rounded to whole pixels.
+- **Border:** 1 px `rgba(191,233,255,0.45)`.
+- **Threshold:** 100. Spirit is clamped at 100. Each rested mob grants 34, so three rested mobs fill the meter.
+- The meter is drawn while the run is playable. The death and purified overlays cover it.
+- The `001` skill-point counter and the “Combo complete” notice are removed.
+
+## 6. Floor purified
+
+- When spirit reaches 100, the run enters the `purified` state and stops simulating. Rendering continues on the frozen frame.
+- The overlay covers the whole viewport with `rgba(5,10,16,0.72)`.
+- Text is centered horizontally:
+  - **`Floor purified`** — `48px system-ui, sans-serif`, `#e8f7ff`, vertically centered at `height/2 − 30`.
+  - **`The boss awaits`** — `20px system-ui, sans-serif`, `rgba(191,233,255,0.9)`, at `height/2 + 22`.
+  - **`Press R to restart`** — `16px system-ui, sans-serif`, `rgba(255,255,255,0.75)`, at `height/2 + 60`.
+- No boss is spawned and no floor transition occurs in this version. The overlay is the finish line.
+- `R` resets the run exactly like the death restart.
+
+## 7. Death and restart
+
+- Death freezes simulation and presentation as in `0.1.0`; projectiles, telegraphs, stagger, hitstop, and respawn timers all stop.
+- `R` restores: three enemies at their spawns with full HP, intact fragments, no timers, no respawn, and no rest flag; zero projectiles; idle chain; zero spirit; `floorPurified` false; full player HP; camera snapped; time 0.
+- The death overlay text and layout are unchanged.
+- The purified overlay is separate from the death overlay; only one can be shown.
+
+## 8. Removed from this version
+
+- Skill points, skill-point HUD counter, combo challenge awarding, and the earn notice.
+- Room-clear flag, `room-cleared` event, and “nothing respawns” behavior.
+- Drops, currency, inventory, shops, consumables, and skill spending.
+- Boss fight, floor transitions, floor scaling, and procedural generation.
+- Ordered or moving fragments, per-mob fragment-count variation, and sequence rules. These are future difficulty levers.
+
+## 9. Approved numeric values
 
 | Value | Setting |
 |---|---|
@@ -164,46 +181,47 @@ Presentation:
 | Finisher hitstop | 0.06 s |
 | Finisher knockback | 6 px |
 | Stagger | 0.15 s |
-| Finisher spark | 6 lines × 12 px, 0.16 s |
-| **Melee enemy** | |
-| Max HP | 10 (was 6) |
-| Speed / radius / aggro | 55 px/s / 6 px / 160 px |
-| Attack range / telegraph / active / cooldown | 26 px / 0.45 s / 0.1 s / 1.1 s |
-| **Ranged enemy** | |
-| Max HP | 6 |
-| Speed / radius / aggro | 70 px/s / 6 px / 260 px |
-| Near / far thresholds | 110 px / 240 px |
-| Telegraph / cooldown | 0.5 s / 1.6 s |
-| Projectile speed / radius / lifetime / damage | 150 px/s / 4 px / 1.6 s / 1 HP |
-| Line-of-sight sample step | 4 px |
-| **Player** | unchanged from `0.1.0`: 120 px/s, radius 6, 6 HP, 1 damage taken, 0.6 s i-frames, dodge 64 px / 0.18 s / 0.25 s / 0.9 s |
+| **Purification** | |
+| Fragments per mob | 2 |
+| Fragment angles / orbit radius | −135°, −45° / 12 px |
+| Orbit centre above feet | 10 px |
+| Fragment radius / colour | 3.2 px / `#bfe9ff` |
+| Fragment bob | ±1.2 px at 3 rad/s |
+| Spirit per rested mob | 34 |
+| Spirit threshold | 100 |
+| Respawn delay | 2 s |
+| Ready-to-rest ring | radius 13 px, alpha 0.27–0.63 at 6 rad/s |
+| **Spirit HUD** | |
+| Text | `Spirit: N%`, x 24, top y 74, 14 px |
+| Bar | x 24, y 92, 120 × 6 px |
+| Colour | `#bfe9ff` |
+| **Melee enemy** | unchanged: 10 HP, 55 px/s, radius 6, aggro 160, range 26, windup 0.45, active 0.1, cooldown 1.1, damage 1 |
+| **Ranged enemy** | unchanged: 6 HP, 70 px/s, radius 6, aggro 260, near 110, far 240, telegraph 0.5, cooldown 1.6, projectile 150 px/s / r4 / 1.6 s / 1 HP |
+| **Player** | unchanged: 120 px/s, radius 6, 6 HP, 0.6 s i-frames, dodge 64 px / 0.18 s / 0.25 s / 0.9 s |
 | **Camera** | unchanged: τ = 0.12 s |
 | **Enemy death fade** | 0.25 s |
 
-## 8. Explicit non-goals
+## 10. Explicit non-goals
 
-No secondary attack, skills, skill-point spending, shop, consumables, currency, loot, boss, procedural floors, safe rooms, persistence, audio, menus. No enemy type beyond melee and ranged; no enemy-enemy collision; no projectile-enemy damage; no waves or respawns; no screen shake; no new art beyond the supplied `imp` frames.
+No secondary attack, skills, skill-point spending, shop, consumables, currency, loot, drops, boss, procedural floors, safe rooms, persistence, audio, or menus. No enemy type beyond melee and ranged; no enemy-enemy collision; no projectile-enemy damage; no waves; no screen shake; no new art or dependencies.
 
-## 9. Assumptions and deviations from `0.1.0`
+## 11. Assumptions and deviations from `001`
 
-- **Press-per-hit** replaces `0.1.0`'s hold-to-repeat attack; the operator approved this on 2026-11-02.
-- **Hard timing replaces input buffering** (operator revision, 2026-11-03). The original design buffered presses and used a 0.30 s window after recovery, which a steady click could complete. The approved revision removes the buffer, opens a 0.10 s window 0.06 s after the swing lands, and ends the chain on any off-window press. A simulation of steady cadences confirmed that 5 Hz and faster mashing fails while a deliberate reply near 3.3–4.4 Hz succeeds.
-- **Taking damage ends the chain** (operator-approved 2026-11-03). The original design left the chain running through damage; the revision makes damage a break reason while preserving a hit that already resolved.
-- **In-world chain pips** (operator-approved 2026-11-03). The original design deliberately omitted combo UI; playtesting showed the reply window was unreadable without a cue, so three pips above the player now show progress and pulse on the open window.
-- **Hit reaction** moves from a global "last hit timestamp" in the visual-effects layer to a per-enemy `hurtFlash` domain timer, because several enemies can be hit at once.
-- **Difficulty:** melee HP rises 6 → 10 and the ranged enemy has 6 HP so the 2/2/4 chain has meaning (operator-approved).
-- **Projectile art** is procedural; the pack has no projectile frame and no new art was supplied.
-- The `imp` has no hurt frame, so its hit feedback is the white flash only.
+- **Purification replaces the skill-point reward** (operator re-baseline, 2026-11-04). The `001` challenge, point counter, notice, and room-clear flag are removed rather than left dormant.
+- **Fragments are broken by the existing light attack** (operator-approved 2026-11-04). Ordered breaks, moving orbits, and fragment sequences are deferred.
+- **Any HP loss restores all fragments** (operator-approved 2026-11-04). I-frames and dodges that prevent HP loss are safe. Restoration never resets the mob's current HP.
+- **Conventional death respawns the mob** (operator-approved 2026-11-04) after 2 s at its spawn with a full rite. This replaces the `001` rule that clearing the room leaves it empty.
+- **Spirit meter only; no boss** (operator-approved 2026-11-04). The meter's full state is a frozen “Floor purified” overlay.
+- **No drops** (operator-approved 2026-11-04). Purification grants spirit only.
+- **Ready-to-rest cue** is a reversible implementation default: pale tint plus pulsing ring. It was not separately specified by the operator, but the design task requires every state to be visible.
+- **Fragments resolve before damage** so a final blow can break the last fragment and rest the mob. This is the generous reading of “once all fragments are broken, the mob can be killed permanently.”
+- The hard-timed combo, in-world pips, combat values, enemy archetypes, and `0.1.0` behavior are retained from the approved `001` design.
 
-## 10. Mapping to the design task's acceptance criteria
+## 12. Mapping to the design task's acceptance criteria
 
-1. Combo timing/damage/arc/stagger table: §1.2, §7.
-2. Per-step visuals, window feedback, reset: §1.4 (including the in-world pips and break burst).
-3. Ranged state presentation, band/fire/LOS values: §2.3.
-4. Projectile visual and physical definition: §3, §7.
-5. Skill-point HUD and notice: §4.
-6. Spawn positions and opening framing: §2.4.
-7. Enemy HP values and re-tuning: §2, §7, §9.
-8. No new assets or dependencies: §8.
-9. No scope expansion: §8.
-10. Pure, testable rules: every value in §7 is a config constant; §1–§5 contain no presentation dependency.
+1. Fragment count, angles, orbit, size, colour, and motion: §3.1, §9.
+2. Break, restore, ready-to-rest, permanent-rest, and respawn cues: §3.2–§3.4, §4.
+3. Spirit-meter placement, text, colour, and fill: §5, §9.
+4. Floor-purified overlay text and restart: §6.
+5. Removal of skill-point/challenge/drop/boss presentation: §8.
+6. Implementable values and testable rules: §2–§9; every value is a config constant and the rules live in pure systems.
