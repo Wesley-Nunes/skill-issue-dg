@@ -456,7 +456,7 @@ export class Renderer {
         const current = step === player.comboStep && !filled;
         const pulsing = windowOpen && step === player.comboStep + 1;
         const pulse = pulsing
-          ? 1.3 + 0.2 * Math.sin(state.time * Math.PI * 16)
+          ? 1.4 + 0.1 * Math.sin(state.time * Math.PI * 16)
           : 1;
         const base = step === 3 ? COMBO_PIP_RADIUS + 0.9 : COMBO_PIP_RADIUS;
 
