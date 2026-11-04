@@ -7,17 +7,17 @@ This file is the canonical workflow state for the repository. It is maintained b
 | Field | Value |
 |---|---|
 | Project | skill issue dg |
-| Goal | MVP — combat depth (`0.2.0`): combo chain, ranged enemy, earn-only combo challenge |
+| Goal | MVP — spirit purification (`0.2.0`): dark-fantasy liberation loop, spirit fragments, spirit meter |
 | Current SemVer ID | `0.2.0` |
-| Current task ID | `001` |
-| Active phase | `Integration — PR + merge` |
+| Current task ID | `002` |
+| Active phase | `Integration — push + PR` |
 | Active agent | `orchestrator` |
 | Git branch | `feature/0.2.0-001-combat-depth` |
-| Last accepted commit | `7f6f055` (QA pass; report `c618dad`) |
-| Pushed HEAD | `fea3002` on `origin/feature/0.2.0-001-combat-depth` (operator push). The local branch is ahead with the combo rework, docs, and QA commits and is not yet pushed |
-| Pull request | PR #1 merged (`0.1.0`); the `0.2.0` PR was declined and must be reopened after the rework. No `gh`/`hub` and no GitHub token in this environment, so the operator must push and open it |
+| Last accepted commit | `2875910` (QA pass; report committed in the same commit) |
+| Pushed HEAD | `b218114` on `origin/feature/0.2.0-001-combat-depth` (operator push). The local branch is 4 commits ahead with the `002` docs, design, implementation, and QA change sets |
+| Pull request | PR #1 merged (`0.1.0`); the `0.2.0` PR was declined and must be reopened after the re-baseline. No `gh`/`hub` and no GitHub token in this environment, so the operator must push and open it |
 | Blocking questions remaining | `0` |
-| Overall status | `Blocked` — combo rework, docs, and QA pass are committed; PR creation needs the operator to push the branch and open the PR, and the merge to `dev` needs operator review and authorization |
+| Overall status | `Blocked` — the `002` purification change set is committed and QA-passed; PR creation needs the operator to push the branch and open the PR, and the merge to `dev` needs operator review and authorization |
 
 Update this snapshot whenever a value changes. Do not leave stale status after a handoff.
 
@@ -40,17 +40,18 @@ The state manager must not invent decisions, change product scope, edit game cod
 Populate these links when the version and task have been approved:
 
 - Product overview: `docs/about-the-project.md`
-- Task package: `docs/tasks/0.2.0/001-design.md`, `001-programmer.md`, `001-qa.md` (created)
-- Design decisions: `design/0.2.0/design-decisions.md` (created)
-- Implementation decision log: `programmer/0.2.0/CoT.md` (created)
-- QA report: `qa/0.2.0/001-report.md` (created; revision verdict Passed on `7f6f055`, report `c618dad`)
+- Task package: `docs/tasks/0.2.0/002-design.md`, `002-programmer.md`, `002-qa.md` (created; `001-*` marked superseded)
+- Design decisions: `design/0.2.0/design-decisions.md` (rewritten for purification)
+- Implementation decision log: `programmer/0.2.0/CoT.md` (rewritten for purification)
+- QA report: `qa/0.2.0/002-report.md` (created; Passed on `2df7615` plus the QA regression, report `2875910`)
 
-### Version 0.2.0 scope (operator-approved 2026-11-02)
+### Version 0.2.0 scope (operator re-baseline 2026-11-04)
 
-- **Deliverable:** combat depth — development priority 4 in `docs/about-the-project.md` §11.
-- **Included:** three-hit light attack combo chain; one new ranged enemy archetype coexisting with the melee enemy in the existing hand-authored room; one earn-only combo skill challenge that awards a skill point displayed in the HUD.
-- **Excluded:** secondary attack, skill-point spending/shop, consumables, currency, loot, procedural floors, safe rooms, boss, persistence, audio, menus, any enemy type beyond melee + ranged.
-- **Known structural consequence:** `GameState.enemy` becomes `enemies: Enemy[]`; spawns, hit resolution, draw order, camera, and death/restart need list handling.
+- **Deliverable:** combat depth and the dark-fantasy liberation loop — development priority 4 in `docs/about-the-project.md` §11.
+- **Included:** three-hit hard-timed light combo with in-world chain pips; two melee enemies plus one ranged enemy in the existing hand-authored room; spirit fragments broken by the light attack; any HP loss restores broken fragments; failed-rite respawn at spawn after 2 s; permanent rest and spirit gain; spirit meter; frozen “Floor purified — the boss awaits” overlay with `R` restart.
+- **Removed from the earlier `0.2.0` pass:** skill points, the combo challenge award, the earn notice, the room-clear flag/event, and drops.
+- **Excluded:** secondary attack, skill-point spending/shop, consumables, currency, loot, procedural floors, safe rooms, boss, persistence, audio, menus, any enemy type beyond melee + ranged, ordered/moving fragments.
+- **Known structural consequence:** `Enemy` gains home position, fragments, rested, and respawn; `RunState` becomes spirit/floorPurified; `GameStatus` gains `purified`.
 
 ### Version 0.1.0 scope (operator-approved 2026-11-01, delivered)
 
@@ -78,6 +79,9 @@ Append one entry for each meaningful phase transition:
 | 2026-11-03 | 0.2.0/001 | Complete → Pushed, PR pending | Operator pushed the branch; `origin/feature/0.2.0-001-combat-depth` matches local HEAD at `fea3002`; PR creation blocked by missing `gh`/`hub` and GitHub token; merge to `dev` awaits operator review | `fea3002` |
 | 2026-11-04 | 0.2.0/001 | PR review → Combo rework | Operator declined the buffered-input combo because mashing completed it. Hard-timed reply window (0.06 s delay, 0.10 s window), damage break, finisher hold, and in-world pips implemented; design, product overview, and task criteria updated; 111 unit + 15 Cypress tests pass | `3eef641`, `04253cf`, `7f6f055` |
 | 2026-11-04 | 0.2.0/001 | Combo rework → QA pass | Clean install; typecheck/build/e2e pass; 111 unit + 15 Cypress tests with three consecutive full e2e passes; one pip-pulse mismatch fixed before acceptance; verdict Passed with 0 blocking findings | `7f6f055` (QA report `c618dad`) |
+| 2026-11-04 | 0.2.0/002 | PR review → Re-baseline | Operator declined the skill-point/challenge loop and approved spirit purification: light-attack fragment breaks, any-HP-loss restoration, failed-rite respawn, permanent rest, spirit meter, frozen purified overlay, no boss or drops. Product overview, tasks, and design decisions rewritten; `001-*` marked superseded | `db6968a`, `3686440` |
+| 2026-11-04 | 0.2.0/002 | Re-baseline → Implementation | Fragment/home/rested/respawn state, pure purification rules, engine wiring, renderer HUD/aura/overlay, effects, and removed skill-point/challenge code delivered; 122 unit + 15 Cypress tests; typecheck/build/e2e pass | `2df7615` |
+| 2026-11-04 | 0.2.0/002 | Implementation → QA pass | Clean install; 123 unit + 15 Cypress tests pass; production bundle has no `__gameDebug`; visual captures verify fragments, spirit HUD, and ready-to-rest cue; verdict Passed with 0 blocking findings | `2875910` |
 
 ## Status vocabulary
 
