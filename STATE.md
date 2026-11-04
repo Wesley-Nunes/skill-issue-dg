@@ -14,10 +14,10 @@ This file is the canonical workflow state for the repository. It is maintained b
 | Active agent | `orchestrator` |
 | Git branch | `feature/0.2.0-001-combat-depth` |
 | Last accepted commit | `2875910` (QA pass; report committed in the same commit) |
-| Pushed HEAD | `b218114` on `origin/feature/0.2.0-001-combat-depth` (operator push). The local branch is 4 commits ahead with the `002` docs, design, implementation, and QA change sets |
-| Pull request | PR #1 merged (`0.1.0`); the `0.2.0` PR was declined and must be reopened after the re-baseline. No `gh`/`hub` and no GitHub token in this environment, so the operator must push and open it |
+| Pushed HEAD | `689529c` on `origin/feature/0.2.0-001-combat-depth` (pushed by the orchestrator after SSH access recovered). The branch contains the `002` docs, design, implementation, QA, and state commits |
+| Pull request | PR #1 merged (`0.1.0`); the `0.2.0` PR was declined and must be reopened after the re-baseline. No `gh`/`hub` and no GitHub token in this environment, so the operator must open or update the PR in the GitHub UI |
 | Blocking questions remaining | `0` |
-| Overall status | `Blocked` — the `002` purification change set is committed and QA-passed; PR creation needs the operator to push the branch and open the PR, and the merge to `dev` needs operator review and authorization |
+| Overall status | `Blocked` — the `002` purification change set is committed, QA-passed, and pushed; PR creation needs the operator's GitHub UI access, and the merge to `dev` needs operator review and authorization |
 
 Update this snapshot whenever a value changes. Do not leave stale status after a handoff.
 
@@ -82,6 +82,7 @@ Append one entry for each meaningful phase transition:
 | 2026-11-04 | 0.2.0/002 | PR review → Re-baseline | Operator declined the skill-point/challenge loop and approved spirit purification: light-attack fragment breaks, any-HP-loss restoration, failed-rite respawn, permanent rest, spirit meter, frozen purified overlay, no boss or drops. Product overview, tasks, and design decisions rewritten; `001-*` marked superseded | `db6968a`, `3686440` |
 | 2026-11-04 | 0.2.0/002 | Re-baseline → Implementation | Fragment/home/rested/respawn state, pure purification rules, engine wiring, renderer HUD/aura/overlay, effects, and removed skill-point/challenge code delivered; 122 unit + 15 Cypress tests; typecheck/build/e2e pass | `2df7615` |
 | 2026-11-04 | 0.2.0/002 | Implementation → QA pass | Clean install; 123 unit + 15 Cypress tests pass; production bundle has no `__gameDebug`; visual captures verify fragments, spirit HUD, and ready-to-rest cue; verdict Passed with 0 blocking findings | `2875910` |
+| 2026-11-04 | 0.2.0/002 | QA pass → Pushed, PR pending | Orchestrator pushed the branch after SSH access recovered; `origin/feature/0.2.0-001-combat-depth` is at the state commit; PR creation still needs the operator's GitHub UI access and merge awaits review | `689529c` |
 
 ## Status vocabulary
 
