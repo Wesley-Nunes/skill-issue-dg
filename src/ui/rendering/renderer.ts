@@ -9,6 +9,7 @@ import {
 } from "../../game/data/config";
 import { floorTileAt, wallTiles } from "../../game/data/room";
 import { SPRITES } from "../../game/data/sprites";
+import { comboWindowOpen } from "../../game/systems/combo";
 import type {
   Enemy,
   GameEvent,
@@ -16,7 +17,7 @@ import type {
   Viewport,
 } from "../../game/types";
 import type { AssetMap } from "./assets";
-import { VisualEffects } from "./effects";
+import { CHAIN_BREAK_LIFE, VisualEffects } from "./effects";
 
 const VOID_COLOR = "#0b0a0f";
 const HUD_INSET = 24;
@@ -29,6 +30,13 @@ const NOTICE_FADE_IN = 0.15;
 const NOTICE_FADE_OUT = 0.35;
 const PROJECTILE_BODY = "rgba(200, 166, 255, 0.85)";
 const PROJECTILE_CORE = "rgba(255, 255, 255, 0.95)";
+const COMBO_PIP_RADIUS = 2.2;
+const COMBO_PIP_SPACING = 7.6;
+const COMBO_GAUGE_OFFSET = 34;
+const COMBO_PIP_COLOR = "#f2d38a";
+const COMBO_PIP_ACTIVE = "rgba(255, 255, 255, 0.92)";
+const COMBO_PIP_IDLE = "rgba(255, 255, 255, 0.28)";
+const COMBO_BREAK_COLOR = "255, 92, 82";
 
 function clamp(value: number, min: number, max: number): number {
   return Math.min(Math.max(value, min), max);
@@ -96,6 +104,7 @@ export class Renderer {
     this.drawSwing(state);
     this.drawTelegraphs(state);
     this.drawSparks(state);
+    this.drawComboGauge(state);
     this.drawAim(state);
 
     context.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
@@ -432,6 +441,59 @@ export class Renderer {
       }
     }
     context.globalAlpha = 1;
+  }
+
+  /** Three pips above the player: chain count, next input, and break feedback. */
+  private drawComboGauge(state: GameState): void {
+    if (state.status !== "playing") return;
+    const player = state.player;
+
+    if (player.comboStep > 0) {
+      const windowOpen = comboWindowOpen(player);
+      for (let index = 0; index < 3; index += 1) {
+        const step = index + 1;
+        const filled = step <= player.comboHits;
+        const current = step === player.comboStep && !filled;
+        const pulsing = windowOpen && step === player.comboStep + 1;
+        const pulse = pulsing
+          ? 1.3 + 0.2 * Math.sin(state.time * Math.PI * 16)
+          : 1;
+        const base = step === 3 ? COMBO_PIP_RADIUS + 0.9 : COMBO_PIP_RADIUS;
+
+        this.drawPip(
+          player.x + (index - 1) * COMBO_PIP_SPACING,
+          player.y - COMBO_GAUGE_OFFSET,
+          base * pulse,
+          filled ? COMBO_PIP_COLOR : current ? COMBO_PIP_ACTIVE : COMBO_PIP_IDLE,
+        );
+      }
+    }
+
+    for (const burst of this.effects.chainBreaks) {
+      const age = state.time - burst.born;
+      if (age < 0 || age >= CHAIN_BREAK_LIFE) continue;
+      const progress = age / CHAIN_BREAK_LIFE;
+      for (let index = 0; index < 3; index += 1) {
+        this.drawPip(
+          burst.x +
+            (index - 1) * COMBO_PIP_SPACING * (1 - progress * 0.75),
+          burst.y - COMBO_GAUGE_OFFSET - progress * 3,
+          COMBO_PIP_RADIUS * (1 - progress * 0.6),
+          `rgba(${COMBO_BREAK_COLOR}, ${1 - progress})`,
+        );
+      }
+    }
+  }
+
+  private drawPip(x: number, y: number, radius: number, color: string): void {
+    const context = this.context;
+    context.fillStyle = color;
+    context.beginPath();
+    context.arc(x, y, radius, 0, Math.PI * 2);
+    context.fill();
+    context.strokeStyle = "rgba(0, 0, 0, 0.55)";
+    context.lineWidth = 0.6;
+    context.stroke();
   }
 
   private drawAim(state: GameState): void {

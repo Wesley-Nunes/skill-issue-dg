@@ -22,10 +22,17 @@ interface Swing {
   born: number;
 }
 
+interface ChainBreak {
+  x: number;
+  y: number;
+  born: number;
+}
+
 const AFTERIMAGE_LIFE = 0.2;
 const AFTERIMAGE_INTERVAL = 0.04;
 const AFTERIMAGES_PER_DODGE = 2;
 const SWING_LIFE = 0.6;
+export const CHAIN_BREAK_LIFE = 0.18;
 const SPARK_COLOR = "rgba(255, 255, 255, 1)";
 const WALL_SPARK_COLOR = "rgba(220, 210, 255, 0.9)";
 
@@ -33,6 +40,7 @@ export class VisualEffects {
   sparks: Spark[] = [];
   afterimages: Afterimage[] = [];
   swings: Swing[] = [];
+  chainBreaks: ChainBreak[] = [];
   /** Timestamp of the last combo reward, or -Infinity when none is showing. */
   noticeAt = Number.NEGATIVE_INFINITY;
 
@@ -95,6 +103,15 @@ export class VisualEffects {
             born: state.time,
           });
           break;
+        case "combo-ended":
+          if (event.reason !== "complete") {
+            this.chainBreaks.push({
+              x: event.x,
+              y: event.y,
+              born: state.time,
+            });
+          }
+          break;
         case "challenge-complete":
           this.noticeAt = state.time;
           break;
@@ -102,6 +119,7 @@ export class VisualEffects {
           this.sparks = [];
           this.afterimages = [];
           this.swings = [];
+          this.chainBreaks = [];
           this.noticeAt = Number.NEGATIVE_INFINITY;
           this.lastCapture = 0;
           this.dodgeCaptures = 0;
@@ -136,5 +154,8 @@ export class VisualEffects {
       (image) => time - image.born < AFTERIMAGE_LIFE,
     );
     this.swings = this.swings.filter((swing) => time - swing.born < SWING_LIFE);
+    this.chainBreaks = this.chainBreaks.filter(
+      (burst) => time - burst.born < CHAIN_BREAK_LIFE,
+    );
   }
 }

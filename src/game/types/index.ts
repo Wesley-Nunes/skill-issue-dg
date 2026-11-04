@@ -5,6 +5,14 @@ export interface Vec2 {
 
 export type GameStatus = "playing" | "dead";
 
+/** Why a combo chain stopped being available. */
+export type ComboEndReason =
+  | "mistime"
+  | "whiff"
+  | "timeout"
+  | "damage"
+  | "complete";
+
 export type EnemyStatus = "alive" | "dying" | "dead";
 
 export type EnemyKind = "melee" | "ranged";
@@ -49,7 +57,6 @@ export interface Player {
   comboTime: number;
   /** Steps of the current chain that have connected, 0..3. */
   comboHits: number;
-  comboQueued: boolean;
   comboResolved: boolean;
   comboHitThisStep: boolean;
   moving: boolean;
@@ -93,6 +100,7 @@ export interface RunState {
 
 export type GameEvent =
   | { type: "attack-started"; angle: number; step: number }
+  | { type: "combo-ended"; reason: ComboEndReason; x: number; y: number }
   | { type: "enemy-hit"; x: number; y: number; finisher: boolean }
   | { type: "enemy-died"; x: number; y: number }
   | { type: "player-hit"; x: number; y: number }
@@ -136,9 +144,9 @@ export interface DebugSnapshot {
     invulnerable: number;
     comboStep: number;
     comboHits: number;
-    comboQueued: boolean;
     comboResolved: boolean;
     comboHitThisStep: boolean;
+    comboWindowOpen: boolean;
   };
   enemies: Array<{
     id: string;

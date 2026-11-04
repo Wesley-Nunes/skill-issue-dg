@@ -65,7 +65,15 @@ export const COMBO = {
       damage: 4,
     },
   ] satisfies ComboStep[],
-  window: 0.3,
+  /**
+   * Short beat after a step's active window before the next input opens. It
+   * keeps the reply window away from the click rhythm of a mash.
+   */
+  windowDelay: 0.06,
+  /** How long the next step's input window stays open. */
+  window: 0.1,
+  /** How long the completed finisher stays on screen after it lands. */
+  finisherHold: 0.12,
   hitstop: 0.06,
   knockback: 6,
   stagger: 0.15,

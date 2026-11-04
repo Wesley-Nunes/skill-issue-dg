@@ -1,6 +1,7 @@
 import { CAMERA, COMBO, PROJECTILE, ROOM, ZOOM } from "../data/config";
 import {
   comboPhase,
+  comboWindowOpen,
   markStepResolved,
   resetCombo,
   stepDefinition,
@@ -75,13 +76,10 @@ export class Game {
     const events: GameEvent[] = [];
     const state = this.state;
 
-    // The finisher freezes the simulation briefly; input still buffers so a
-    // press during the freeze is not lost.
+    // The finisher freezes the simulation briefly. Presses during the freeze
+    // are dropped, not penalised: the chain window is frozen with the world.
     if (state.hitstop > 0) {
       state.hitstop = Math.max(0, state.hitstop - dt);
-      if (input.attack && state.player.comboStep > 0) {
-        state.player = { ...state.player, comboQueued: true };
-      }
       return events;
     }
 
@@ -106,13 +104,21 @@ export class Game {
       facing: input.aim.x < 0 ? -1 : 1,
     };
 
-    const previousStep = player.comboStep;
-    player = tickCombo(player, pressed, dt);
-    if (player.comboStep !== previousStep && player.comboStep > 0) {
+    const combo = tickCombo(player, pressed, dt);
+    player = combo.player;
+    if (combo.started !== undefined) {
       events.push({
         type: "attack-started",
         angle: Math.atan2(player.aim.y, player.aim.x),
-        step: player.comboStep,
+        step: combo.started,
+      });
+    }
+    if (combo.ended !== undefined) {
+      events.push({
+        type: "combo-ended",
+        reason: combo.ended,
+        x: player.x,
+        y: player.y,
       });
     }
 
@@ -311,11 +317,26 @@ export class Game {
     const damaged = damagePlayer(state.player, amount);
     if (!damaged.applied) return;
 
-    state.player = damaged.player;
+    let player = damaged.player;
+    if (player.comboStep > 0) {
+      // Taking damage ends the chain. A swing already resolved in its active
+      // window still landed, so only the remaining chain is lost.
+      if (!damaged.died) {
+        events.push({
+          type: "combo-ended",
+          reason: "damage",
+          x: player.x,
+          y: player.y,
+        });
+      }
+      player = resetCombo(player);
+    }
+
+    state.player = player;
     events.push({
       type: "player-hit",
-      x: damaged.player.x,
-      y: damaged.player.y,
+      x: player.x,
+      y: player.y,
     });
     if (damaged.died) {
       state.status = "dead";
@@ -352,9 +373,9 @@ export class Game {
         invulnerable: player.invulnerable,
         comboStep: player.comboStep,
         comboHits: player.comboHits,
-        comboQueued: player.comboQueued,
         comboResolved: player.comboResolved,
         comboHitThisStep: player.comboHitThisStep,
+        comboWindowOpen: comboWindowOpen(player),
       },
       enemies: enemies.map((enemy) => ({
         id: enemy.id,

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { COMBO, ENEMY_SPAWNS, MELEE, ROOM } from "../data/config";
 import { createInitialState } from "../../state/initialState";
+import { comboWindowOpen } from "../systems/combo";
 import type { GameEvent, InputFrame } from "../types";
 import { Game } from "./game";
 
@@ -55,6 +56,26 @@ function duel(game: Game) {
   ];
 }
 
+/**
+ * Plays the chain by pressing only while the input window is open. Every swing
+ * connects because the duel enemy stands in front of the player.
+ */
+function playTimedChain(game: Game, stopAtFinisher = false): GameEvent[] {
+  const events: GameEvent[] = [];
+  events.push(...game.step(0.01, idle({ attack: true })));
+
+  for (let guard = 0; guard < 500; guard += 1) {
+    const player = game.state.player;
+    if (player.comboStep === 0) break;
+    if (stopAtFinisher && player.comboStep === 3 && player.comboResolved) break;
+    events.push(
+      ...game.step(0.01, idle({ attack: comboWindowOpen(player) })),
+    );
+  }
+
+  return events;
+}
+
 describe("Game", () => {
   it("starts with the player and three enemies at their spawns", () => {
     const game = createGame();
@@ -93,35 +114,75 @@ describe("Game", () => {
     expect(game.state.player.comboStep).toBe(0);
   });
 
-  it("chains three hits with buffered presses and awards one skill point", () => {
+  it("chains three timed hits and awards one skill point", () => {
     const game = createGame();
     duel(game);
 
-    const events = stepFor(game, 1.2, pressOn([0, 12, 40]));
+    const events = playTimedChain(game);
 
-    expect(game.state.enemies[0]?.hp).toBe(
-      MELEE.maxHp - (2 + 2 + 4),
-    );
+    expect(game.state.enemies[0]?.hp).toBe(MELEE.maxHp - (2 + 2 + 4));
     expect(
-      events.filter((event) => event.type === "attack-started").map((event) => event.step),
+      events
+        .filter((event) => event.type === "attack-started")
+        .map((event) => event.step),
     ).toEqual([1, 2, 3]);
+    expect(
+      events.some(
+        (event) => event.type === "combo-ended" && event.reason !== "complete",
+      ),
+    ).toBe(false);
     expect(game.state.run.skillPoints).toBe(1);
     expect(game.state.run.challengeEarned).toBe(true);
-    expect(events.some((event) => event.type === "challenge-complete")).toBe(true);
+    expect(events.some((event) => event.type === "challenge-complete")).toBe(
+      true,
+    );
+  });
+
+  it("never chains while the attack is mashed", () => {
+    const game = createGame();
+    duel(game);
+
+    const events = stepFor(game, 2, { attack: true });
+
+    expect(
+      events.some(
+        (event) => event.type === "attack-started" && event.step > 1,
+      ),
+    ).toBe(false);
+    expect(events.some((event) => event.type === "enemy-hit")).toBe(false);
+    expect(game.state.run.skillPoints).toBe(0);
+    expect(game.state.player.comboStep).toBeLessThan(2);
+  });
+
+  it("does not chain on a steady five-hertz click", () => {
+    const game = createGame();
+    duel(game);
+
+    const events = stepFor(game, 3, (frame) => ({ attack: frame % 20 === 0 }));
+
+    expect(
+      events.some(
+        (event) => event.type === "attack-started" && event.step > 1,
+      ),
+    ).toBe(false);
+    expect(game.state.run.skillPoints).toBe(0);
   });
 
   it("does not award a second point in the same run", () => {
     const game = createGame();
     duel(game);
-    stepFor(game, 1.2, pressOn([0, 12, 40]));
+    playTimedChain(game);
     expect(game.state.run.skillPoints).toBe(1);
 
     game.state.enemies[0] = {
       ...game.state.enemies[0]!,
       hp: MELEE.maxHp,
       status: "alive",
+      x: game.state.player.x + 20,
+      y: game.state.player.y,
+      stagger: 9,
     };
-    stepFor(game, 1.2, pressOn([0, 12, 40]));
+    playTimedChain(game);
 
     expect(game.state.run.skillPoints).toBe(1);
   });
@@ -158,7 +219,7 @@ describe("Game", () => {
     const game = createGame();
     duel(game);
 
-    stepFor(game, 0.72, pressOn([0, 12, 40]));
+    playTimedChain(game, true);
 
     const enemy = game.state.enemies[0]!;
     expect(enemy.hp).toBe(MELEE.maxHp - 8);
@@ -180,18 +241,54 @@ describe("Game", () => {
     expect(game.state.hitstop).toBeCloseTo(0.03, 5);
   });
 
-  it("keeps a press made during hitstop as a buffered step", () => {
+  it("drops presses made during hitstop instead of buffering them", () => {
     const game = createGame();
     game.state.hitstop = 0.06;
     game.state.player = {
       ...game.state.player,
       comboStep: 1,
       comboTime: 0.2,
+      comboResolved: true,
+      comboHitThisStep: true,
     };
 
-    stepFor(game, 0.01, { attack: true });
+    const events = stepFor(game, 0.01, { attack: true });
 
-    expect(game.state.player.comboQueued).toBe(true);
+    expect(game.state.player.comboStep).toBe(1);
+    expect(game.state.player.comboTime).toBe(0.2);
+    expect(events.some((event) => event.type === "combo-ended")).toBe(false);
+    expect(game.state.hitstop).toBeCloseTo(0.05, 5);
+  });
+
+  it("ends the chain when the player takes damage", () => {
+    const game = createGame();
+    duel(game);
+    stepFor(game, 0.19, pressOn([0]));
+
+    expect(game.state.enemies[0]?.hp).toBe(MELEE.maxHp - 2);
+    expect(game.state.player.comboStep).toBe(1);
+
+    game.state.projectiles = [
+      {
+        id: 1,
+        x: game.state.player.x + 2,
+        y: game.state.player.y,
+        vx: -150,
+        vy: 0,
+        radius: 4,
+        life: 1.6,
+      },
+    ];
+    const events = stepFor(game, 0.02, {});
+
+    expect(game.state.player.hp).toBe(5);
+    expect(game.state.player.comboStep).toBe(0);
+    expect(
+      events.some(
+        (event) =>
+          event.type === "combo-ended" && event.reason === "damage",
+      ),
+    ).toBe(true);
   });
 
   it("spawns a projectile after the ranged telegraph and damages the player", () => {

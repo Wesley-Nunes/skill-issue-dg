@@ -24,7 +24,6 @@ export function createPlayer(): Player {
     comboStep: 0,
     comboTime: 0,
     comboHits: 0,
-    comboQueued: false,
     comboResolved: false,
     comboHitThisStep: false,
     moving: false,

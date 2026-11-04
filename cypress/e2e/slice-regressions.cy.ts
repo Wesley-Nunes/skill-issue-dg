@@ -125,31 +125,26 @@ function pollUntil(
 }
 
 /**
- * Presses attack whenever the chain is idle or a resolved hit needs its next
- * step buffered. Returns once the challenge awards a point or attempts run out.
+ * Starts the chain, then presses only while the input window is open. Polls
+ * are short because the window lasts 0.10 s.
  */
-function playComboStep(attempts = 80): void {
+function playComboStep(attempts = 120): void {
   snap().then((s) => {
     if (s.skillPoints > 0) return;
     expect(attempts, "combo attempts").to.be.greaterThan(0);
 
     const target = meleeTarget(s);
-    const readyToPress =
-      s.player.comboStep === 0 ||
-      (s.player.comboResolved && !s.player.comboQueued);
-    const stepsDone = s.player.comboStep === 3 ? 3 : s.player.comboStep;
-
-    if (readyToPress && stepsDone < 3) {
+    if (s.player.comboStep === 0 || s.player.comboWindowOpen) {
       clickWorld(target.x, target.y);
     }
 
-    if (stepsDone === 3 && s.player.comboResolved) {
-      // The award is already granted in the same frame as the finisher hit.
+    if (s.player.comboStep === 3) {
+      // The finisher lands on its own and the award follows the connecting hit.
       pollUntil((after) => after.skillPoints > 0, "the combo skill point", 20);
       return;
     }
 
-    cy.wait(90);
+    cy.wait(25);
     cy.then(() => playComboStep(attempts - 1));
   });
 }
@@ -304,6 +299,25 @@ describe("0.2.0 QA verification", () => {
       expect(s.challengeEarned).to.equal(true);
       const melee = s.enemies.find((enemy) => enemy.kind === "melee");
       expect(melee!.hp).to.be.lessThan(10);
+    });
+  });
+
+  it("does not chain the combo while the attack is mashed", () => {
+    approachMelee();
+    for (let click = 0; click < 30; click += 1) {
+      snap().then((s) => {
+        const target = meleeTarget(s);
+        clickWorld(target.x, target.y);
+      });
+      cy.wait(40);
+    }
+
+    snap().then((s) => {
+      expect(s.skillPoints).to.equal(0);
+      expect(s.challengeEarned).to.equal(false);
+      expect(s.player.comboStep, "mashing never reaches the finisher").to.be.lessThan(
+        3,
+      );
     });
   });
 
