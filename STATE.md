@@ -14,7 +14,7 @@ This file is the canonical workflow state for the repository. It is maintained b
 | Active agent | `orchestrator` |
 | Git branch | `feature/0.2.0-001-combat-depth` |
 | Last accepted commit | `2875910` (QA pass; report committed in the same commit) |
-| Pushed HEAD | `689529c` on `origin/feature/0.2.0-001-combat-depth` (pushed by the orchestrator after SSH access recovered). The branch contains the `002` docs, design, implementation, QA, and state commits |
+| Pushed HEAD | Branch is synced with `origin/feature/0.2.0-001-combat-depth`. The substantive `002` head is `2875910`; the integration/state record continues through `457e0e4`. The branch contains the `002` docs, design, implementation, QA, and state commits |
 | Pull request | PR #1 merged (`0.1.0`); the `0.2.0` PR was declined and must be reopened after the re-baseline. No `gh`/`hub` and no GitHub token in this environment, so the operator must open or update the PR in the GitHub UI |
 | Blocking questions remaining | `0` |
 | Overall status | `Blocked` — the `002` purification change set is committed, QA-passed, and pushed; PR creation needs the operator's GitHub UI access, and the merge to `dev` needs operator review and authorization |
