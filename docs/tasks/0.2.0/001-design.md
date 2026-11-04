@@ -28,8 +28,8 @@ Decide the visual and interaction treatment of the combo, the ranged enemy, its 
 
 ## In scope
 
-- **Combo chain:** per-step windup/active/recovery, chain-window start and length, input-buffer window, per-step reach and arc angle, damage ladder confirmation, finisher arc bonus, stagger duration and its visible feedback, and what the player sees when the chain resets (whiff or timeout).
-- **Swing presentation:** how the three steps differ visually (arc size/color/offset), how the player can tell which step is next and when the chain window is open, without adding UI clutter.
+- **Combo chain:** per-step windup/active/recovery, reply-window delay and length, per-step reach and arc angle, damage ladder confirmation, finisher arc bonus and hold, stagger duration and its visible feedback, and what the player sees when the chain advances or breaks (mistime, whiff, timeout, damage, complete).
+- **Swing presentation:** how the three steps differ visually (arc size/color/offset), and how the player can tell which step is next and when the reply window is open through the approved in-world pips.
 - **Ranged enemy:** `imp` idle/run/telegraph/hit presentation, horizontal facing, distance-band behaviour values (retreat and approach thresholds), line-of-sight rule, fire cadence, and death removal reusing the existing fade.
 - **Projectile:** code-drawn appearance (shape, size, color, glow, trail), spawn offset from the imp, speed, radius, lifetime/range, wall-destruction visual, and the player-hit feedback it triggers.
 - **Challenge:** skill-point HUD element (position, icon/text, resting and earned states), the earn notification's style, duration, and placement, and how the reset (death/`R`) is communicated.
@@ -49,7 +49,7 @@ Decide the visual and interaction treatment of the combo, the ranged enemy, its 
 
 Operator-approved on 2026-11-02:
 
-1. **Combo:** three-hit light chain. Damage escalates **2 / 2 / 4**; the third hit has a wider arc and a brief stagger; the chain window is about **0.30 s** after a swing; attack input during a swing is buffered into the next step; **a whiff or an expired window ends the chain**.
+1. **Combo:** three-hit light chain. Damage escalates **2 / 2 / 4**; the third hit has a wider arc and a brief stagger; the reply window opens a short beat after a swing lands and lasts about **0.10 s**; **input is not buffered** — an off-window press, a whiff, an expired window, or taking damage ends the chain (operator revision, 2026-11-03).
 2. **Ranged enemy:** kiter that holds a mid-range distance band (retreats inside ~110 px, closes beyond ~240 px), fires only with line of sight after a ~0.5 s telegraph, and fires a slow projectile (~150 px/s) that deals 1 damage and is destroyed by walls.
 3. **Room:** fixed composition of **2 melee + 1 ranged**, hand-placed, room clears when all die, no respawn, clearing does not win the run.
 4. **Challenge:** earn **1 skill point** the first time in a run that all three hits of one chain connect (hits may land on different enemies); shown in the HUD; lost on death; cleared by `R`.
@@ -59,7 +59,7 @@ Additional approved rules:
 
 - A swing damages every enemy inside its arc, each enemy at most once per swing; a chain step may hit several enemies.
 - Projectiles damage only the player, never enemies, and do not collide with enemies.
-- The player keeps the `0.1.0` movement, dodge, HP, i-frame, camera, and death/restart behavior. Taking damage does not reset the chain.
+- The player keeps the `0.1.0` movement, dodge, HP, i-frame, camera, and death/restart behavior. Taking damage ends the chain; a swing that already resolved still lands.
 - Enemy HP is re-tuned so the approved chain does not trivially delete a full-health enemy; the proposed values are part of the design decisions and need operator approval with the rest of the design.
 
 ## Constraints
@@ -75,8 +75,8 @@ Additional approved rules:
 
 The design decisions document must:
 
-1. Give a complete combo timing table (windup/active/recovery per step, chain window, buffer window, cooldown if any) and the damage/arc/reach/stagger values for each step.
-2. Specify how each of the three steps looks different, how the chain window is communicated, and how a reset is shown — using only existing frames plus code-drawn effects.
+1. Give a complete combo timing table (windup/active/recovery per step, reply-window delay and length, finisher hold, cooldown if any) and the damage/arc/reach/stagger values for each step.
+2. Specify how each of the three steps looks different, how chain progress and the reply window are communicated (including the in-world pips), and how each kind of break is shown — using only existing frames plus code-drawn effects.
 3. Specify the ranged enemy's state presentation and concrete band/fire/line-of-sight values, including the telegraph duration and what the telegraph looks like on a 16 × 16 sprite.
 4. Specify the projectile's full visual and physical definition (size, radius, speed, lifetime, spawn offset, trail, wall-hit effect) and its damage interaction with the player.
 5. Specify the skill-point HUD element and earn notice with exact placement, wording, duration, and behavior on earn, death, and restart.

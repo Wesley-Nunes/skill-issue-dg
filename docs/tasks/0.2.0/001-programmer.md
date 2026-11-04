@@ -33,8 +33,9 @@ Deliver a room where the player fights two melee enemies and one kiting ranged e
    - Add run-scoped combo state on the player and run-scoped challenge state (`skillPoints`, challenge-earned flag).
 2. **Three-hit combo**
    - Replace the single swing with a three-step chain using the design's windup/active/recovery timings, arcs, reach, and damage ladder (2 / 2 / 4).
-   - Buffer attack input during a swing into the next step; advance only inside the chain window.
-   - End the chain on a whiff or an expired window; the next press starts again at step one.
+   - Open a short reply window after the swing's active frames (0.06 s delay, 0.10 s long); start the next step only on an in-window press.
+   - Do not buffer input. An off-window press, a whiff, an expired window, or taking damage ends the chain; the next idle press starts at step one.
+   - Show three in-world pips above the player for chain progress, pulse the next pip while the window is open, and collapse the pips on a break.
    - Each step damages every enemy inside its arc, each enemy at most once per step.
    - The finisher applies the designed stagger to enemies it hits and uses its wider arc.
    - Dodge during a swing cancels the swing and ends the chain (unless the design says otherwise).
@@ -66,7 +67,7 @@ Deliver a room where the player fights two melee enemies and one kiting ranged e
 
 Operator-approved on 2026-11-02 (recorded in `docs/about-the-project.md` §3.2, §3.3, §5.1):
 
-- Three-hit chain, damage 2 / 2 / 4, wider finisher arc, brief stagger on the finisher, ~0.30 s chain window, buffered input, whiff or timeout ends the chain.
+- Three-hit chain, damage 2 / 2 / 4, wider finisher arc, brief stagger on the finisher, a 0.10 s reply window opening 0.06 s after the active frames, no input buffering, and a chain end on an off-window press, a whiff, a timeout, or taking damage (operator revision, 2026-11-03).
 - Ranged enemy kites in a mid-range band, fires only with line of sight after a ~0.5 s telegraph, projectile ~150 px/s, 1 damage, destroyed by walls.
 - Fixed composition of 2 melee + 1 ranged at hand-placed spawns; room clears when all die; no respawn; clearing does not win the run.
 - 1 skill point the first time all three hits of one chain connect in a run; shown in the HUD; lost on death; cleared by `R`.
@@ -76,7 +77,7 @@ Rules to preserve from `0.1.0`:
 
 - Attack direction is the mouse aim direction; no auto-targeting.
 - Movement, diagonal normalization, wall sliding, dodge distance/duration/cooldown/i-frames, player HP, enemy melee telegraph/cooldown, camera clamping and smoothing, and the death overlay behave as in `0.1.0` unless the design changes a value.
-- Taking damage does not reset the chain.
+- Taking damage ends the chain; a swing already resolved in its active window still lands.
 - Game outcomes are decided only in `src/game/systems` and `src/state`; rendering and input never decide hits, damage, or death.
 
 ## Constraints
@@ -92,9 +93,9 @@ Rules to preserve from `0.1.0`:
 ## Acceptance criteria
 
 1. The room contains exactly three enemies at boot: two melee at the design spawns and one ranged at its design spawn, none overlapping walls or each other.
-2. Attack input produces a three-step chain with the approved timings, arcs, reach, and damage; the finisher uses its wider arc and staggers enemies it hits for the approved duration.
-3. Attack input during a swing is buffered and advances the chain inside the window; pressing after the window starts a new chain at step one.
-4. A whiff and a timeout each end the chain, and the next press starts at step one.
+2. Attack input produces a three-step chain with the approved timings, arcs, reach, and damage; the finisher uses its wider arc and staggers enemies it hits for the approved duration; three in-world pips show connected steps and the next step pulses while the reply window is open.
+3. Only a press inside the reply window advances the chain; any other press ends it, so a steady mash cannot reach step 3.
+4. A whiff, an expired window, a mistimed press, and taking damage each end the chain, and the next press starts at step one; a swing that already resolved still lands.
 5. A step damages every enemy inside its arc and never damages the same enemy twice in one step.
 6. The ranged enemy retreats inside the near band, approaches beyond the far band, holds otherwise, respects walls, and does not fire without line of sight or before its telegraph completes.
 7. A fired projectile travels at the approved speed, damages the player once for 1, is blocked by invulnerability, is destroyed on a wall or on hit, and cannot tunnel through walls at the clamped frame delta.

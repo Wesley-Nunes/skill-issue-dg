@@ -146,14 +146,19 @@ the intended default; attacks should use the mouse aim direction or
 position as appropriate to the attack.
 
 The player has basic attacks and a three-hit light combo
-(operator-approved for `0.2.0` on 2026-11-02):
+(operator-approved for `0.2.0` on 2026-11-02, revised 2026-11-03):
 
--   Pressing attack inside the chain window advances to the next step;
-    input during a swing is buffered into the next step.
+-   Pressing attack inside the chain window advances to the next step.
+    Input is not buffered: a press before or after the window breaks
+    the chain, so a steady mash cannot complete it.
+-   The chain window opens shortly after the current swing lands and
+    stays open only briefly; a press that misses it costs the chain.
 -   Damage escalates across the chain, and the third hit (the finisher)
     has a wider arc and briefly staggers its target.
--   A whiff, or letting the chain window expire, returns the chain to
-    its first step.
+-   A whiff, an expired window, a mistimed press, or taking damage
+    returns the chain to its first step.
+-   Three pips above the player show the chain progress and briefly
+    pulse when the next input window is open.
 -   Final timings, window lengths, and damage values live in the
     version's design decisions; ability cooldowns remain open.
 
