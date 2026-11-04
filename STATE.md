@@ -13,11 +13,11 @@ This file is the canonical workflow state for the repository. It is maintained b
 | Active phase | `Integration — PR + merge` |
 | Active agent | `orchestrator` |
 | Git branch | `feature/0.2.0-001-combat-depth` |
-| Last accepted commit | `b8de512` (QA pass) |
-| Pushed HEAD | `fea3002` on `origin/feature/0.2.0-001-combat-depth` (pushed by the operator) |
-| Pull request | PR #1 merged (`0.1.0`); `0.2.0` PR not created — no `gh`/`hub` and no GitHub token in this environment, so the operator must open it |
-| Blocking questions remaining | `0` (5 answered during docs discovery) |
-| Overall status | `Blocked` — QA passed and branch pushed at `fea3002`; PR creation is blocked by missing `gh`/`hub` and GitHub token, and merging to `dev` needs operator review and authorization |
+| Last accepted commit | `7f6f055` (QA pass; report `c618dad`) |
+| Pushed HEAD | `fea3002` on `origin/feature/0.2.0-001-combat-depth` (operator push). The local branch is ahead with the combo rework, docs, and QA commits and is not yet pushed |
+| Pull request | PR #1 merged (`0.1.0`); the `0.2.0` PR was declined and must be reopened after the rework. No `gh`/`hub` and no GitHub token in this environment, so the operator must push and open it |
+| Blocking questions remaining | `0` |
+| Overall status | `Blocked` — combo rework, docs, and QA pass are committed; PR creation needs the operator to push the branch and open the PR, and the merge to `dev` needs operator review and authorization |
 
 Update this snapshot whenever a value changes. Do not leave stale status after a handoff.
 
@@ -43,7 +43,7 @@ Populate these links when the version and task have been approved:
 - Task package: `docs/tasks/0.2.0/001-design.md`, `001-programmer.md`, `001-qa.md` (created)
 - Design decisions: `design/0.2.0/design-decisions.md` (created)
 - Implementation decision log: `programmer/0.2.0/CoT.md` (created)
-- QA report: `qa/0.2.0/001-report.md` (created, verdict Passed)
+- QA report: `qa/0.2.0/001-report.md` (created; revision verdict Passed on `7f6f055`, report `c618dad`)
 
 ### Version 0.2.0 scope (operator-approved 2026-11-02)
 
@@ -76,6 +76,8 @@ Append one entry for each meaningful phase transition:
 | 2026-11-03 | 0.2.0/001 | Implementation → QA verification | Combo chain, ranged enemy, projectiles, challenge HUD, room clear and restart delivered; 105 unit + 14 Cypress tests; `typecheck`, `test`, `build`, `e2e` pass; QA scenarios reconciled with the convex-room LOS no-op | `7743e81` (QA task notes `8f67d5a`) |
 | 2026-11-03 | 0.2.0/001 | QA verification → Complete | Clean install; 105 unit + 14 Cypress tests pass twice; typecheck/build/e2e pass; visual checks of finisher, award notice, telegraph, projectile and death; verdict Passed with 0 blocking findings | `4156994`, `b8de512` |
 | 2026-11-03 | 0.2.0/001 | Complete → Pushed, PR pending | Operator pushed the branch; `origin/feature/0.2.0-001-combat-depth` matches local HEAD at `fea3002`; PR creation blocked by missing `gh`/`hub` and GitHub token; merge to `dev` awaits operator review | `fea3002` |
+| 2026-11-04 | 0.2.0/001 | PR review → Combo rework | Operator declined the buffered-input combo because mashing completed it. Hard-timed reply window (0.06 s delay, 0.10 s window), damage break, finisher hold, and in-world pips implemented; design, product overview, and task criteria updated; 111 unit + 15 Cypress tests pass | `3eef641`, `04253cf`, `7f6f055` |
+| 2026-11-04 | 0.2.0/001 | Combo rework → QA pass | Clean install; typecheck/build/e2e pass; 111 unit + 15 Cypress tests with three consecutive full e2e passes; one pip-pulse mismatch fixed before acceptance; verdict Passed with 0 blocking findings | `7f6f055` (QA report `c618dad`) |
 
 ## Status vocabulary
 
