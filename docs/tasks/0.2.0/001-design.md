@@ -1,5 +1,7 @@
 # 001 — Design: combat depth
 
+> **Superseded by `002-design.md` (2026-11-04).** The skill-point/challenge reward loop was replaced by spirit purification. This file is retained as history.
+
 ## Metadata
 
 | Field | Value |

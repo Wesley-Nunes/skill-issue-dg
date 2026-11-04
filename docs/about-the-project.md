@@ -42,6 +42,11 @@ The game's identity should emphasize mastery rather than relying only on
 character statistics. Players should be rewarded for playing well,
 avoiding damage, and executing combos.
 
+The current `0.2.0` slice adds a dark-fantasy liberation frame: a mob is
+not simply killed. Its spirit fragments must be broken without taking a
+hit, and only then can it be put to rest. Conventional kills return the
+mob, while a completed rite grants spirit toward the floor's boss.
+
 ### Design principles
 
 Development should follow these principles:
@@ -162,28 +167,34 @@ The player has basic attacks and a three-hit light combo
 -   Final timings, window lengths, and damage values live in the
     version's design decisions; ability cooldowns remain open.
 
-### 3.3 Skill challenges and skill points
+### 3.3 Spirit purification and liberation
 
-Players earn skill points by completing gameplay challenges, rather than
-only by defeating enemies.
+Enemies are bound to the floor by spirit fragments. A mob is not
+permanently defeated by ordinary damage; it must be liberated.
 
-Known challenge examples:
+The `0.2.0` purification rules are operator-approved (2026-11-04):
 
--   Execute a combo attack.
--   Avoid being hit for a specified number of seconds.
+-   A living mob carries spirit fragments in a small orbit around it.
+    The current implementation uses two fragments.
+-   The light attack breaks a fragment when it lands inside the swing's
+    arc. A swing can break more than one fragment.
+-   Any HP loss restores every broken fragment on every living enemy.
+    Dodges and i-frames that prevent the HP loss are safe.
+-   A mob killed while at least one fragment is intact is a failed rite:
+    it respawns at its spawn after about two seconds with full HP and all
+    fragments restored.
+-   A mob killed after all of its fragments are broken is put to rest
+    permanently and grants spirit.
+-   Spirit fills a meter. When the meter is full, the run freezes on a
+    “Floor purified — the boss awaits” overlay and `R` restarts.
 
-The first implemented challenge (`0.2.0`, operator-approved 2026-11-02)
-is combo execution: the player earns **1 skill point** the first time in
-a run that all three hits of one combo chain connect. The point is shown
-in the HUD, is lost on death, and is cleared by the restart action.
-Spending is not implemented yet, so the point only accumulates.
+Fragment count, placement, spirit values, and respawn timing are tuning
+values recorded in the version's design decisions. Ordered breaks,
+moving fragments, and per-mob fragment variation are future difficulty
+levers, not part of `0.2.0`.
 
-Skill points will be spent on items and/or skills to improve the
-player's current run and help them progress faster.
-
-Additional challenge definitions, repeatable or tiered rewards,
-difficulty tiers, and the full purchase catalog are still open design
-work.
+Skill points and the combo challenge from the first `0.2.0` pass are
+removed. Skill-point spending, drops, and shops remain future work.
 
 ### 3.4 Health and survivability
 
@@ -241,19 +252,18 @@ dungeon. The exact transition and encounter sequence is not yet fixed.
 The current high-level loop is:
 
 1.  Enter and explore a generated dungeon floor.
-2.  Fight enemies.
+2.  Fight and purify enemies, liberating their spirits.
 3.  Collect loot and currency.
 4.  Visit a safe room when available.
 5.  Spend skill points, shop, accept quests, or rest.
 6.  Continue exploring and fighting.
-7.  Find the way down to the next floor.
-8.  Face increasingly difficult encounters and boss milestones.
+7.  Summon or face the floor boss once enough spirit is gathered.
+8.  Find the way down to the next floor.
 9.  Repeat until the player dies.
 
 The player's stated example was:
 
-**Dungeon fight → loot → dungeon fight → loot → shop/quest → boss →
-continue downward.**
+**Dungeon fight → liberation → loot → dungeon fight → liberation → shop/quest → boss → continue downward.**
 
 This is a guiding loop, not a strict requirement that every floor
 contain exactly this sequence.
@@ -282,6 +292,9 @@ Two archetypes are implemented so far (`0.2.0`, operator-approved
 mid-range distance band, fires only with line of sight after a
 telegraph, and uses a slow projectile that is destroyed by walls. Tank
 and fast remain future archetypes.
+
+Both implemented archetypes carry spirit fragments and follow the
+same purification rules (`0.2.0`, operator-approved 2026-11-04).
 
 ### 5.2 Bosses
 
@@ -324,9 +337,11 @@ initial scope.
 
 ### Run-based progression
 
-The player gains skill points by completing challenges and can spend
-them on items and/or skills during a run. Shops are located in safe
-rooms rather than being freely accessible at any time.
+The long-term design has the player gain skill points by completing
+challenges and spend them on items and/or skills during a run. Shops
+are located in safe rooms rather than being freely accessible at any
+time. Skill points, spending, shops, and challenge rewards are **not**
+part of `0.2.0`; the current reward is spirit from purified enemies.
 
 The intended experience is to improve the current run through skillful
 play, discovery, and purchasing decisions.
@@ -488,7 +503,7 @@ complete gameplay loop and is already enjoyable to play.
 -   Basic attacks, combos, and dodge.
 -   HP, damage, and healing.
 -   Basic consumables.
--   At least one skill-point challenge.
+-   At least one skill-based challenge or liberation objective.
 -   One safe room with a shop.
 -   One basic boss.
 -   Death, game-over, and restart/reset flow.
@@ -498,7 +513,8 @@ The MVP should validate:
 1.  Movement and aiming feel responsive.
 2.  Combat is engaging and rewards player skill.
 3.  Enemies create understandable pressure.
-4.  The player can earn and spend skill points.
+4.  The player can purify enemies and gather enough spirit to face a
+    boss.
 5.  Loot and the safe room provide useful decisions.
 6.  A boss provides a meaningful combat test.
 7.  The player can complete the floor's progression and understand the
@@ -557,7 +573,7 @@ playtesting.
 
 -   Currency types and sources.
 -   Additional skill challenges, difficulty tiers, and reward scaling
-    beyond the combo challenge specified in §3.3.
+    beyond the liberation loop specified in §3.3.
 -   Shop inventory, prices, and refresh behavior.
 -   What can be purchased after death and how that purchase flow works.
 -   Consumable inventory limits and usage rules.
@@ -595,8 +611,8 @@ A pragmatic implementation order is:
     follow, and collision with the environment.
 3.  **Combat foundation:** Add attacks, damage, health, dodge, and one
     enemy.
-4.  **Combat depth:** Add combos, additional basic enemy archetypes, and
-    a skill challenge.
+4.  **Combat depth and liberation loop:** Add combos, additional basic
+    enemy archetypes, spirit fragments, and a spirit meter.
 5.  **Dungeon slice:** Generate one traversable floor with an exit and a
     small encounter sequence.
 6.  **Rewards and safe room:** Add consumables, currency, skill points,
@@ -618,9 +634,10 @@ the first playable slice small and testable.
 2D action roguelike in a dark-fantasy 3/4 perspective. Players freely
 move and aim with keyboard and mouse, master real-time combo-based
 combat, dodge enemy attacks, and descend through procedurally generated
-dungeon floors. They earn skill points through skill-based challenges,
-collect consumables and currency, prepare in randomized safe rooms, and
-defeat bosses to obtain exclusive artifacts. The dungeon is endless,
-difficulty increases with descent, and the central measure of success is
-how far the player can go through skill, discovery, and smart build
-decisions.
+dungeon floors. Enemies are bound by spirit fragments and must be
+liberated rather than merely killed, filling a spirit meter that brings
+the floor's boss closer. Players collect consumables and currency,
+prepare in randomized safe rooms, and defeat bosses to obtain exclusive
+artifacts. The dungeon is endless, difficulty increases with descent,
+and the central measure of success is how far the player can go through
+skill, discovery, and smart build decisions.
