@@ -58,7 +58,7 @@ Domain rules live in `src/game/systems`; the engine sequences them. Rendering on
 
 ## Tests and commands
 
-Unit (`npm test`, 122 tests across 12 files): fragment positions, arc break, out-of-arc and dead-enemy cases, restoration, restability, revive, respawn countdown, rested-never-revives, spirit clamp; engine fragment breaking, conventional respawn, permanent rest + spirit, HP-loss restoration, i-frame/dodge safety, purified freeze + restart, restart reset; retained combo, attack, damage, dodge, camera, enemy, projectile, vision, movement, and effect tests.
+Unit (`npm test`, 123 tests across 12 files): fragment positions, arc break, out-of-arc and dead-enemy cases, restoration, restability, revive, respawn countdown, rested-never-revives, spirit clamp; engine fragment breaking, fragment-break-as-connected-step when the body misses (QA-added regression), conventional respawn, permanent rest + spirit, HP-loss restoration, i-frame/dodge safety, purified freeze + restart, restart reset; retained combo, attack, damage, dodge, camera, enemy, projectile, vision, movement, and effect tests.
 
 Browser (`npm run e2e`, 15 tests): boot with three enemies and intact fragments, floor/hearts HUD, movement, one-press damage, death + `R`, a fragment break with the light attack, mash never reaches the finisher, restart clears spirit/fragments, projectile fire/hit, death freeze and repeated restarts, plus the `0.1.0` resize/camera/pointer/dodge/aim-away regressions.
 
@@ -66,7 +66,7 @@ Commands run:
 
 ```text
 npm run typecheck   pass
-npm test            pass, 122/122
+npm test            pass, 123/123
 npm run build       pass (25 modules; no __gameDebug in the production bundle)
 npm run e2e         pass, 15/15
 ```

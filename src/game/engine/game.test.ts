@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { COMBO, ENEMY_SPAWNS, MELEE, PURIFICATION, ROOM } from "../data/config";
 import { createInitialState } from "../../state/initialState";
 import { comboWindowOpen } from "../systems/combo";
+import { fragmentPosition } from "../systems/purification";
 import type { GameEvent, InputFrame } from "../types";
 import { Game } from "./game";
 
@@ -192,6 +193,39 @@ describe("Game", () => {
     expect(
       events.filter((event) => event.type === "fragment-broken"),
     ).toHaveLength(PURIFICATION.angles.length);
+  });
+
+  it("counts a fragment break as a connected step when the body is out of arc", () => {
+    const game = createGame();
+    const [first, ...rest] = game.state.enemies;
+    game.state.enemies = [
+      {
+        ...first!,
+        x: game.state.player.x,
+        y: game.state.player.y + 40,
+        stagger: 9,
+      },
+      ...rest.map((enemy) => ({ ...enemy, status: "dead" as const, hp: 0 })),
+    ];
+
+    const fragment = fragmentPosition(game.state.enemies[0]!, 0);
+    const dx = fragment.x - game.state.player.x;
+    const dy = fragment.y - game.state.player.y;
+    const length = Math.hypot(dx, dy);
+    const aim = { x: dx / length, y: dy / length };
+
+    const events = stepFor(game, 0.15, (frame) => ({
+      attack: frame === 0,
+      aim,
+    }));
+
+    expect(game.state.enemies[0]?.hp).toBe(MELEE.maxHp);
+    expect(events.some((event) => event.type === "enemy-hit")).toBe(false);
+    expect(
+      events.some((event) => event.type === "fragment-broken"),
+    ).toBe(true);
+    expect(game.state.player.comboHits).toBe(1);
+    expect(game.state.player.comboResolved).toBe(true);
   });
 
   it("respawns a conventionally killed mob with its fragments restored", () => {
