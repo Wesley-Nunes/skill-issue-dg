@@ -1,137 +1,4 @@
-import type { DebugSnapshot } from "../../src/ui/debug";
-
-function snap(): Cypress.Chainable<DebugSnapshot> {
-  return cy
-    .window()
-    .should((win) => {
-      expect(win.__gameDebug, "game debug hook").to.exist;
-    })
-    .then((win) => win.__gameDebug!.getSnapshot());
-}
-
-/** The first living melee enemy, or the first enemy as a fallback. */
-function meleeTarget(snapshot: DebugSnapshot) {
-  return (
-    snapshot.enemies.find(
-      (enemy) => enemy.kind === "melee" && enemy.status === "alive",
-    ) ?? snapshot.enemies[0]!
-  );
-}
-
-function clamp(value: number, min: number, max: number): number {
-  return Math.min(Math.max(value, min), max);
-}
-
-/** True once the smoothed camera has caught up with its clamped target. */
-function cameraSettled(s: DebugSnapshot): boolean {
-  const targetX = clamp(s.player.x - s.viewport.width / 2, 0, 640 - s.viewport.width);
-  const targetY = clamp(
-    s.player.y - s.viewport.height / 2,
-    0,
-    384 - s.viewport.height,
-  );
-  return Math.abs(s.camera.x - targetX) < 1 && Math.abs(s.camera.y - targetY) < 1;
-}
-
-function walkToward(
-  worldX: number,
-  worldY: number,
-  stop: number,
-  attempt = 0,
-): void {
-  snap().then((s) => {
-    const dx = worldX - s.player.x;
-    const dy = worldY - s.player.y;
-    if (Math.hypot(dx, dy) < stop) {
-      // The pointer is stored in screen space, so wait for the camera to stop
-      // moving before the caller aims at a world position.
-      if (cameraSettled(s) || attempt >= 40) return;
-      cy.wait(100);
-      cy.then(() => walkToward(worldX, worldY, stop, attempt + 1));
-      return;
-    }
-    if (attempt >= 60) return;
-
-    const keys: string[] = [];
-    if (dy < -6) keys.push("w");
-    else if (dy > 6) keys.push("s");
-    if (dx < -6) keys.push("a");
-    else if (dx > 6) keys.push("d");
-    if (keys.length === 0) return;
-
-    keys.forEach((key) => cy.document().trigger("keydown", { key }));
-    cy.wait(120);
-    keys.forEach((key) => cy.document().trigger("keyup", { key }));
-    cy.then(() => walkToward(worldX, worldY, stop, attempt + 1));
-  });
-}
-
-function approachMelee(): void {
-  snap().then((s) => {
-    const target = meleeTarget(s);
-    walkToward(target.x, target.y, 28);
-  });
-}
-
-function clickWorld(worldX: number, worldY: number): void {
-  snap().then((s) => {
-    const clientX = (worldX - s.camera.x) * s.zoom;
-    const clientY = (worldY - s.camera.y) * s.zoom;
-    cy.get("canvas#game").trigger("mousemove", {
-      clientX,
-      clientY,
-      force: true,
-    });
-    cy.get("canvas#game").trigger("mousedown", {
-      button: 0,
-      clientX,
-      clientY,
-      force: true,
-    });
-    cy.get("canvas#game").trigger("mouseup", {
-      button: 0,
-      clientX,
-      clientY,
-      force: true,
-    });
-  });
-}
-
-function waitForDeath(attempt = 0): void {
-  snap().then((s) => {
-    if (s.status === "dead") return;
-    expect(attempt, "death attempts").to.be.lessThan(60);
-    cy.wait(400);
-    cy.then(() => waitForDeath(attempt + 1));
-  });
-}
-
-/** Polls the snapshot because headless Cypress throttles animation frames. */
-function pollUntil(
-  check: (s: DebugSnapshot) => boolean,
-  label: string,
-  attempts = 40,
-): void {
-  snap().then((s) => {
-    if (check(s)) return;
-    if (attempts <= 0) {
-      throw new Error(
-        `timed out waiting for ${label}; last snapshot ${JSON.stringify(s.player)} time=${s.time}`,
-      );
-    }
-    cy.wait(150);
-    cy.then(() => pollUntil(check, label, attempts - 1));
-  });
-}
-
-/** World-space centre of the upper-right intact fragment. */
-function fragmentPoint(enemy: DebugSnapshot["enemies"][number]) {
-  const angle = (-45 * Math.PI) / 180;
-  return {
-    x: enemy.x + Math.cos(angle) * 12,
-    y: enemy.y - 10 + Math.sin(angle) * 12,
-  };
-}
+import { fragmentPoint, meleeTarget } from "../support/game";
 
 const exceptions: string[] = [];
 
@@ -143,10 +10,13 @@ describe("0.2.0 QA verification", () => {
       return false;
     });
     cy.visit("/");
+    // The debug hook is exposed after assets load and the input listeners are
+    // attached, so this also prevents interacting with a half-booted game.
+    cy.gameSnapshot();
   });
 
   it("plays without uncaught exceptions or console errors", () => {
-    snap().then(() => {
+    cy.gameSnapshot().then((start) => {
       cy.window().then((win) => {
         cy.spy(win.console, "error").as("consoleError");
       });
@@ -158,15 +28,21 @@ describe("0.2.0 QA verification", () => {
         force: true,
       });
       cy.get("canvas#game").trigger("mousedown", { button: 0, force: true });
+      // Input duration: the game samples attack state on animation frames.
       cy.wait(200);
       cy.get("canvas#game").trigger("mouseup", { button: 0, force: true });
       cy.document().trigger("keydown", { key: "d" });
+      // Input duration: hold movement long enough for a few frames.
       cy.wait(150);
       cy.document().trigger("keyup", { key: "d" });
       cy.document().trigger("keydown", { key: " " });
       cy.document().trigger("keyup", { key: " " });
-      cy.wait(300);
 
+      cy.waitForGame(
+        (snapshot) => snapshot.time > start.time + 0.2,
+        "the game to advance",
+        5000,
+      );
       cy.get("@consoleError").should("not.have.been.called");
       cy.then(() => expect(exceptions, "uncaught exceptions").to.deep.equal([]));
     });
@@ -174,13 +50,17 @@ describe("0.2.0 QA verification", () => {
 
   it("keeps the canvas, viewport and camera correct across resizes", () => {
     cy.viewport(1024, 640);
-    cy.wait(300);
-
-    snap().then((s) => {
-      expect(s.viewport.width).to.be.closeTo(1024 / 3, 0.1);
-      expect(s.viewport.height).to.be.closeTo(640 / 3, 0.1);
-      expect(s.camera.x).to.be.at.least(0);
-      expect(s.camera.y).to.be.at.most(384 - 640 / 3 + 0.01);
+    cy.waitForGame(
+      (snapshot) =>
+        Math.abs(snapshot.viewport.width - 1024 / 3) < 0.1 &&
+        Math.abs(snapshot.viewport.height - 640 / 3) < 0.1,
+      "the viewport to resize",
+      5000,
+    ).then((snapshot) => {
+      expect(snapshot.viewport.width).to.be.closeTo(1024 / 3, 0.1);
+      expect(snapshot.viewport.height).to.be.closeTo(640 / 3, 0.1);
+      expect(snapshot.camera.x).to.be.at.least(0);
+      expect(snapshot.camera.y).to.be.at.most(384 - 640 / 3 + 0.01);
     });
 
     cy.get("canvas#game").then(($canvas) => {
@@ -194,75 +74,105 @@ describe("0.2.0 QA verification", () => {
       clientY: 210,
       force: true,
     });
-    cy.wait(200);
-    snap().then((s) => {
-      expect(s.pointer.x).to.be.closeTo(s.camera.x + 100, 0.5);
-      expect(s.pointer.y).to.be.closeTo(s.camera.y + 70, 0.5);
-      expect(s.zoom).to.equal(3);
+    // The input stores screen space; the next game frame converts it to world
+    // space using the current camera.
+    cy.waitForGame(
+      (snapshot) =>
+        Math.abs(snapshot.pointer.x - (snapshot.camera.x + 100)) < 0.5 &&
+        Math.abs(snapshot.pointer.y - (snapshot.camera.y + 70)) < 0.5,
+      "the pointer to aim at the clicked world position",
+      5000,
+    ).then((snapshot) => {
+      expect(snapshot.pointer.x).to.be.closeTo(snapshot.camera.x + 100, 0.5);
+      expect(snapshot.pointer.y).to.be.closeTo(snapshot.camera.y + 70, 0.5);
+      expect(snapshot.zoom).to.equal(3);
     });
 
     cy.viewport(1440, 810);
-    pollUntil(
-      (s) => Math.abs(s.camera.x - 80) < 1 && Math.abs(s.camera.y - 114) < 1,
-      "camera to settle at the spawn framing",
-    );
-    snap().then((s) => {
-      expect(s.viewport.width).to.be.closeTo(480, 0.1);
-      expect(s.viewport.height).to.be.closeTo(270, 0.1);
-      expect(s.camera.x).to.be.closeTo(80, 1);
-      expect(s.camera.y).to.be.closeTo(114, 1);
+    cy.waitForGame(
+      (snapshot) =>
+        Math.abs(snapshot.camera.x - 80) < 1 &&
+        Math.abs(snapshot.camera.y - 114) < 1,
+      "the camera to settle at the spawn framing",
+    ).then((snapshot) => {
+      expect(snapshot.viewport.width).to.be.closeTo(480, 0.1);
+      expect(snapshot.viewport.height).to.be.closeTo(270, 0.1);
+      expect(snapshot.camera.x).to.be.closeTo(80, 1);
+      expect(snapshot.camera.y).to.be.closeTo(114, 1);
     });
   });
 
   it("dodges the configured distance", () => {
-    snap().then(() => {
-      cy.document().trigger("keydown", { key: " " });
-      cy.document().trigger("keyup", { key: " " });
-    });
-    pollUntil(
-      (s) => Math.hypot(s.player.x - 320, s.player.y - 320) > 40,
+    cy.document().trigger("keydown", { key: " " });
+    cy.document().trigger("keyup", { key: " " });
+    cy.waitForGame(
+      (snapshot) =>
+        Math.hypot(snapshot.player.x - 320, snapshot.player.y - 320) > 40,
       "the dodge to move the player",
-      40,
+      5000,
     );
-    pollUntil((s) => !s.player.dodging, "the dodge to finish", 40);
-    snap().then((s) => {
-      const distance = Math.hypot(s.player.x - 320, s.player.y - 320);
+    cy.waitForGame(
+      (snapshot) => !snapshot.player.dodging,
+      "the dodge to finish",
+      5000,
+    ).then((snapshot) => {
+      const distance = Math.hypot(snapshot.player.x - 320, snapshot.player.y - 320);
       expect(distance, "dodge distance").to.be.greaterThan(40);
       expect(distance).to.be.at.most(65);
     });
   });
 
   it("damages a melee enemy exactly once per press", () => {
-    approachMelee();
-    snap().then((s) => {
-      const target = meleeTarget(s);
-      clickWorld(target.x, target.y);
+    cy.approachMelee();
+    cy.gameSnapshot().then((snapshot) => {
+      const target = meleeTarget(snapshot);
+      const startTime = snapshot.time;
+      cy.attackWorld(target.x, target.y);
 
-      pollUntil(
+      cy.waitForGame(
         (after) =>
           (after.enemies.find((enemy) => enemy.id === target.id)?.hp ?? 10) <
           10,
         "the first combo hit",
-      );
-      snap().then((after) => {
+      ).then((after) => {
         const hp = after.enemies.find((enemy) => enemy.id === target.id)!.hp;
         expect(hp, "hp after one press").to.equal(8);
+      });
+
+      // Let the chain reset so a second, unintended hit would be visible.
+      cy.waitForGame(
+        (after) =>
+          after.player.comboStep === 0 && after.time > startTime + 0.5,
+        "the swing to finish",
+        5000,
+      ).then((after) => {
+        const hp = after.enemies.find((enemy) => enemy.id === target.id)!.hp;
+        expect(hp, "hp after the swing settles").to.equal(8);
       });
     });
   });
 
   it("does not damage a melee enemy when the swing aims away", () => {
-    approachMelee();
-    snap().then((s) => {
-      const target = meleeTarget(s);
+    cy.approachMelee();
+    cy.gameSnapshot().then((snapshot) => {
+      const target = meleeTarget(snapshot);
+      const startTime = snapshot.time;
       const length =
-        Math.hypot(s.player.x - target.x, s.player.y - target.y) || 1;
-      const awayX = s.player.x + ((s.player.x - target.x) / length) * 40;
-      const awayY = s.player.y + ((s.player.y - target.y) / length) * 40;
-      clickWorld(awayX, awayY);
-      cy.wait(900);
+        Math.hypot(snapshot.player.x - target.x, snapshot.player.y - target.y) ||
+        1;
+      const awayX =
+        snapshot.player.x + ((snapshot.player.x - target.x) / length) * 40;
+      const awayY =
+        snapshot.player.y + ((snapshot.player.y - target.y) / length) * 40;
+      cy.attackWorld(awayX, awayY);
 
-      snap().then((after) => {
+      // attackWorld already proved a swing started; let it finish.
+      cy.waitForGame(
+        (after) =>
+          after.player.comboStep === 0 && after.time > startTime + 0.5,
+        "the swing to finish",
+        5000,
+      ).then((after) => {
         const hp = after.enemies.find((enemy) => enemy.id === target.id)!.hp;
         expect(hp, "hp after aiming away").to.equal(10);
       });
@@ -270,108 +180,108 @@ describe("0.2.0 QA verification", () => {
   });
 
   it("breaks a spirit fragment with the light attack", () => {
-    snap().then((s) => {
-      const target = meleeTarget(s);
-      walkToward(target.x, target.y, 16);
+    cy.gameSnapshot().then((snapshot) => {
+      const target = meleeTarget(snapshot);
+      cy.walkTo(target.x, target.y, { stop: 16 });
     });
 
-    snap().then((s) => {
-      const target = meleeTarget(s);
-      const point = fragmentPoint(target);
-      clickWorld(point.x, point.y);
+    cy.gameSnapshot().then((snapshot) => {
+      const point = fragmentPoint(meleeTarget(snapshot));
+      cy.attackWorld(point.x, point.y);
     });
 
-    pollUntil(
-      (s) => {
-        const enemy = s.enemies.find((entry) => entry.kind === "melee");
+    cy.waitForGame(
+      (snapshot) => {
+        const enemy = snapshot.enemies.find((entry) => entry.kind === "melee");
         return enemy !== undefined && enemy.fragments.includes(false);
       },
       "a spirit fragment to break",
-      40,
-    );
-
-    snap().then((s) => {
-      const enemy = s.enemies.find((entry) => entry.kind === "melee")!;
+    ).then((snapshot) => {
+      const enemy = snapshot.enemies.find((entry) => entry.kind === "melee")!;
       expect(enemy.fragments.filter(Boolean).length).to.be.lessThan(2);
-      expect(s.spirit).to.equal(0);
+      expect(snapshot.spirit).to.equal(0);
     });
   });
 
   it("does not chain the combo while the attack is mashed", () => {
-    approachMelee();
+    cy.approachMelee();
     for (let click = 0; click < 30; click += 1) {
-      snap().then((s) => {
-        const target = meleeTarget(s);
-        clickWorld(target.x, target.y);
+      cy.gameSnapshot().then((snapshot) => {
+        const target = meleeTarget(snapshot);
+        cy.clickWorld(target.x, target.y);
       });
+      // Input cadence: mash faster than the combo reply window.
       cy.wait(40);
     }
 
-    snap().then((s) => {
-      expect(s.player.comboStep, "mashing never reaches the finisher").to.be.lessThan(
-        3,
-      );
-      expect(s.spirit).to.equal(0);
+    cy.gameSnapshot().then((snapshot) => {
+      expect(
+        snapshot.player.comboStep,
+        "mashing never reaches the finisher",
+      ).to.be.lessThan(3);
+      expect(snapshot.spirit).to.equal(0);
     });
   });
 
   it("resets spirit and fragments on restart", () => {
-    snap().then((s) => {
-      const target = meleeTarget(s);
-      walkToward(target.x, target.y, 16);
+    cy.gameSnapshot().then((snapshot) => {
+      const target = meleeTarget(snapshot);
+      cy.walkTo(target.x, target.y, { stop: 16 });
     });
-    snap().then((s) => {
-      const point = fragmentPoint(meleeTarget(s));
-      clickWorld(point.x, point.y);
+    cy.gameSnapshot().then((snapshot) => {
+      const point = fragmentPoint(meleeTarget(snapshot));
+      cy.attackWorld(point.x, point.y);
     });
-    pollUntil(
-      (s) =>
-        s.enemies.some(
+    cy.waitForGame(
+      (snapshot) =>
+        snapshot.enemies.some(
           (enemy) => enemy.kind === "melee" && enemy.fragments.includes(false),
         ),
       "a spirit fragment to break",
-      40,
     );
 
-    waitForDeath();
+    cy.waitForDeath();
     cy.document().trigger("keydown", { key: "r" });
     cy.document().trigger("keyup", { key: "r" });
-    cy.wait(150);
-    snap().then((s) => {
-      expect(s.status).to.equal("playing");
-      expect(s.spirit).to.equal(0);
-      expect(s.floorPurified).to.equal(false);
-      expect(s.enemies).to.have.length(3);
+    cy.waitForGame(
+      (snapshot) => snapshot.status === "playing",
+      "the run to restart",
+      5000,
+    ).then((snapshot) => {
+      expect(snapshot.status).to.equal("playing");
+      expect(snapshot.spirit).to.equal(0);
+      expect(snapshot.floorPurified).to.equal(false);
+      expect(snapshot.enemies).to.have.length(3);
       expect(
-        s.enemies.every((enemy) => enemy.fragments.every((intact) => intact)),
+        snapshot.enemies.every((enemy) =>
+          enemy.fragments.every((intact) => intact),
+        ),
       ).to.equal(true);
     });
   });
 
   it("fires projectiles that can hit the player", () => {
     // Walk into the ranged enemy's aggro band without entering its retreat ring.
-    walkToward(560, 96, 200);
+    cy.walkTo(560, 96, { stop: 200 });
 
-    pollUntil(
-      (s) => s.projectiles.length > 0,
+    cy.waitForGame(
+      (snapshot) => snapshot.projectiles.length > 0,
       "a ranged projectile",
-      60,
     );
-    pollUntil(
-      (s) => s.player.hp < 6,
+    cy.waitForGame(
+      (snapshot) => snapshot.player.hp < 6,
       "projectile damage",
-      80,
-    );
-    snap().then((s) => {
-      expect(s.player.hp).to.be.lessThan(6);
+      20000,
+    ).then((snapshot) => {
+      expect(snapshot.player.hp).to.be.lessThan(6);
     });
   });
 
   it("freezes after death and restores the initial state on repeated restarts", () => {
-    approachMelee();
-    waitForDeath();
+    cy.approachMelee();
+    cy.waitForDeath();
 
-    snap().then((dead) => {
+    cy.gameSnapshot().then((dead) => {
       expect(dead.status).to.equal("dead");
       expect(dead.player.hp).to.equal(0);
 
@@ -382,11 +292,12 @@ describe("0.2.0 QA verification", () => {
         clientY: 400,
         force: true,
       });
+      // The wait is the assertion: a frozen run must not advance over time.
       cy.wait(300);
       cy.document().trigger("keyup", { key: "d" });
       cy.get("canvas#game").trigger("mouseup", { button: 0, force: true });
 
-      snap().then((frozen) => {
+      cy.gameSnapshot().then((frozen) => {
         expect(frozen.player.x).to.equal(dead.player.x);
         expect(frozen.player.y).to.equal(dead.player.y);
         expect(frozen.enemies).to.deep.equal(dead.enemies);
@@ -397,30 +308,31 @@ describe("0.2.0 QA verification", () => {
     for (let restart = 0; restart < 3; restart += 1) {
       cy.document().trigger("keydown", { key: "r" });
       cy.document().trigger("keyup", { key: "r" });
-      cy.wait(150);
-      cy.then(() => {
-        snap().then((s) => {
-          expect(s.status).to.equal("playing");
-          expect(s.player.hp).to.equal(6);
-          expect(s.player.x).to.be.closeTo(320, 1);
-          expect(s.player.y).to.be.closeTo(320, 1);
-          expect(s.enemies.map((enemy) => enemy.hp)).to.deep.equal([
-            10, 10, 6,
-          ]);
-          expect(s.enemies.map((enemy) => enemy.status)).to.deep.equal([
-            "alive",
-            "alive",
-            "alive",
-          ]);
-          expect(s.spirit).to.equal(0);
-          expect(s.floorPurified).to.equal(false);
-          expect(
-            s.enemies.every((enemy) =>
-              enemy.fragments.every((intact) => intact),
-            ),
-          ).to.equal(true);
-          expect(s.projectiles).to.have.length(0);
-        });
+      cy.waitForGame(
+        (snapshot) => snapshot.status === "playing",
+        "the run to restart",
+        5000,
+      ).then((snapshot) => {
+        expect(snapshot.status).to.equal("playing");
+        expect(snapshot.player.hp).to.equal(6);
+        expect(snapshot.player.x).to.be.closeTo(320, 1);
+        expect(snapshot.player.y).to.be.closeTo(320, 1);
+        expect(snapshot.enemies.map((enemy) => enemy.hp)).to.deep.equal([
+          10, 10, 6,
+        ]);
+        expect(snapshot.enemies.map((enemy) => enemy.status)).to.deep.equal([
+          "alive",
+          "alive",
+          "alive",
+        ]);
+        expect(snapshot.spirit).to.equal(0);
+        expect(snapshot.floorPurified).to.equal(false);
+        expect(
+          snapshot.enemies.every((enemy) =>
+            enemy.fragments.every((intact) => intact),
+          ),
+        ).to.equal(true);
+        expect(snapshot.projectiles).to.have.length(0);
       });
     }
   });
