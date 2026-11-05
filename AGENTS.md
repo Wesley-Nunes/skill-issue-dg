@@ -121,6 +121,8 @@ A change is not accepted merely because it compiles. Check that it:
 - keeps pure game rules deterministic and side-effect-free where the design calls for pure systems;
 - has meaningful automated coverage for changed behavior;
 - follows existing TypeScript, naming, formatting, and dependency conventions;
+- keeps shared Cypress commands and waits in `cypress/support/` and follows
+  the vendored Cypress AI skills in `.opencode/skills/` for e2e changes;
 - has no unnecessary abstractions, duplication, dead code, debug artifacts, or unrelated refactors;
 - preserves accessibility, usability, and visual decisions captured by design;
 - has a clear QA result and no unresolved blocking issues.
