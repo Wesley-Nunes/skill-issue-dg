@@ -7,17 +7,17 @@ This file is the canonical workflow state for the repository. It is maintained b
 | Field | Value |
 |---|---|
 | Project | skill issue dg |
-| Goal | MVP — spirit purification (`0.2.0`): dark-fantasy liberation loop, spirit fragments, spirit meter |
-| Current SemVer ID | `0.2.0` |
-| Current task ID | `002` |
-| Active phase | `Integration — push + PR` |
+| Goal | `0.3.0` e2e pipeline hardening — pinned Cypress AI skills, stable shared support layer, GitHub Actions CI |
+| Current SemVer ID | `0.3.0` |
+| Current task ID | `001` |
+| Active phase | `QA passed — PR pending` |
 | Active agent | `orchestrator` |
-| Git branch | `feature/0.2.0-001-combat-depth` |
-| Last accepted commit | `2875910` (QA pass; report committed in the same commit) |
-| Pushed HEAD | Branch is synced with `origin/feature/0.2.0-001-combat-depth`. The substantive `002` head is `2875910`; the integration/state record continues through `457e0e4`. The branch contains the `002` docs, design, implementation, QA, and state commits |
-| Pull request | PR #1 merged (`0.1.0`); the `0.2.0` PR was declined and must be reopened after the re-baseline. No `gh`/`hub` and no GitHub token in this environment, so the operator must open or update the PR in the GitHub UI |
+| Git branch | `feature/0.3.0-001-e2e-pipeline` |
+| Last accepted commit | `5929130` (QA report; implementation head `e6b5091`) |
+| Pushed HEAD | `origin/feature/0.3.0-001-e2e-pipeline` is at `e6b5091`; the QA and state commits after it are local until the operator pushes |
+| Pull request | None for `0.3.0`. The operator opens the PR to `dev` on GitHub; the first hosted E2E run is verified there, not locally (see `AGENTS.md` → CI and hosted checks) |
 | Blocking questions remaining | `0` |
-| Overall status | `Blocked` — the `002` purification change set is committed, QA-passed, and pushed; PR creation needs the operator's GitHub UI access, and the merge to `dev` needs operator review and authorization |
+| Overall status | `In progress` — implementation and QA are complete on the branch; PR creation, the first hosted CI run, and merge await the operator on GitHub |
 
 Update this snapshot whenever a value changes. Do not leave stale status after a handoff.
 
@@ -40,10 +40,26 @@ The state manager must not invent decisions, change product scope, edit game cod
 Populate these links when the version and task have been approved:
 
 - Product overview: `docs/about-the-project.md`
-- Task package: `docs/tasks/0.2.0/002-design.md`, `002-programmer.md`, `002-qa.md` (created; `001-*` marked superseded)
-- Design decisions: `design/0.2.0/design-decisions.md` (rewritten for purification)
-- Implementation decision log: `programmer/0.2.0/CoT.md` (rewritten for purification)
-- QA report: `qa/0.2.0/002-report.md` (created; Passed on `2df7615` plus the QA regression, report `2875910`)
+- Task package: `docs/tasks/0.3.0/001-design.md`, `001-programmer.md`, `001-qa.md`
+- Design decisions: `design/0.3.0/design-decisions.md` (tooling only; no visual or interaction decisions)
+- Implementation decision log: `programmer/0.3.0/CoT.md`
+- QA report: `qa/0.3.0/001-report.md` (`Passed` on `e6b5091`; report `5929130`)
+
+### Version 0.3.0 scope (operator-approved 2026-11-05)
+
+- **Deliverable:** e2e pipeline and agent tooling — pinned Cypress AI skills, a
+  typed shared support layer, suite stabilisation, and a GitHub Actions
+  workflow.
+- **Included:** vendored `cypress-author`, `cypress-explain`, `cypress-docs`,
+  and `cypress-tap` at upstream commit
+  `5258ece52a0010d268946e08606c98784c98f255`; project skill
+  `cypress-canvas-e2e`; predicate-based waits through `cy.waitForGame`;
+  `cy.attackWorld`; failure screenshots, CI-only video, 10 s command timeout;
+  Node 22 CI on PR/push to `dev` with typecheck, unit, and e2e.
+- **Excluded:** game source, gameplay, balance, rendering, assets, Cypress
+  Cloud, `cy.prompt()`, component testing, and spec sharding.
+- **Known consequence:** `npm run e2e` remains the single entry point; CI calls
+  it with `CYPRESS_BROWSER=chrome`.
 
 ### Version 0.2.0 scope (operator re-baseline 2026-11-04)
 
@@ -83,6 +99,9 @@ Append one entry for each meaningful phase transition:
 | 2026-11-04 | 0.2.0/002 | Re-baseline → Implementation | Fragment/home/rested/respawn state, pure purification rules, engine wiring, renderer HUD/aura/overlay, effects, and removed skill-point/challenge code delivered; 122 unit + 15 Cypress tests; typecheck/build/e2e pass | `2df7615` |
 | 2026-11-04 | 0.2.0/002 | Implementation → QA pass | Clean install; 123 unit + 15 Cypress tests pass; production bundle has no `__gameDebug`; visual captures verify fragments, spirit HUD, and ready-to-rest cue; verdict Passed with 0 blocking findings | `2875910` |
 | 2026-11-04 | 0.2.0/002 | QA pass → Pushed, PR pending | Orchestrator pushed the branch after SSH access recovered; `origin/feature/0.2.0-001-combat-depth` is at the state commit; PR creation still needs the operator's GitHub UI access and merge awaits review | `689529c` |
+| 2026-11-05 | 0.3.0/001 | Docs discovery → Design decisions | Operator approved the full e2e pipeline plan after reviewing the Cypress AI Skills documentation; task package and design decisions created; no visual or interaction decisions required | `1a5b75f` |
+| 2026-11-06 | 0.3.0/001 | Implementation → QA verification | Pinned skills, project skill, typed support layer, stabilised specs, Chrome CI workflow; 123 unit + 15 e2e tests; three consecutive Chrome passes; no `__gameDebug` in the production bundle | `e6b5091` |
+| 2026-11-06 | 0.3.0/001 | QA verification → QA pass | All 12 criteria met; three consecutive 15/15 Chrome runs; no product-source diff; verdict Passed; hosted CI recorded as pending on GitHub per the new CI policy | `5929130` |
 
 ## Status vocabulary
 

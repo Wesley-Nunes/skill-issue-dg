@@ -112,6 +112,12 @@ The orchestrator must not commit on behalf of an agent without making that owner
 - Do not merge without the operator's authorization unless the repository explicitly defines an approved automatic merge policy.
 - Update `STATE.md` to reflect the final status, branch, commits, PR link (if any), and remaining follow-ups.
 
+### CI and hosted checks
+
+- CI/CD is owned by the host (GitHub Actions). Do not run or emulate the hosted pipeline locally, and do not treat the absence of a local CI runner as a blocker.
+- Validate the same commands the workflow runs (`npm run typecheck`, `npm test`, `npm run e2e`) on the branch. The first hosted run is verified on GitHub after the branch is pushed or the pull request is opened.
+- Record hosted CI as pending in `STATE.md` until the GitHub result is visible. Never claim a hosted run passed without confirming it on GitHub.
+
 ## Review standards
 
 A change is not accepted merely because it compiles. Check that it:
