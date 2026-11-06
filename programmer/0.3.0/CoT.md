@@ -85,14 +85,15 @@ Run from a clean install on `feature/0.3.0-001-e2e-pipeline`:
 - `npm run typecheck` — pass.
 - `npm test` — 123 tests in 12 files.
 - `npm run build` — pass; `grep __gameDebug dist` finds nothing.
-- `CYPRESS_BROWSER=chrome npm run e2e` — 15/15, three consecutive runs:
-  55 s, 59 s, 56 s.
+- `CYPRESS_BROWSER=chrome npm run e2e` — 15/15, three consecutive runs after
+  the final `attackWorld` fix: 00:53, 00:51, 00:52 spec time.
 - First `npm run e2e` baseline before the changes: 77 s, 15/15.
 
 ## Residual risks and follow-ups
 
-- The hosted workflow has not run yet: this environment has no `gh`/token and
-  no push. The first push to `dev`/PR is the real CI verification.
+- Hosted CI is owned by GitHub Actions. The branch is pushed and the first
+  workflow run is verified on the pull request to `dev`; CI is not run or
+  emulated locally (see `AGENTS.md` → CI and hosted checks).
 - Electron local runs remain throttling-sensitive on some Linux desktops; the
   project skill and state record `CYPRESS_BROWSER=chrome` as the workaround.
 - Cypress skills do not update automatically. `SOURCE.md` records the pin and

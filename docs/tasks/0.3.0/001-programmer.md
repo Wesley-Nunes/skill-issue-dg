@@ -7,7 +7,7 @@
 | Version | `0.3.0` |
 | Task ID | `001` |
 | Owning agent | `programmer` |
-| Status | Ready for implementation |
+| Status | `Completed` (`e6b5091`) |
 | Depends on | `docs/tasks/0.3.0/001-design.md`, `design/0.3.0/design-decisions.md` |
 | Produces | Skills, support layer, CI workflow, `programmer/0.3.0/CoT.md` |
 
