@@ -53,7 +53,14 @@ try {
   server.stderr.on("data", (chunk) => process.stderr.write(chunk));
 
   await waitForServer();
-  process.exitCode = await run(cypress, ["run"]);
+  // Electron's window can be occlusion-throttled in some desktop sessions,
+  // which starves requestAnimationFrame and makes timing-sensitive specs flaky.
+  // CI and local runs can set CYPRESS_BROWSER=chrome for an unthrottled browser.
+  const cypressArgs = ["run"];
+  if (process.env.CYPRESS_BROWSER) {
+    cypressArgs.push("--browser", process.env.CYPRESS_BROWSER);
+  }
+  process.exitCode = await run(cypress, cypressArgs);
 } catch (error) {
   console.error(error instanceof Error ? error.message : error);
   process.exitCode = 1;
