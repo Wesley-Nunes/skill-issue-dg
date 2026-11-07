@@ -1,4 +1,6 @@
 import {
+  BOMB,
+  BOSS,
   COMBO,
   ENEMY_FADE,
   MELEE,
@@ -13,12 +15,14 @@ import {
   wallTiles,
 } from "../../game/data/floor";
 import { SPRITES } from "../../game/data/sprites";
+import { bombArcHeight } from "../../game/systems/bomb";
 import { comboWindowOpen } from "../../game/systems/combo";
 import {
   fragmentPosition,
   hasAllFragmentsBroken,
 } from "../../game/systems/purification";
 import type {
+  Bomb,
   Enemy,
   Floor,
   GameEvent,
@@ -26,7 +30,12 @@ import type {
   Viewport,
 } from "../../game/types";
 import type { AssetMap } from "./assets";
-import { CHAIN_BREAK_LIFE, VisualEffects } from "./effects";
+import {
+  CHAIN_BREAK_LIFE,
+  EXPLOSION_LIFE,
+  HEAL_PULSE_LIFE,
+  VisualEffects,
+} from "./effects";
 
 const VOID_COLOR = "#0b0a0f";
 const HUD_INSET = 24;
@@ -48,6 +57,13 @@ const COMBO_PIP_COLOR = "#f2d38a";
 const COMBO_PIP_ACTIVE = "rgba(255, 255, 255, 0.92)";
 const COMBO_PIP_IDLE = "rgba(255, 255, 255, 0.28)";
 const COMBO_BREAK_COLOR = "255, 92, 82";
+const EMBER = "#ff6a4d";
+const EMBER_TRACK = "rgba(255, 106, 77, 0.16)";
+const EMBER_BORDER = "rgba(255, 106, 77, 0.55)";
+const TITLE_TEXT = "#f2e9da";
+const MUTED_TEXT = "rgba(255, 255, 255, 0.55)";
+const BOSS_BAR_MAX_WIDTH = 360;
+const BOSS_BAR_HEIGHT = 10;
 
 function clamp(value: number, min: number, max: number): number {
   return Math.min(Math.max(value, min), max);
@@ -81,7 +97,7 @@ export class Renderer {
     };
   }
 
-  draw(state: GameState, events: GameEvent[]): void {
+  draw(state: GameState, events: GameEvent[], muted = false): void {
     const { cssWidth, cssHeight } = this.syncSize();
     this.effects.handle(events, state);
     this.effects.captureDodge(state);
@@ -109,22 +125,33 @@ export class Renderer {
     context.drawImage(this.ensureBackground(state.floor), 0, 0);
     this.drawStairs(state);
     this.drawShadows(state);
+    this.drawBossAuras(state);
     this.drawEntities(state);
     this.drawFragments(state);
     this.drawAfterimages(state);
     this.drawProjectiles(state);
+    this.drawBombs(state);
     this.drawSword(state);
     this.drawSwing(state);
     this.drawTelegraphs(state);
     this.drawSparks(state);
+    this.drawExplosions(state);
     this.drawComboGauge(state);
     this.drawAim(state);
 
     context.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
-    this.drawHud(state, cssWidth, cssHeight);
+    if (state.status !== "title") {
+      this.drawHud(state, cssWidth, cssHeight, muted);
+    }
     this.drawFloorEntryFlash(state, cssWidth, cssHeight);
-    if (state.status === "dead") {
-      this.drawDeathOverlay(cssWidth, cssHeight);
+    this.drawScreenFlash(state, cssWidth, cssHeight);
+
+    if (state.status === "title") {
+      this.drawTitleOverlay(cssWidth, cssHeight);
+    } else if (state.status === "paused") {
+      this.drawPauseOverlay(cssWidth, cssHeight);
+    } else if (state.status === "dead") {
+      this.drawDeathOverlay(state, cssWidth, cssHeight);
     }
   }
 
@@ -288,7 +315,53 @@ export class Renderer {
 
     draw(state.player.x, state.player.y);
     for (const enemy of state.enemies) {
-      if (enemy.status !== "dead") draw(enemy.x, enemy.y);
+      if (enemy.status === "dead") continue;
+      if (enemy.kind === "boss") {
+        context.beginPath();
+        context.ellipse(
+          Math.round(enemy.x),
+          Math.round(enemy.y),
+          12,
+          4,
+          0,
+          0,
+          Math.PI * 2,
+        );
+        context.fill();
+        continue;
+      }
+      draw(enemy.x, enemy.y);
+    }
+
+    for (const bomb of state.bombs) {
+      const x = bomb.landed ? bomb.x : bomb.targetX;
+      const y = bomb.landed ? bomb.y : bomb.targetY;
+      context.fillStyle = "rgba(0, 0, 0, 0.4)";
+      context.beginPath();
+      context.ellipse(
+        Math.round(x),
+        Math.round(y),
+        bomb.landed ? 6 : 8,
+        bomb.landed ? 3 : 4,
+        0,
+        0,
+        Math.PI * 2,
+      );
+      context.fill();
+    }
+  }
+
+  /** Slow ember ring under the Warden so it reads heavier than a mob. */
+  private drawBossAuras(state: GameState): void {
+    const context = this.context;
+    for (const enemy of state.enemies) {
+      if (enemy.kind !== "boss" || enemy.status !== "alive") continue;
+      const pulse = 0.15 + 0.15 * (0.5 + 0.5 * Math.sin(state.time * 2.5));
+      context.strokeStyle = `rgba(255, 106, 77, ${pulse})`;
+      context.lineWidth = 3;
+      context.beginPath();
+      context.arc(enemy.x, enemy.y, 18, 0, Math.PI * 2);
+      context.stroke();
     }
   }
 
@@ -351,14 +424,19 @@ export class Renderer {
 
   private drawEnemySprite(state: GameState, enemy: Enemy): void {
     const context = this.context;
+    const boss = enemy.kind === "boss";
     const ranged = enemy.kind === "ranged";
-    const frames = enemy.moving
-      ? ranged
-        ? SPRITES.rangedRun
-        : SPRITES.enemyRun
-      : ranged
-        ? SPRITES.rangedIdle
-        : SPRITES.enemyIdle;
+    const frames = boss
+      ? enemy.moving
+        ? SPRITES.bossRun
+        : SPRITES.bossIdle
+      : enemy.moving
+        ? ranged
+          ? SPRITES.rangedRun
+          : SPRITES.enemyRun
+        : ranged
+          ? SPRITES.rangedIdle
+          : SPRITES.enemyIdle;
     const fps = enemy.moving ? 10 : 6;
     const index = Math.floor(state.time * fps) % frames.length;
     const file = frames[index] ?? frames[0];
@@ -366,7 +444,7 @@ export class Renderer {
 
     const telegraphing = enemy.windup > 0;
     const readyToRest =
-      enemy.status === "alive" && hasAllFragmentsBroken(enemy);
+      !boss && enemy.status === "alive" && hasAllFragmentsBroken(enemy);
     const sprite =
       enemy.hurtFlash > 0
         ? this.tint(file, "rgba(255, 255, 255, 0.85)")
@@ -381,9 +459,10 @@ export class Renderer {
     const facing = state.player.x < enemy.x ? -1 : 1;
     const alpha =
       enemy.status === "dying" ? clamp(enemy.fade / ENEMY_FADE, 0, 1) : 1;
-    const height = ranged ? 16 : 23;
+    const height = boss ? 36 : ranged ? 16 : 23;
+    const offsetX = boss ? -16 : -8;
 
-    if (enemy.status === "alive" && hasAllFragmentsBroken(enemy)) {
+    if (readyToRest) {
       const pulse = 0.45 + 0.18 * Math.sin(state.time * 6);
       context.strokeStyle = `rgba(191, 233, 255, ${pulse})`;
       context.lineWidth = 1.4;
@@ -396,7 +475,7 @@ export class Renderer {
     context.globalAlpha = alpha;
     context.translate(Math.round(enemy.x), Math.round(enemy.y));
     context.scale(facing, 1);
-    context.drawImage(sprite, -8, -height);
+    context.drawImage(sprite, offsetX, -height);
     context.restore();
     context.globalAlpha = 1;
   }
@@ -463,6 +542,94 @@ export class Renderer {
       context.beginPath();
       context.arc(projectile.x, projectile.y, 2, 0, Math.PI * 2);
       context.fill();
+    }
+  }
+
+  private drawBombs(state: GameState): void {
+    const context = this.context;
+
+    for (const bomb of state.bombs) {
+      if (!bomb.landed) {
+        this.drawBombFlight(state, bomb);
+        continue;
+      }
+
+      const remaining = Math.max(0, bomb.fuse);
+      const speed = remaining < 0.35 ? 14 : 6;
+      const pulse = 0.25 + 0.25 * (0.5 + 0.5 * Math.sin(state.time * speed));
+      context.strokeStyle = `rgba(255, 92, 82, ${pulse})`;
+      context.lineWidth = 1.6;
+      context.beginPath();
+      context.arc(bomb.x, bomb.y, BOMB.blastRadius, 0, Math.PI * 2);
+      context.stroke();
+
+      const frames = SPRITES.bomb;
+      const file =
+        frames[Math.floor(state.time * 10) % frames.length] ?? frames[0];
+      if (!file) continue;
+      context.drawImage(this.image(file), Math.round(bomb.x) - 8, Math.round(bomb.y) - 12);
+
+      const sparkAlpha = 0.55 + 0.45 * Math.sin(state.time * 24);
+      context.fillStyle = `rgba(255, 210, 120, ${sparkAlpha})`;
+      context.beginPath();
+      context.arc(bomb.x + 2, bomb.y - 14, 1.8, 0, Math.PI * 2);
+      context.fill();
+    }
+  }
+
+  private drawBombFlight(state: GameState, bomb: Bomb): void {
+    const context = this.context;
+    const height = bombArcHeight(bomb);
+
+    context.strokeStyle = "rgba(255, 140, 80, 0.35)";
+    context.lineWidth = 1;
+    context.beginPath();
+    context.arc(bomb.x, bomb.y, 3, 0, Math.PI * 2);
+    context.stroke();
+
+    const frames = SPRITES.bomb;
+    const file =
+      frames[Math.floor(state.time * 10) % frames.length] ?? frames[0];
+    if (!file) return;
+    context.drawImage(
+      this.image(file),
+      Math.round(bomb.x) - 8,
+      Math.round(bomb.y - height) - 8,
+    );
+  }
+
+  private drawExplosions(state: GameState): void {
+    const context = this.context;
+
+    for (const explosion of this.effects.explosions) {
+      const age = state.time - explosion.born;
+      if (age < 0 || age >= EXPLOSION_LIFE) continue;
+      const progress = age / EXPLOSION_LIFE;
+      const radius = explosion.radius * (0.35 + 0.65 * progress);
+      const alpha = 1 - progress;
+
+      context.fillStyle = `rgba(255, 150, 80, ${0.18 * alpha})`;
+      context.beginPath();
+      context.arc(explosion.x, explosion.y, radius, 0, Math.PI * 2);
+      context.fill();
+
+      context.strokeStyle = `rgba(255, 200, 130, ${0.8 * alpha})`;
+      context.lineWidth = 2;
+      context.beginPath();
+      context.arc(explosion.x, explosion.y, radius, 0, Math.PI * 2);
+      context.stroke();
+    }
+
+    for (const ring of this.effects.rings) {
+      const age = state.time - ring.born;
+      if (age < 0 || age >= ring.life) continue;
+      const progress = age / ring.life;
+      const radius = ring.radius * (0.2 + 0.8 * progress);
+      context.strokeStyle = `rgba(${ring.color}, ${1 - progress})`;
+      context.lineWidth = 3;
+      context.beginPath();
+      context.arc(ring.x, ring.y, radius, 0, Math.PI * 2);
+      context.stroke();
     }
   }
 
@@ -535,6 +702,23 @@ export class Renderer {
 
     for (const enemy of state.enemies) {
       if (enemy.status !== "alive" || enemy.windup <= 0) continue;
+
+      if (enemy.kind === "boss") {
+        if (enemy.attackKind === "bomb") {
+          const charge = 0.4 + 0.4 * Math.sin(state.time * 18);
+          context.fillStyle = `rgba(255, 150, 80, ${charge})`;
+          context.beginPath();
+          context.arc(enemy.x, enemy.y - 18, 4, 0, Math.PI * 2);
+          context.fill();
+          continue;
+        }
+        context.strokeStyle = "rgba(255, 70, 60, 0.4)";
+        context.lineWidth = 3;
+        context.beginPath();
+        context.arc(enemy.x, enemy.y, BOSS.attackRange, 0, Math.PI * 2);
+        context.stroke();
+        continue;
+      }
 
       if (enemy.kind === "melee") {
         context.strokeStyle = "rgba(255, 70, 60, 0.35)";
@@ -662,6 +846,7 @@ export class Renderer {
     state: GameState,
     cssWidth: number,
     cssHeight: number,
+    muted: boolean,
   ): void {
     const context = this.context;
     const full = Math.floor(state.player.hp / 2);
@@ -683,6 +868,8 @@ export class Renderer {
       );
     }
 
+    this.drawHealPulse(state);
+
     context.textAlign = "right";
     context.textBaseline = "top";
     context.font = "16px system-ui, sans-serif";
@@ -693,35 +880,53 @@ export class Renderer {
       HUD_INSET,
     );
     context.font = "13px system-ui, sans-serif";
-    context.fillStyle = state.run.exitOpen
-      ? SPIRIT_COLOR
-      : "rgba(255, 255, 255, 0.55)";
+    context.fillStyle = state.run.bossAwake
+      ? EMBER
+      : state.run.exitOpen
+        ? SPIRIT_COLOR
+        : "rgba(255, 255, 255, 0.55)";
     context.fillText(
-      state.run.exitOpen ? "Stairs open" : "Stairs sealed",
+      state.run.bossAwake
+        ? "Boss awakened"
+        : state.run.exitOpen
+          ? "Stairs open"
+          : "Stairs sealed",
       cssWidth - HUD_INSET,
       HUD_INSET + 23,
     );
     context.textAlign = "left";
 
     // The spirit meter is hidden on the death screen, which covers the HUD.
-    if (state.status === "playing") {
+    if (state.status !== "dead") {
       const percent = Math.round(state.run.spirit);
+      const label = state.run.bossAwake
+        ? "Boss awakened"
+        : state.run.floorPurified
+          ? "Floor purified"
+          : `Spirit: ${percent}%`;
 
       context.font = "14px system-ui, sans-serif";
       context.textBaseline = "top";
       context.textAlign = "left";
-      context.fillStyle =
-        state.run.spirit > 0 ? SPIRIT_COLOR : "rgba(255, 255, 255, 0.7)";
-      context.fillText(`Spirit: ${percent}%`, HUD_INSET, SPIRIT_TEXT_TOP);
+      context.fillStyle = state.run.bossAwake
+        ? EMBER
+        : state.run.spirit > 0 || state.run.floorPurified
+          ? SPIRIT_COLOR
+          : "rgba(255, 255, 255, 0.7)";
+      context.fillText(label, HUD_INSET, SPIRIT_TEXT_TOP);
 
-      context.fillStyle = SPIRIT_TRACK;
+      context.fillStyle = state.run.bossAwake ? EMBER_TRACK : SPIRIT_TRACK;
       context.fillRect(
         HUD_INSET,
         SPIRIT_BAR_TOP,
         SPIRIT_BAR_WIDTH,
         SPIRIT_BAR_HEIGHT,
       );
-      context.fillStyle = SPIRIT_COLOR;
+      const pulse = state.run.bossAwake
+        ? 0.7 + 0.3 * (0.5 + 0.5 * Math.sin(state.time * 2.5))
+        : 1;
+      context.globalAlpha = pulse;
+      context.fillStyle = state.run.bossAwake ? EMBER : SPIRIT_COLOR;
       context.fillRect(
         HUD_INSET,
         SPIRIT_BAR_TOP,
@@ -730,7 +935,8 @@ export class Renderer {
         ),
         SPIRIT_BAR_HEIGHT,
       );
-      context.strokeStyle = SPIRIT_BORDER;
+      context.globalAlpha = 1;
+      context.strokeStyle = state.run.bossAwake ? EMBER_BORDER : SPIRIT_BORDER;
       context.lineWidth = 1;
       context.strokeRect(
         HUD_INSET + 0.5,
@@ -740,12 +946,81 @@ export class Renderer {
       );
     }
 
+    if (state.run.bossAwake) {
+      this.drawBossBar(state, cssWidth);
+    }
+
     context.textBaseline = "bottom";
     context.fillStyle = "rgba(255, 255, 255, 0.7)";
+    context.font = "13px system-ui, sans-serif";
+    context.textAlign = "left";
     context.fillText(
-      "WASD move · Mouse aim · LMB combo · Space dodge · R restart",
+      "WASD move · Mouse aim · LMB combo · Space dodge · Esc pause · M mute · R restart",
       HUD_INSET,
       cssHeight - HUD_INSET,
+    );
+
+    if (muted) {
+      context.textAlign = "right";
+      context.fillStyle = MUTED_TEXT;
+      context.fillText(
+        "Muted (M)",
+        cssWidth - HUD_INSET,
+        cssHeight - HUD_INSET,
+      );
+    }
+
+    context.textAlign = "left";
+    context.textBaseline = "alphabetic";
+  }
+
+  /** A soft spirit-cyan pulse across the hearts when descent restores HP. */
+  private drawHealPulse(state: GameState): void {
+    const context = this.context;
+    const width =
+      3 * (HEART_SIZE.width + HEART_GAP) - HEART_GAP;
+    for (const pulse of this.effects.healPulses) {
+      const age = state.time - pulse.born;
+      if (age < 0 || age >= HEAL_PULSE_LIFE) continue;
+      const alpha = (1 - age / HEAL_PULSE_LIFE) * 0.4;
+      context.strokeStyle = `rgba(191, 233, 255, ${alpha})`;
+      context.lineWidth = 2;
+      context.strokeRect(
+        HUD_INSET - 4,
+        HUD_INSET - 4,
+        width + 8,
+        HEART_SIZE.height + 8,
+      );
+    }
+  }
+
+  private drawBossBar(state: GameState, cssWidth: number): void {
+    const boss = state.enemies.find((enemy) => enemy.kind === "boss");
+    if (!boss) return;
+
+    const context = this.context;
+    const width = Math.min(BOSS_BAR_MAX_WIDTH, cssWidth * 0.5);
+    const x = (cssWidth - width) / 2;
+    const y = HUD_INSET + 8;
+    const ratio = boss.maxHp > 0 ? clamp(boss.hp / boss.maxHp, 0, 1) : 0;
+
+    context.textAlign = "center";
+    context.textBaseline = "bottom";
+    context.font = "13px system-ui, sans-serif";
+    context.fillStyle = EMBER;
+    context.fillText(BOSS.name, cssWidth / 2, y - 4);
+
+    context.fillStyle = "rgba(20, 10, 12, 0.85)";
+    context.fillRect(x, y, width, BOSS_BAR_HEIGHT);
+    context.fillStyle = EMBER;
+    context.fillRect(x, y, width * ratio, BOSS_BAR_HEIGHT);
+    context.strokeStyle = EMBER_BORDER;
+    context.lineWidth = 1;
+    context.strokeRect(
+      x + 0.5,
+      y + 0.5,
+      width - 1,
+      BOSS_BAR_HEIGHT - 1,
     );
 
     context.textAlign = "left";
@@ -782,21 +1057,110 @@ export class Renderer {
     }
   }
 
-  private drawDeathOverlay(cssWidth: number, cssHeight: number): void {
+  private drawScreenFlash(
+    state: GameState,
+    cssWidth: number,
+    cssHeight: number,
+  ): void {
     const context = this.context;
-    context.fillStyle = "rgba(0, 0, 0, 0.6)";
+    for (const flash of this.effects.flashes) {
+      const age = state.time - flash.born;
+      if (age < 0 || age >= flash.life) continue;
+      const alpha = (1 - age / flash.life) * 0.35;
+      context.strokeStyle = `rgba(255, 92, 82, ${alpha})`;
+      context.lineWidth = 28;
+      context.strokeRect(0, 0, cssWidth, cssHeight);
+    }
+  }
+
+  private drawTitleOverlay(cssWidth: number, cssHeight: number): void {
+    const context = this.context;
+    context.fillStyle = "rgba(11, 10, 15, 0.72)";
+    context.fillRect(0, 0, cssWidth, cssHeight);
+
+    const centreX = cssWidth / 2;
+    const titleY = cssHeight * 0.32;
+    context.textAlign = "center";
+    context.textBaseline = "middle";
+
+    context.fillStyle = TITLE_TEXT;
+    context.font = "56px system-ui, sans-serif";
+    context.fillText("skill issue dg", centreX, titleY);
+
+    context.fillStyle = SPIRIT_COLOR;
+    context.fillRect(centreX - 60, titleY + 26, 120, 3);
+
+    context.fillStyle = MUTED_TEXT;
+    context.font = "16px system-ui, sans-serif";
+    context.fillText("A dark-fantasy action roguelike", centreX, titleY + 52);
+
+    context.font = "14px system-ui, sans-serif";
+    context.fillText(
+      "WASD move · Mouse aim · LMB combo · Space dodge · Esc pause · M mute",
+      centreX,
+      titleY + 94,
+    );
+
+    const pulse = 0.8 + 0.2 * Math.sin((performance.now() / 1000) * (Math.PI * 2 / 1.2));
+    context.fillStyle = `rgba(191, 233, 255, ${pulse})`;
+    context.font = "18px system-ui, sans-serif";
+    context.fillText("Click to begin", centreX, titleY + 138);
+
+    context.textAlign = "left";
+    context.textBaseline = "alphabetic";
+  }
+
+  private drawPauseOverlay(cssWidth: number, cssHeight: number): void {
+    const context = this.context;
+    context.fillStyle = "rgba(11, 10, 15, 0.6)";
     context.fillRect(0, 0, cssWidth, cssHeight);
 
     context.textAlign = "center";
     context.textBaseline = "middle";
-    context.fillStyle = "#f2e9da";
-    context.font = "48px system-ui, sans-serif";
-    context.fillText("You died", cssWidth / 2, cssHeight / 2 - 20);
+    context.fillStyle = TITLE_TEXT;
+    context.font = "36px system-ui, sans-serif";
+    context.fillText("Paused", cssWidth / 2, cssHeight / 2 - 24);
 
     context.fillStyle = "rgba(255, 255, 255, 0.8)";
-    context.font = "20px system-ui, sans-serif";
-    context.fillText("Press R to restart", cssWidth / 2, cssHeight / 2 + 30);
+    context.font = "16px system-ui, sans-serif";
+    context.fillText("Esc to resume", cssWidth / 2, cssHeight / 2 + 18);
+
+    context.fillStyle = MUTED_TEXT;
+    context.font = "14px system-ui, sans-serif";
+    context.fillText("M to mute", cssWidth / 2, cssHeight / 2 + 44);
 
     context.textAlign = "left";
+    context.textBaseline = "alphabetic";
+  }
+
+  private drawDeathOverlay(
+    state: GameState,
+    cssWidth: number,
+    cssHeight: number,
+  ): void {
+    const context = this.context;
+    context.fillStyle = "rgba(0, 0, 0, 0.6)";
+    context.fillRect(0, 0, cssWidth, cssHeight);
+
+    const centreX = cssWidth / 2;
+    const centreY = cssHeight / 2;
+    const purified = state.enemies.filter((enemy) => enemy.rested).length;
+
+    context.textAlign = "center";
+    context.textBaseline = "middle";
+    context.fillStyle = TITLE_TEXT;
+    context.font = "48px system-ui, sans-serif";
+    context.fillText("You died", centreX, centreY - 56);
+
+    context.fillStyle = "rgba(255, 255, 255, 0.8)";
+    context.font = "16px system-ui, sans-serif";
+    context.fillText(`Depth reached: ${state.run.depth}`, centreX, centreY + 4);
+    context.fillText(`Mobs purified: ${purified}`, centreX, centreY + 28);
+
+    context.font = "18px system-ui, sans-serif";
+    context.fillText("Press R to restart", centreX, centreY + 72);
+
+    context.textAlign = "left";
+    context.textBaseline = "alphabetic";
   }
 }

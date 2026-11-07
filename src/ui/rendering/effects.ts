@@ -28,6 +28,36 @@ interface ChainBreak {
   born: number;
 }
 
+interface Explosion {
+  x: number;
+  y: number;
+  born: number;
+  radius: number;
+}
+
+interface Ring {
+  x: number;
+  y: number;
+  born: number;
+  radius: number;
+  life: number;
+  color: string;
+}
+
+interface Flash {
+  born: number;
+  life: number;
+}
+
+interface HealPulse {
+  born: number;
+}
+
+export const EXPLOSION_LIFE = 0.25;
+export const HEAL_PULSE_LIFE = 0.7;
+export const SUMMON_RING_LIFE = 0.6;
+export const SUMMON_FLASH_LIFE = 0.6;
+
 const AFTERIMAGE_LIFE = 0.2;
 const AFTERIMAGE_INTERVAL = 0.04;
 const AFTERIMAGES_PER_DODGE = 2;
@@ -45,6 +75,10 @@ export class VisualEffects {
   afterimages: Afterimage[] = [];
   swings: Swing[] = [];
   chainBreaks: ChainBreak[] = [];
+  explosions: Explosion[] = [];
+  rings: Ring[] = [];
+  flashes: Flash[] = [];
+  healPulses: HealPulse[] = [];
 
   private lastCapture = 0;
   private dodgeCaptures = 0;
@@ -158,11 +192,68 @@ export class VisualEffects {
             });
           }
           break;
+        case "boss-summoned":
+          this.rings.push({
+            x: event.x,
+            y: event.y,
+            born: state.time,
+            radius: 60,
+            life: SUMMON_RING_LIFE,
+            color: "255, 92, 82",
+          });
+          this.flashes.push({
+            born: state.time,
+            life: SUMMON_FLASH_LIFE,
+          });
+          break;
+        case "bomb-exploded":
+          this.explosions.push({
+            x: event.x,
+            y: event.y,
+            born: state.time,
+            radius: event.radius,
+          });
+          this.sparks.push({
+            x: event.x,
+            y: event.y,
+            born: state.time,
+            count: 8,
+            length: 14,
+            life: 0.22,
+            color: "rgba(255, 170, 90, 1)",
+          });
+          break;
+        case "boss-defeated":
+          this.rings.push({
+            x: event.x,
+            y: event.y,
+            born: state.time,
+            radius: 44,
+            life: 0.5,
+            color: "255, 92, 82",
+          });
+          this.sparks.push({
+            x: event.x,
+            y: event.y,
+            born: state.time,
+            count: 10,
+            length: 18,
+            life: 0.35,
+            color: "rgba(255, 150, 90, 1)",
+          });
+          break;
+        case "player-healed":
+          this.healPulses.push({ born: state.time });
+          break;
         case "run-reset":
           this.sparks = [];
           this.afterimages = [];
           this.swings = [];
           this.chainBreaks = [];
+          this.explosions = [];
+          this.rings = [];
+          this.flashes = [];
+          this.healPulses = [];
           this.lastCapture = 0;
           this.dodgeCaptures = 0;
           break;
@@ -198,6 +289,16 @@ export class VisualEffects {
     this.swings = this.swings.filter((swing) => time - swing.born < SWING_LIFE);
     this.chainBreaks = this.chainBreaks.filter(
       (burst) => time - burst.born < CHAIN_BREAK_LIFE,
+    );
+    this.explosions = this.explosions.filter(
+      (explosion) => time - explosion.born < EXPLOSION_LIFE,
+    );
+    this.rings = this.rings.filter((ring) => time - ring.born < ring.life);
+    this.flashes = this.flashes.filter(
+      (flash) => time - flash.born < flash.life,
+    );
+    this.healPulses = this.healPulses.filter(
+      (pulse) => time - pulse.born < HEAL_PULSE_LIFE,
     );
   }
 }

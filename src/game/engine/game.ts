@@ -1,5 +1,14 @@
-import { CAMERA, COMBO, PROJECTILE, PURIFICATION, ZOOM } from "../data/config";
+import {
+  BOMB,
+  CAMERA,
+  COMBO,
+  HEAL_ON_DESCENT,
+  PROJECTILE,
+  PURIFICATION,
+  ZOOM,
+} from "../data/config";
 import { isOnStairs, nextSeed, randomSeed } from "../data/floor";
+import { advanceBomb, bombHitsPlayer, spawnBomb } from "../systems/bomb";
 import {
   comboPhase,
   comboWindowOpen,
@@ -32,6 +41,7 @@ import {
   tickRespawn,
 } from "../systems/purification";
 import type {
+  Bomb,
   DebugSnapshot,
   Enemy,
   GameEvent,
@@ -40,7 +50,7 @@ import type {
   Projectile,
   Viewport,
 } from "../types";
-import { createInitialState } from "../../state/initialState";
+import { createBoss, createInitialState } from "../../state/initialState";
 
 export interface ViewportSource {
   worldViewport(): Viewport;
@@ -53,12 +63,23 @@ export class Game {
     private readonly viewportSource: ViewportSource,
     seed = randomSeed(),
   ) {
-    this.state = createInitialState(seed);
+    this.state = createInitialState(seed, 1, "title");
     this.snapCamera();
   }
 
+  /** Leaves the title screen. Does nothing once the run has started. */
+  start(): GameEvent[] {
+    if (this.state.status !== "title") return [];
+    this.state.status = "playing";
+    return [{ type: "run-started" }];
+  }
+
   reset(): void {
-    this.state = createInitialState(nextSeed(this.state.floor.seed), 1);
+    this.state = createInitialState(
+      nextSeed(this.state.floor.seed),
+      1,
+      "playing",
+    );
     this.snapCamera();
   }
 
@@ -75,12 +96,25 @@ export class Game {
   }
 
   step(dt: number, input: InputFrame): GameEvent[] {
-    if (this.state.status !== "playing") {
-      if (input.restart) {
-        this.reset();
-        return [{ type: "run-reset" }];
-      }
-      return [];
+    if (this.state.status === "title") {
+      return input.start ? this.start() : [];
+    }
+
+    if (this.state.status === "paused") {
+      if (!input.pause) return [];
+      this.state.status = "playing";
+      return [{ type: "run-resumed" }];
+    }
+
+    if (this.state.status === "dead") {
+      if (!input.restart) return [];
+      this.reset();
+      return [{ type: "run-reset" }];
+    }
+
+    if (input.pause) {
+      this.state.status = "paused";
+      return [{ type: "run-paused" }];
     }
 
     const events: GameEvent[] = [];
@@ -141,6 +175,11 @@ export class Game {
     state.player = player;
     state.enemies = this.updateEnemies(player, dt, events);
     player = state.player;
+
+    if (state.status !== "dead") {
+      this.updateBombs(dt, events);
+      player = state.player;
+    }
 
     if (state.status !== "dead") {
       state.projectiles = this.updateProjectiles(player, dt, events);
@@ -237,6 +276,14 @@ export class Game {
 
       if (!result.died) return next;
 
+      if (next.kind === "boss") {
+        // The Warden never rests; its defeat is what opens the stairs.
+        this.state.run.bossAwake = false;
+        this.state.run.exitOpen = true;
+        events.push({ type: "boss-defeated", x: enemy.x, y: enemy.y });
+        return next;
+      }
+
       if (restable) {
         // The rite is complete: the mob rests permanently and yields spirit.
         next = { ...next, rested: true, respawn: 0 };
@@ -262,17 +309,55 @@ export class Game {
     if (
       restedAny &&
       !this.state.run.floorPurified &&
-      enemies.every((enemy) => enemy.rested)
+      enemies
+        .filter((enemy) => enemy.kind !== "boss")
+        .every((enemy) => enemy.rested)
     ) {
       this.state.run.floorPurified = true;
-      this.state.run.exitOpen = true;
       events.push({ type: "floor-purified" });
+      this.summonBoss(events);
     }
 
     const resolved = markStepResolved(player, hitAny);
     if (finisher && hitAny) this.state.hitstop = COMBO.hitstop;
 
     return resolved;
+  }
+
+  /** Summons the floor's Warden once every mob has been put to rest. */
+  private summonBoss(events: GameEvent[]): void {
+    const state = this.state;
+    if (state.run.bossAwake) return;
+    if (state.enemies.some((enemy) => enemy.kind === "boss")) return;
+
+    const boss = createBoss(state.floor);
+    state.enemies = [...state.enemies, boss];
+    state.run.bossAwake = true;
+    state.run.exitOpen = false;
+    events.push({ type: "boss-summoned", x: boss.x, y: boss.y });
+  }
+
+  /**
+   * Test-only shortcut exposed by the debug hook in dev and e2e builds. It
+   * rests every mob and summons the Warden without simulating the ritual.
+   */
+  debugSummonBoss(): void {
+    if (this.state.status !== "playing") return;
+    this.state.enemies = this.state.enemies.map((enemy) =>
+      enemy.kind === "boss"
+        ? enemy
+        : {
+            ...enemy,
+            hp: 0,
+            status: "dead" as const,
+            rested: true,
+            respawn: 0,
+            fragments: enemy.fragments.map(() => false),
+          },
+    );
+    this.state.run.spirit = PURIFICATION.spiritThreshold;
+    this.state.run.floorPurified = true;
+    this.summonBoss([]);
   }
 
   private updateEnemies(
@@ -297,16 +382,44 @@ export class Game {
       const next = update.enemy;
 
       if (update.attackStarted) {
-        events.push(
-          next.kind === "ranged"
-            ? {
-                type: "enemy-telegraph-started",
-                x: next.x,
-                y: next.y,
-                kind: "ranged",
-              }
-            : { type: "enemy-attack-started", x: next.x, y: next.y },
+        if (next.kind === "boss") {
+          events.push({
+            type: "boss-attack-started",
+            x: next.x,
+            y: next.y,
+            kind: next.attackKind ?? "melee",
+          });
+        } else if (next.kind === "ranged") {
+          events.push({
+            type: "enemy-telegraph-started",
+            x: next.x,
+            y: next.y,
+            kind: "ranged",
+          });
+        } else {
+          events.push({
+            type: "enemy-attack-started",
+            x: next.x,
+            y: next.y,
+          });
+        }
+      }
+
+      if (update.bombTarget) {
+        const bomb = spawnBomb(
+          state.nextBombId,
+          { x: next.x, y: next.y },
+          update.bombTarget,
         );
+        state.nextBombId += 1;
+        state.bombs.push(bomb);
+        events.push({
+          type: "bomb-thrown",
+          x: bomb.fromX,
+          y: bomb.fromY,
+          targetX: bomb.targetX,
+          targetY: bomb.targetY,
+        });
       }
 
       if (update.fired) {
@@ -331,6 +444,39 @@ export class Game {
 
       return next;
     });
+  }
+
+  private updateBombs(dt: number, events: GameEvent[]): void {
+    const state = this.state;
+    const remaining: Bomb[] = [];
+
+    for (const bomb of state.bombs) {
+      const advanced = advanceBomb(bomb, dt);
+      if (advanced.landed) {
+        events.push({
+          type: "bomb-landed",
+          x: advanced.bomb.x,
+          y: advanced.bomb.y,
+        });
+      }
+
+      if (advanced.exploded) {
+        events.push({
+          type: "bomb-exploded",
+          x: advanced.bomb.x,
+          y: advanced.bomb.y,
+          radius: BOMB.blastRadius,
+        });
+        if (bombHitsPlayer(advanced.bomb, state.player)) {
+          this.applyDamageToPlayer(BOMB.damage, events);
+        }
+        continue;
+      }
+
+      remaining.push(advanced.bomb);
+    }
+
+    state.bombs = remaining;
   }
 
   private updateProjectiles(
@@ -368,21 +514,33 @@ export class Game {
     return remaining;
   }
 
-  /** Generates the next floor, preserving the player's current HP. */
+  /** Generates the next floor, preserving HP and restoring a little on entry. */
   private descend(events: GameEvent[]): void {
     const current = this.state;
     const depth = current.run.depth + 1;
     const seed = nextSeed(current.floor.seed);
     const next = createInitialState(seed, depth);
+    const hp = Math.min(
+      current.player.maxHp,
+      current.player.hp + HEAL_ON_DESCENT,
+    );
     next.player = {
       ...next.player,
-      hp: current.player.hp,
+      hp,
       maxHp: current.player.maxHp,
     };
 
     this.state = next;
     this.snapCamera();
     events.push({ type: "floor-descended", depth, seed });
+    if (hp > current.player.hp) {
+      events.push({
+        type: "player-healed",
+        x: next.player.x,
+        y: next.player.y,
+        amount: hp - current.player.hp,
+      });
+    }
   }
 
   /** Applies one damage instance, respecting invulnerability and death. */
@@ -439,6 +597,7 @@ export class Game {
       player,
       enemies,
       projectiles,
+      bombs,
       camera,
       pointer,
       time,
@@ -478,13 +637,25 @@ export class Game {
         fragments: [...enemy.fragments],
         rested: enemy.rested,
         respawn: enemy.respawn,
+        attackKind: enemy.attackKind,
+        bombCooldown: enemy.bombCooldown,
       })),
       projectiles: projectiles.map((projectile) => ({
         x: projectile.x,
         y: projectile.y,
       })),
+      bombs: bombs.map((bomb) => ({
+        id: bomb.id,
+        x: bomb.x,
+        y: bomb.y,
+        targetX: bomb.targetX,
+        targetY: bomb.targetY,
+        landed: bomb.landed,
+        fuse: bomb.fuse,
+      })),
       spirit: run.spirit,
       floorPurified: run.floorPurified,
+      bossAwake: run.bossAwake,
       exitOpen: run.exitOpen,
       depth: run.depth,
       floor: {
@@ -496,6 +667,7 @@ export class Game {
         height: floor.height,
         spawn: { x: floor.spawn.x, y: floor.spawn.y },
         stairs: { ...floor.stairs },
+        bossSpawn: { x: floor.bossSpawn.x, y: floor.bossSpawn.y },
         rooms: floor.rooms.map((room) => ({ ...room })),
       },
       camera: { x: camera.x, y: camera.y },

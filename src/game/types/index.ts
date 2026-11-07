@@ -3,7 +3,7 @@ export interface Vec2 {
   y: number;
 }
 
-export type GameStatus = "playing" | "dead";
+export type GameStatus = "title" | "playing" | "paused" | "dead";
 
 /** Why a combo chain stopped being available. */
 export type ComboEndReason =
@@ -15,7 +15,7 @@ export type ComboEndReason =
 
 export type EnemyStatus = "alive" | "dying" | "dead";
 
-export type EnemyKind = "melee" | "ranged";
+export type EnemyKind = "melee" | "ranged" | "boss";
 
 export interface Rect {
   x: number;
@@ -44,6 +44,8 @@ export interface Floor {
   rooms: Rect[];
   spawn: Vec2;
   stairs: Rect;
+  /** Where the Floor Warden appears once the floor is purified. */
+  bossSpawn: Vec2;
   enemySpawns: EnemySpawn[];
 }
 
@@ -113,6 +115,10 @@ export interface Enemy {
   rested: boolean;
   /** Seconds left before a failed-rite respawn; 0 when not pending. */
   respawn: number;
+  /** Boss only: the windup currently in progress. */
+  attackKind: "melee" | "bomb" | null;
+  /** Boss only: seconds until the next bomb throw. */
+  bombCooldown: number;
 }
 
 export interface Projectile {
@@ -125,14 +131,33 @@ export interface Projectile {
   life: number;
 }
 
+/** A thrown boss bomb: it arcs to a landing point, fuses, then explodes. */
+export interface Bomb {
+  id: number;
+  x: number;
+  y: number;
+  fromX: number;
+  fromY: number;
+  targetX: number;
+  targetY: number;
+  /** Seconds elapsed in flight. */
+  flight: number;
+  landed: boolean;
+  /** Seconds left on the fuse once landed. */
+  fuse: number;
+  radius: number;
+}
+
 export interface RunState {
   /** Current floor number, starting at 1. */
   depth: number;
   /** Spirit gained on this floor, capped at the threshold. */
   spirit: number;
-  /** True when every enemy on the floor has been put to rest. */
+  /** True when every non-boss mob on the floor has been put to rest. */
   floorPurified: boolean;
-  /** True when the stairs may be used. Mirrors floorPurified. */
+  /** True while the Floor Warden is summoned and still alive. */
+  bossAwake: boolean;
+  /** True when the Warden is defeated and the stairs may be used. */
   exitOpen: boolean;
 }
 
@@ -146,6 +171,12 @@ export type GameEvent =
   | { type: "dodge-started"; x: number; y: number }
   | { type: "enemy-attack-started"; x: number; y: number }
   | { type: "enemy-telegraph-started"; x: number; y: number; kind: EnemyKind }
+  | {
+      type: "boss-attack-started";
+      x: number;
+      y: number;
+      kind: "melee" | "bomb";
+    }
   | { type: "projectile-fired"; x: number; y: number; angle: number }
   | { type: "projectile-hit"; x: number; y: number }
   | { type: "projectile-blocked"; x: number; y: number }
@@ -154,7 +185,16 @@ export type GameEvent =
   | { type: "enemy-rested"; x: number; y: number; spirit: number }
   | { type: "enemy-respawned"; x: number; y: number }
   | { type: "floor-purified" }
+  | { type: "boss-summoned"; x: number; y: number }
+  | { type: "boss-defeated"; x: number; y: number }
+  | { type: "bomb-thrown"; x: number; y: number; targetX: number; targetY: number }
+  | { type: "bomb-landed"; x: number; y: number }
+  | { type: "bomb-exploded"; x: number; y: number; radius: number }
+  | { type: "player-healed"; x: number; y: number; amount: number }
   | { type: "floor-descended"; depth: number; seed: number }
+  | { type: "run-started" }
+  | { type: "run-paused" }
+  | { type: "run-resumed" }
   | { type: "run-reset" };
 
 export interface GameState {
@@ -163,7 +203,9 @@ export interface GameState {
   player: Player;
   enemies: Enemy[];
   projectiles: Projectile[];
+  bombs: Bomb[];
   nextProjectileId: number;
+  nextBombId: number;
   hitstop: number;
   camera: Vec2;
   pointer: Vec2;
@@ -202,10 +244,22 @@ export interface DebugSnapshot {
     fragments: boolean[];
     rested: boolean;
     respawn: number;
+    attackKind: "melee" | "bomb" | null;
+    bombCooldown: number;
   }>;
   projectiles: Array<{ x: number; y: number }>;
+  bombs: Array<{
+    id: number;
+    x: number;
+    y: number;
+    targetX: number;
+    targetY: number;
+    landed: boolean;
+    fuse: number;
+  }>;
   spirit: number;
   floorPurified: boolean;
+  bossAwake: boolean;
   exitOpen: boolean;
   depth: number;
   floor: {
@@ -217,6 +271,7 @@ export interface DebugSnapshot {
     height: number;
     spawn: Vec2;
     stairs: Rect;
+    bossSpawn: Vec2;
     rooms: Rect[];
   };
   camera: Vec2;
@@ -232,5 +287,13 @@ export interface InputFrame {
   attack: boolean;
   dodge: boolean;
   restart: boolean;
+  /** True on the frame a click or Enter/Space should leave the title screen. */
+  start: boolean;
+  /** True on the frame Escape is pressed. */
+  pause: boolean;
+  /** True on the frame M is pressed. */
+  mute: boolean;
+  /** True on any user gesture; used to unlock audio once. */
+  gesture: boolean;
   pointer: Vec2;
 }

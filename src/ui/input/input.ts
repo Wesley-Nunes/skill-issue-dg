@@ -7,6 +7,10 @@ export class Input {
   private attackQueued = false;
   private dodgeQueued = false;
   private restartQueued = false;
+  private startQueued = false;
+  private pauseQueued = false;
+  private muteQueued = false;
+  private gestureQueued = false;
 
   constructor(private readonly canvas: HTMLCanvasElement) {
     document.addEventListener("keydown", this.onKeyDown);
@@ -37,9 +41,17 @@ export class Input {
     const attack = this.attackQueued;
     const dodge = this.dodgeQueued;
     const restart = this.restartQueued;
+    const start = this.startQueued;
+    const pause = this.pauseQueued;
+    const mute = this.muteQueued;
+    const gesture = this.gestureQueued;
     this.attackQueued = false;
     this.dodgeQueued = false;
     this.restartQueued = false;
+    this.startQueued = false;
+    this.pauseQueued = false;
+    this.muteQueued = false;
+    this.gestureQueued = false;
 
     return {
       move,
@@ -47,6 +59,10 @@ export class Input {
       attack,
       dodge,
       restart,
+      start,
+      pause,
+      mute,
+      gesture,
       pointer,
     };
   }
@@ -54,10 +70,23 @@ export class Input {
   private readonly onKeyDown = (event: KeyboardEvent): void => {
     const key = event.key.toLowerCase();
     this.keys.add(key);
+    this.gestureQueued = true;
     if (event.repeat) return;
+
     if (key === " ") {
       this.dodgeQueued = true;
+      this.startQueued = true;
       event.preventDefault();
+    }
+    if (key === "enter") {
+      this.startQueued = true;
+    }
+    if (key === "escape") {
+      this.pauseQueued = true;
+      event.preventDefault();
+    }
+    if (key === "m") {
+      this.muteQueued = true;
     }
     if (key === "r") {
       this.restartQueued = true;
@@ -75,8 +104,12 @@ export class Input {
   };
 
   private readonly onMouseDown = (event: MouseEvent): void => {
+    this.gestureQueued = true;
     // One press advances one chain step; holding the button does not repeat.
-    if (event.button === 0) this.attackQueued = true;
+    if (event.button === 0) {
+      this.attackQueued = true;
+      this.startQueued = true;
+    }
   };
 
   private readonly onContextMenu = (event: MouseEvent): void => {

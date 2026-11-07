@@ -46,7 +46,8 @@ export function knockbackEnemy(
   distance: number,
   floor: Floor,
 ): Enemy {
-  if (enemy.status !== "alive") return enemy;
+  // The Floor Warden is too heavy to push around.
+  if (enemy.status !== "alive" || enemy.kind === "boss") return enemy;
   const position = moveCircle(
     floor,
     enemy.x,

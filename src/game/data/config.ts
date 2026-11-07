@@ -93,6 +93,38 @@ export const RANGED = {
   attackCooldown: 1.6,
 } as const;
 
+/** The Floor Warden: one boss per floor, summoned by a full spirit meter. */
+export const BOSS = {
+  name: "Floor Warden",
+  radius: 12,
+  maxHp: 30,
+  speed: 38,
+  aggroRadius: 240,
+  attackRange: 40,
+  windup: 0.55,
+  active: 0.14,
+  attackCooldown: 1.6,
+  damage: 2,
+  bombCooldown: 2.6,
+  bombWindup: 0.7,
+  /** Fraction of a finisher's stagger that actually affects the boss. */
+  staggerScale: 0.35,
+} as const;
+
+/** A thrown boss bomb: arc to the target, fuse, then a radial blast. */
+export const BOMB = {
+  radius: 5,
+  flightTime: 0.65,
+  fuse: 1.0,
+  blastRadius: 30,
+  damage: 2,
+  /** Visual arc height in world pixels. */
+  arcHeight: 18,
+} as const;
+
+/** HP restored when the player takes the stairs to the next floor. */
+export const HEAL_ON_DESCENT = 2;
+
 export const ENEMY_FADE = 0.25;
 
 /**
@@ -139,3 +171,4 @@ export const IMPACT = {
 } as const;
 
 export const ASSET_BASE = "/assets/dungeon-tileset-ii/frames/";
+export const AUDIO_BASE = "/assets/audio/";
