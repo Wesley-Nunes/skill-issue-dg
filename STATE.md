@@ -14,8 +14,8 @@ This file is the canonical workflow state for the repository. It is maintained b
 | Active agent | `orchestrator` |
 | Git branch | `feature/0.5.0-001-portfolio-release` |
 | Last accepted commit | `d6491e1` (QA report); implementation/test tip `d52f507` |
-| Pushed HEAD | Not pushed yet; `origin/dev` is at `90c1066` (0.4.0 merge) |
-| Pull request | Not created; PR target is `dev` (staging). Production is `main` |
+| Pushed HEAD | `5d96c0e`; `origin/feature/0.5.0-001-portfolio-release` matches local HEAD (this state update is the tip) |
+| Pull request | Not created; PR target is `dev` (staging). Production is `main`. `gh`/`hub` unavailable; open via the GitHub branch link |
 | Blocking questions remaining | `0` |
 | Overall status | `Passed locally` — typecheck, 150 unit tests, build, and 20/20 Chrome e2e green from `npm ci`; branch push and PR pending |
 
@@ -153,6 +153,7 @@ Append one entry for each meaningful phase transition:
 | 2026-11-07 | 0.5.0/001 | Docs/design approved → Implementation | Task package and design decisions written; implementation started | `3d1f97a` |
 | 2026-11-07 | 0.5.0/001 | Implementation → QA verification | Floor Warden, bombs, audio, title/pause/death, heal-on-descent, README/Vercel delivered; 150 unit + 20 Chrome e2e; production bundle has no debug hooks | `b5de2b1`, `e522ac0`, `5a5b86b`, `a6636be`, `fa38422`, `d52f507` |
 | 2026-11-07 | 0.5.0/001 | QA verification → QA pass | Clean `npm ci`; typecheck/unit/build/e2e pass; bomb e2e flake found and fixed in `d52f507`; title/pause/boss/bomb/death visuals inspected; verdict Passed; hosted CI and Vercel pending | `d6491e1` |
+| 2026-11-07 | 0.5.0/001 | QA pass → Pushed, PR pending | Branch pushed; `origin/feature/0.5.0-001-portfolio-release` matched `5d96c0e`; PR creation blocked because `gh`/`hub` are unavailable, so the operator opens the PR against `dev`; hosted CI and Vercel remain pending | `5d96c0e`, plus this state commit |
 
 ## Status vocabulary
 
