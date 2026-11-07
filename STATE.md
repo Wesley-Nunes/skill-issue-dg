@@ -14,7 +14,7 @@ This file is the canonical workflow state for the repository. It is maintained b
 | Active agent | `orchestrator` |
 | Git branch | `feature/0.5.0-001-portfolio-release` |
 | Last accepted commit | `d6491e1` (QA report); implementation/test tip `d52f507` |
-| Pushed HEAD | `5d96c0e`; `origin/feature/0.5.0-001-portfolio-release` matches local HEAD (this state update is the tip) |
+| Pushed HEAD | Branch pushed; QA-tested commit `d6491e1`; later state-only commits are on the same remote branch |
 | Pull request | Not created; PR target is `dev` (staging). Production is `main`. `gh`/`hub` unavailable; open via the GitHub branch link |
 | Blocking questions remaining | `0` |
 | Overall status | `Passed locally` — typecheck, 150 unit tests, build, and 20/20 Chrome e2e green from `npm ci`; branch push and PR pending |
