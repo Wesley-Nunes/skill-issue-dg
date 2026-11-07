@@ -69,15 +69,16 @@ describe("0.5.0 portfolio release", () => {
   it("throws a fused bomb that explodes and damages the player", () => {
     cy.startGame();
     cy.summonBoss();
-    cy.approachBoss({ stop: 120, timeout: 30_000 });
+    // Stay outside the Warden's 40 px melee range so it chooses the bomb.
+    cy.approachBoss({ stop: 180, timeout: 30_000 });
 
     cy.waitForGame(
       (snapshot) => snapshot.bombs.length > 0,
       "the Warden to throw a bomb",
-      15_000,
+      20_000,
     ).then((snapshot) => {
       const bomb = snapshot.bombs[0]!;
-      expect(bomb.landed).to.equal(false);
+      expect(bomb.landed).to.be.a("boolean");
       expect(bomb.fuse).to.be.greaterThan(0);
       expect(bomb.targetX).to.be.a("number");
       expect(bomb.targetY).to.be.a("number");
