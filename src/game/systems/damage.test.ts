@@ -1,0 +1,117 @@
+import { describe, expect, it } from "vitest";
+import { PLAYER } from "../data/config";
+import { createEnemy, createPlayer } from "../../state/initialState";
+import {
+  damageEnemy,
+  damagePlayer,
+  knockbackEnemy,
+  tickPlayerTimers,
+} from "./damage";
+import { openFloor } from "./testFloor";
+
+const ROOM = openFloor();
+const meleeSpawn = {
+  id: "melee-a",
+  kind: "melee" as const,
+  x: 100,
+  y: 100,
+};
+
+describe("damagePlayer", () => {
+  it("applies damage and starts invulnerability", () => {
+    const result = damagePlayer(createPlayer(ROOM.spawn), 1);
+    expect(result.applied).toBe(true);
+    expect(result.died).toBe(false);
+    expect(result.player.hp).toBe(PLAYER.maxHp - 1);
+    expect(result.player.invulnerable).toBeCloseTo(
+      PLAYER.damageInvulnerability,
+    );
+    expect(result.player.hurtFlash).toBeGreaterThan(0);
+  });
+
+  it("blocks a second hit during invulnerability", () => {
+    const first = damagePlayer(createPlayer(ROOM.spawn), 1);
+    const second = damagePlayer(first.player, 1);
+    expect(second.applied).toBe(false);
+    expect(second.player.hp).toBe(first.player.hp);
+  });
+
+  it("accepts damage again after invulnerability expires", () => {
+    const first = damagePlayer(createPlayer(ROOM.spawn), 1);
+    const cleared = tickPlayerTimers(
+      first.player,
+      PLAYER.damageInvulnerability,
+    );
+    const second = damagePlayer(cleared, 1);
+    expect(second.applied).toBe(true);
+    expect(second.player.hp).toBe(PLAYER.maxHp - 2);
+  });
+
+  it("clamps at zero and reports death", () => {
+    const result = damagePlayer({ ...createPlayer(ROOM.spawn), hp: 1 }, 1);
+    expect(result.player.hp).toBe(0);
+    expect(result.died).toBe(true);
+  });
+
+  it("ignores damage once dead", () => {
+    const result = damagePlayer({ ...createPlayer(ROOM.spawn), hp: 0 }, 1);
+    expect(result.applied).toBe(false);
+  });
+});
+
+describe("damageEnemy", () => {
+  it("reduces enemy HP and flashes the sprite", () => {
+    const result = damageEnemy(createEnemy(meleeSpawn), 2);
+    expect(result.enemy.hp).toBe(8);
+    expect(result.enemy.hurtFlash).toBeGreaterThan(0);
+    expect(result.died).toBe(false);
+  });
+
+  it("enters dying state and stops attacking on lethal damage", () => {
+    const result = damageEnemy(
+      { ...createEnemy(meleeSpawn), hp: 2, windup: 0.3 },
+      2,
+    );
+    expect(result.enemy.hp).toBe(0);
+    expect(result.enemy.status).toBe("dying");
+    expect(result.enemy.windup).toBe(0);
+    expect(result.died).toBe(true);
+  });
+
+  it("ignores further damage after death", () => {
+    const result = damageEnemy(
+      { ...createEnemy(meleeSpawn), status: "dead", hp: 0 },
+      2,
+    );
+    expect(result.enemy.hp).toBe(0);
+    expect(result.died).toBe(false);
+  });
+});
+
+describe("knockbackEnemy", () => {
+  it("pushes along the aim direction", () => {
+    const enemy = { ...createEnemy(meleeSpawn), x: 100, y: 100 };
+    const result = knockbackEnemy(enemy, { x: 1, y: 0 }, 6, ROOM);
+    expect(result.x).toBeCloseTo(106);
+    expect(result.y).toBeCloseTo(100);
+  });
+
+  it("keeps the enemy inside the room", () => {
+    const base = createEnemy(meleeSpawn);
+    const enemy = {
+      ...base,
+      x: ROOM.rooms[0]!.x + ROOM.rooms[0]!.width - base.radius - 1,
+      y: 100,
+    };
+    const result = knockbackEnemy(enemy, { x: 1, y: 0 }, 6, ROOM);
+    expect(result.x).toBeLessThanOrEqual(
+      ROOM.rooms[0]!.x + ROOM.rooms[0]!.width - enemy.radius,
+    );
+    expect(result.x).toBeGreaterThanOrEqual(enemy.x);
+  });
+
+  it("does not move a dying enemy", () => {
+    const enemy = { ...createEnemy(meleeSpawn), status: "dying" as const };
+    expect(knockbackEnemy(enemy, { x: 1, y: 0 }, 6, ROOM)).toBe(enemy);
+  });
+});
