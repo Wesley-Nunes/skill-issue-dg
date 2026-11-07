@@ -152,13 +152,13 @@ then. `M` toggles all audio. No gameplay cue depends on audio.
 | Failed rite / enemy dies | `impactSoft_heavy` low thud + synth growl tail |
 | Enemy respawns | Synth reverse whoosh |
 | Floor purified | `impactBell_heavy_000..002`, pitched down, plus a synth chord |
-| Boss summoned | `monster_roar.wav` pitched down + boss layers start |
+| Boss summoned | `monster_roar.ogg` pitched down + boss layers start |
 | Boss melee windup | Synth low growl / breath |
 | Boss bomb throw | `falling.mp3` pitched down |
 | Bomb lands | `impactGeneric_light_000..004` |
 | Bomb fuse | `fuse.ogg` looped until detonation |
 | Bomb explodes | `explosion1..4.ogg`, random, slight pitch variation |
-| Boss defeated | `monster_roar.wav` pitched down + `impactBell_heavy` + boss layers stop |
+| Boss defeated | `monster_roar.ogg` pitched down + `impactBell_heavy` + boss layers stop |
 | Stairs unlock | `metalLatch.ogg` + `creak2.ogg` |
 | Descent | `doorOpen_2.ogg` + `doorClose_3.ogg` + synth rumble |
 | Heal on descent | Synth soft bell/chime, only when HP actually increases |
