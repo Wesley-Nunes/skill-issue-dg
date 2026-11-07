@@ -1,13 +1,17 @@
 import { describe, expect, it } from "vitest";
-import { COMBO, ENEMY_SPAWNS, MELEE, PURIFICATION, ROOM } from "../data/config";
+import { COMBO, MELEE, PURIFICATION } from "../data/config";
+import { nextSeed } from "../data/floor";
 import { createInitialState } from "../../state/initialState";
 import { comboWindowOpen } from "../systems/combo";
 import { fragmentPosition } from "../systems/purification";
 import type { GameEvent, InputFrame } from "../types";
 import { Game } from "./game";
 
-function createGame(): Game {
-  return new Game({ worldViewport: () => ({ width: 480, height: 270 }) });
+const SEED = 12345;
+const VIEWPORT = { width: 480, height: 270 };
+
+function createGame(seed = SEED): Game {
+  return new Game({ worldViewport: () => VIEWPORT }, seed);
 }
 
 function idle(overrides: Partial<InputFrame> = {}): InputFrame {
@@ -78,7 +82,7 @@ function playTimedChain(game: Game, stopAtFinisher = false): GameEvent[] {
 }
 
 describe("Game", () => {
-  it("starts with the player and three enemies at their spawns", () => {
+  it("starts on a generated floor with three enemies at their spawns", () => {
     const game = createGame();
     expect(game.state.status).toBe("playing");
     expect(game.state.player.hp).toBe(6);
@@ -89,7 +93,7 @@ describe("Game", () => {
       "ranged",
     ]);
     expect(game.state.enemies.map((enemy) => [enemy.x, enemy.y])).toEqual(
-      ENEMY_SPAWNS.map((spawn) => [spawn.x, spawn.y]),
+      game.state.floor.enemySpawns.map((spawn) => [spawn.x, spawn.y]),
     );
     expect(
       game.state.enemies.every(
@@ -98,8 +102,23 @@ describe("Game", () => {
           enemy.fragments.every(Boolean),
       ),
     ).toBe(true);
-    expect(game.state.run).toEqual({ spirit: 0, floorPurified: false });
-    expect(game.state.camera).toEqual({ x: 80, y: 114 });
+    expect(game.state.run).toEqual({
+      depth: 1,
+      spirit: 0,
+      floorPurified: false,
+      exitOpen: false,
+    });
+    expect(game.state.floor.rooms).toHaveLength(4);
+    expect(game.state.camera).toEqual({
+      x: Math.min(
+        Math.max(game.state.floor.spawn.x - VIEWPORT.width / 2, 0),
+        game.state.floor.width - VIEWPORT.width,
+      ),
+      y: Math.min(
+        Math.max(game.state.floor.spawn.y - VIEWPORT.height / 2, 0),
+        game.state.floor.height - VIEWPORT.height,
+      ),
+    });
   });
 
   it("deals step-1 damage once when the enemy is inside the arc", () => {
@@ -341,33 +360,85 @@ describe("Game", () => {
     ).toBe(false);
   });
 
-  it("freezes the run when the spirit meter fills and restarts on R", () => {
+  it("opens the stairs when every enemy rests and keeps the run playing", () => {
     const game = createGame();
     duel(game);
+    game.state.enemies = game.state.enemies.map((enemy, index) =>
+      index === 0
+        ? {
+            ...enemy,
+            hp: COMBO.steps[0].damage,
+            fragments: [false, false],
+          }
+        : { ...enemy, status: "dead", hp: 0, rested: true },
+    );
     game.state.run.spirit = PURIFICATION.spiritThreshold - 10;
-    game.state.enemies[0] = {
-      ...game.state.enemies[0]!,
-      hp: COMBO.steps[0].damage,
-      fragments: [false, false],
-    };
 
     const events = stepFor(game, 0.15, pressOn([0]));
 
     expect(game.state.run.spirit).toBe(PURIFICATION.spiritThreshold);
     expect(game.state.run.floorPurified).toBe(true);
-    expect(game.state.status).toBe("purified");
+    expect(game.state.run.exitOpen).toBe(true);
+    expect(game.state.status).toBe("playing");
     expect(events.some((event) => event.type === "floor-purified")).toBe(true);
 
     const time = game.state.time;
     const x = game.state.player.x;
     stepFor(game, 0.4, { move: { x: 1, y: 0 } });
 
-    expect(game.state.time).toBe(time);
-    expect(game.state.player.x).toBe(x);
+    expect(game.state.time).toBeGreaterThan(time);
+    expect(game.state.player.x).toBeGreaterThan(x);
+  });
 
-    game.step(0.01, idle({ restart: true }));
+  it("keeps the stairs locked until every enemy is rested", () => {
+    const game = createGame();
+    const stairs = game.state.floor.stairs;
+    game.state.player = {
+      ...game.state.player,
+      x: stairs.x + stairs.width / 2,
+      y: stairs.y + stairs.height / 2,
+    };
+
+    stepFor(game, 0.1, {});
+
+    expect(game.state.run.floorPurified).toBe(false);
+    expect(game.state.run.exitOpen).toBe(false);
+    expect(game.state.run.depth).toBe(1);
+  });
+
+  it("descends to a new floor on open stairs and preserves HP", () => {
+    const game = createGame();
+    const oldSeed = game.state.floor.seed;
+    const stairs = game.state.floor.stairs;
+    game.state.enemies = game.state.enemies.map((enemy) => ({
+      ...enemy,
+      status: "dead",
+      hp: 0,
+      rested: true,
+    }));
+    game.state.run.floorPurified = true;
+    game.state.run.exitOpen = true;
+    game.state.run.spirit = 80;
+    game.state.player = {
+      ...game.state.player,
+      hp: 3,
+      x: stairs.x + stairs.width / 2,
+      y: stairs.y + stairs.height / 2,
+    };
+
+    const events = stepFor(game, 0.02, {});
+
+    expect(events.some((event) => event.type === "floor-descended")).toBe(true);
     expect(game.state.status).toBe("playing");
-    expect(game.state.run).toEqual({ spirit: 0, floorPurified: false });
+    expect(game.state.run.depth).toBe(2);
+    expect(game.state.floor.depth).toBe(2);
+    expect(game.state.floor.seed).toBe(nextSeed(oldSeed));
+    expect(game.state.run.spirit).toBe(0);
+    expect(game.state.run.floorPurified).toBe(false);
+    expect(game.state.run.exitOpen).toBe(false);
+    expect(game.state.player.hp).toBe(3);
+    expect(game.state.enemies).toHaveLength(3);
+    expect(game.state.projectiles).toHaveLength(0);
   });
 
   it("leaves the enemy untouched when the swing misses", () => {
@@ -478,6 +549,12 @@ describe("Game", () => {
   it("spawns a projectile after the ranged telegraph and damages the player", () => {
     const game = createGame();
     const [, , ranged] = game.state.enemies;
+    const start = game.state.floor.rooms[0]!;
+    game.state.player = {
+      ...game.state.player,
+      x: start.x + 30,
+      y: game.state.floor.spawn.y,
+    };
     game.state.enemies = [
       { ...game.state.enemies[0]!, status: "dead", hp: 0 },
       { ...game.state.enemies[1]!, status: "dead", hp: 0 },
@@ -589,12 +666,24 @@ describe("Game", () => {
     expect(restartEvents.some((event) => event.type === "run-reset")).toBe(true);
     expect(game.state.status).toBe("playing");
     expect(game.state.player.hp).toBe(6);
-    expect(game.state.enemies).toEqual(createInitialState().enemies);
+    expect(game.state.run.depth).toBe(1);
+    expect(game.state.floor.seed).toBe(nextSeed(SEED));
+    expect(game.state.enemies).toHaveLength(3);
+    expect(
+      game.state.enemies.every(
+        (enemy) => enemy.fragments.every(Boolean) && !enemy.rested,
+      ),
+    ).toBe(true);
   });
 
   it("restores spirit, fragments, combo state, and projectiles on restart", () => {
     const game = createGame();
-    game.state.run = { spirit: 80, floorPurified: false };
+    game.state.run = {
+      depth: 1,
+      spirit: 80,
+      floorPurified: false,
+      exitOpen: false,
+    };
     game.state.enemies[0] = {
       ...game.state.enemies[0]!,
       fragments: [false, false],
@@ -620,7 +709,12 @@ describe("Game", () => {
 
     game.step(0.01, idle({ restart: true }));
 
-    expect(game.state.run).toEqual({ spirit: 0, floorPurified: false });
+    expect(game.state.run).toEqual({
+      depth: 1,
+      spirit: 0,
+      floorPurified: false,
+      exitOpen: false,
+    });
     expect(game.state.projectiles).toHaveLength(0);
     expect(game.state.player.comboStep).toBe(0);
     expect(game.state.player.comboHits).toBe(0);
@@ -655,18 +749,18 @@ describe("Game", () => {
     expect(game.state.player.hp).toBe(6);
   });
 
-  it("keeps the camera inside the room", () => {
+  it("keeps the camera inside the floor", () => {
     const game = createGame();
     game.state.player = {
       ...game.state.player,
-      x: ROOM.bounds.maxX - 6,
-      y: ROOM.bounds.maxY - 6,
+      x: game.state.floor.width - 6,
+      y: game.state.floor.height - 6,
     };
 
     stepFor(game, 3, {});
 
-    expect(game.state.camera.x).toBeCloseTo(ROOM.width - 480, 3);
-    expect(game.state.camera.y).toBeCloseTo(ROOM.height - 270, 3);
+    expect(game.state.camera.x).toBeCloseTo(game.state.floor.width - 480, 3);
+    expect(game.state.camera.y).toBeCloseTo(game.state.floor.height - 270, 3);
   });
 
   it("resets player, enemies and timers on restart", () => {
@@ -674,11 +768,21 @@ describe("Game", () => {
     stepFor(game, 0.5, { move: { x: 1, y: 1 } });
     game.reset();
 
-    const initial = createInitialState();
+    const initial = createInitialState(nextSeed(SEED), 1);
     expect(game.state.time).toBe(initial.time);
     expect(game.state.status).toBe(initial.status);
     expect(game.state.player).toEqual(initial.player);
-    expect(game.state.enemies).toEqual(initial.enemies);
-    expect(game.state.camera).toEqual({ x: 80, y: 114 });
+    expect(game.state.floor.seed).toBe(nextSeed(SEED));
+    expect(game.state.run.depth).toBe(1);
+    expect(game.state.camera).toEqual({
+      x: Math.min(
+        Math.max(game.state.floor.spawn.x - VIEWPORT.width / 2, 0),
+        game.state.floor.width - VIEWPORT.width,
+      ),
+      y: Math.min(
+        Math.max(game.state.floor.spawn.y - VIEWPORT.height / 2, 0),
+        game.state.floor.height - VIEWPORT.height,
+      ),
+    });
   });
 });

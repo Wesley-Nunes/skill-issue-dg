@@ -1,5 +1,6 @@
 import { PROJECTILE } from "../data/config";
-import type { Player, Projectile, Room, Vec2 } from "../types";
+import { isCircleWalkable } from "../data/floor";
+import type { Floor, Player, Projectile, Vec2 } from "../types";
 
 export interface ProjectileStep {
   projectile: Projectile;
@@ -33,7 +34,7 @@ export function spawnProjectile(
 export function advanceProjectile(
   projectile: Projectile,
   dt: number,
-  room: Room,
+  floor: Floor,
 ): ProjectileStep {
   const life = projectile.life - dt;
   const next: Projectile = {
@@ -43,11 +44,12 @@ export function advanceProjectile(
     life,
   };
 
-  const wallHit =
-    next.x - next.radius < room.bounds.minX ||
-    next.x + next.radius > room.bounds.maxX ||
-    next.y - next.radius < room.bounds.minY ||
-    next.y + next.radius > room.bounds.maxY;
+  const wallHit = !isCircleWalkable(
+    floor,
+    next.x,
+    next.y,
+    next.radius,
+  );
 
   return { projectile: next, wallHit, expired: life <= 0 };
 }

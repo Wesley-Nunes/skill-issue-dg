@@ -1,6 +1,6 @@
 import { ENEMY_FADE, IMPACT, PLAYER } from "../data/config";
-import type { Enemy, Player, Room, Vec2 } from "../types";
-import { clampToRoom } from "./collision";
+import type { Enemy, Floor, Player, Vec2 } from "../types";
+import { moveCircle } from "./collision";
 
 export interface EnemyDamageResult {
   enemy: Enemy;
@@ -39,19 +39,21 @@ export function damageEnemy(enemy: Enemy, amount: number): EnemyDamageResult {
   };
 }
 
-/** Pushes an enemy along a direction, keeping it inside the room. */
+/** Pushes an enemy along a direction, keeping it inside the floor. */
 export function knockbackEnemy(
   enemy: Enemy,
   direction: Vec2,
   distance: number,
-  room: Room,
+  floor: Floor,
 ): Enemy {
   if (enemy.status !== "alive") return enemy;
-  const position = clampToRoom(
-    enemy.x + direction.x * distance,
-    enemy.y + direction.y * distance,
+  const position = moveCircle(
+    floor,
+    enemy.x,
+    enemy.y,
+    direction.x * distance,
+    direction.y * distance,
     enemy.radius,
-    room,
   );
   return { ...enemy, x: position.x, y: position.y };
 }

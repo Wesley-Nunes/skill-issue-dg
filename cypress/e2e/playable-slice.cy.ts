@@ -34,6 +34,35 @@ describe("0.1.0 playable combat slice", () => {
       ).to.equal(true);
       expect(snapshot.spirit).to.equal(0);
       expect(snapshot.floorPurified).to.equal(false);
+      expect(snapshot.exitOpen).to.equal(false);
+      expect(snapshot.depth).to.equal(1);
+      expect(snapshot.floor.rooms).to.have.length(4);
+      expect(snapshot.floor.seed).to.be.a("number");
+      expect(snapshot.floor.width).to.be.greaterThan(snapshot.viewport.width);
+
+      const [start, ...rest] = snapshot.floor.rooms;
+      const inside = (
+        point: { x: number; y: number },
+        room: { x: number; y: number; width: number; height: number },
+      ) =>
+        point.x >= room.x &&
+        point.x <= room.x + room.width &&
+        point.y >= room.y &&
+        point.y <= room.y + room.height;
+
+      expect(inside(snapshot.player, start!)).to.equal(true);
+      snapshot.enemies.forEach((enemy, index) => {
+        expect(inside(enemy, rest[index]!)).to.equal(true);
+      });
+      expect(
+        inside(
+          {
+            x: snapshot.floor.stairs.x + snapshot.floor.stairs.width / 2,
+            y: snapshot.floor.stairs.y + snapshot.floor.stairs.height / 2,
+          },
+          rest[rest.length - 1]!,
+        ),
+      ).to.equal(true);
     });
   });
 
@@ -69,6 +98,36 @@ describe("0.1.0 playable combat slice", () => {
         if (hearts[index] > 150 && hearts[index + 3] > 200) bright += 1;
       }
       expect(bright, "heart pixels").to.be.greaterThan(50);
+    });
+  });
+
+  it("paints the depth and stairs status in the top-right HUD", () => {
+    cy.get("canvas#game").should(($canvas) => {
+      const canvas = $canvas[0] as HTMLCanvasElement;
+      const context = canvas.getContext("2d");
+      expect(context, "2d context").to.not.be.null;
+      const scale = canvas.width / canvas.clientWidth;
+      const width = Math.round(150 * scale);
+      const height = Math.round(56 * scale);
+
+      const hud = context!.getImageData(
+        canvas.width - Math.round(174 * scale),
+        Math.round(16 * scale),
+        width,
+        height,
+      ).data;
+      let bright = 0;
+      for (let index = 0; index < hud.length; index += 4) {
+        if (
+          hud[index]! > 200 &&
+          hud[index + 1]! > 200 &&
+          hud[index + 2]! > 200 &&
+          hud[index + 3]! > 180
+        ) {
+          bright += 1;
+        }
+      }
+      expect(bright, "depth HUD pixels").to.be.greaterThan(30);
     });
   });
 
@@ -128,13 +187,15 @@ describe("0.1.0 playable combat slice", () => {
       ]);
       expect(restarted.spirit).to.equal(0);
       expect(restarted.floorPurified).to.equal(false);
+      expect(restarted.exitOpen).to.equal(false);
+      expect(restarted.depth).to.equal(1);
       expect(
         restarted.enemies.every((enemy) =>
           enemy.fragments.every((intact) => intact),
         ),
       ).to.equal(true);
-      expect(restarted.player.x).to.be.closeTo(320, 1);
-      expect(restarted.player.y).to.be.closeTo(320, 1);
+      expect(restarted.player.x).to.be.closeTo(restarted.floor.spawn.x, 1);
+      expect(restarted.player.y).to.be.closeTo(restarted.floor.spawn.y, 1);
     });
   });
 });

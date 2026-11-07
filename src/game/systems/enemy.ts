@@ -1,6 +1,6 @@
 import { MELEE, RANGED } from "../data/config";
-import type { Enemy, Room, Vec2 } from "../types";
-import { clampToRoom } from "./collision";
+import type { Enemy, Floor, Vec2 } from "../types";
+import { moveCircle } from "./collision";
 import { hasLineOfSight } from "./vision";
 
 export interface EnemyUpdate {
@@ -37,7 +37,7 @@ export function staggerEnemy(enemy: Enemy, duration: number): Enemy {
 export function updateEnemy(
   enemy: Enemy,
   target: Vec2,
-  room: Room,
+  floor: Floor,
   dt: number,
 ): EnemyUpdate {
   if (enemy.status === "dead") {
@@ -73,14 +73,14 @@ export function updateEnemy(
   }
 
   return next.kind === "ranged"
-    ? updateRanged(next, target, room, dt)
-    : updateMelee(next, target, room, dt);
+    ? updateRanged(next, target, floor, dt)
+    : updateMelee(next, target, floor, dt);
 }
 
 function updateMelee(
   enemy: Enemy,
   target: Vec2,
-  room: Room,
+  floor: Floor,
   dt: number,
 ): EnemyUpdate {
   let next = enemy;
@@ -151,11 +151,13 @@ function updateMelee(
       x: (target.x - next.x) / distance,
       y: (target.y - next.y) / distance,
     };
-    const position = clampToRoom(
-      next.x + direction.x * MELEE.speed * dt,
-      next.y + direction.y * MELEE.speed * dt,
+    const position = moveCircle(
+      floor,
+      next.x,
+      next.y,
+      direction.x * MELEE.speed * dt,
+      direction.y * MELEE.speed * dt,
       next.radius,
-      room,
     );
     return {
       enemy: { ...next, x: position.x, y: position.y, moving: true },
@@ -180,7 +182,7 @@ function updateMelee(
 function updateRanged(
   enemy: Enemy,
   target: Vec2,
-  room: Room,
+  floor: Floor,
   dt: number,
 ): EnemyUpdate {
   let next = enemy;
@@ -228,11 +230,13 @@ function updateRanged(
     const direction = retreating
       ? { x: (next.x - target.x) / distance, y: (next.y - target.y) / distance }
       : { x: (target.x - next.x) / distance, y: (target.y - next.y) / distance };
-    const position = clampToRoom(
-      next.x + direction.x * RANGED.speed * dt,
-      next.y + direction.y * RANGED.speed * dt,
+    const position = moveCircle(
+      floor,
+      next.x,
+      next.y,
+      direction.x * RANGED.speed * dt,
+      direction.y * RANGED.speed * dt,
       next.radius,
-      room,
     );
 
     return {
@@ -245,7 +249,7 @@ function updateRanged(
 
   if (
     next.attackCooldown <= 0 &&
-    hasLineOfSight(next, target, room)
+    hasLineOfSight(next, target, floor)
   ) {
     return {
       enemy: { ...next, windup: RANGED.telegraph, moving: false },

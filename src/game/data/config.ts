@@ -1,33 +1,24 @@
-import type { ComboStep, EnemyKind, Room, Vec2 } from "../types";
+import type { ComboStep } from "../types";
 
 export const TILE = 16;
 export const ZOOM = 3;
 
-export const WORLD = {
-  cols: 40,
-  rows: 24,
-  width: 40 * TILE,
-  height: 24 * TILE,
+/**
+ * First dungeon slice: a four-room chain joined by two-tile-high corridors.
+ * Room sizes and gaps vary by seed; the chain keeps every floor traversable
+ * without a pathfinding or graph generator.
+ */
+export const FLOOR = {
+  cols: 96,
+  rows: 30,
+  roomCount: 4,
+  roomWidth: { min: 12, max: 17 },
+  roomHeight: { min: 10, max: 14 },
+  roomGap: { min: 4, max: 6 },
+  corridorRows: 2,
+  corridorRow: 15,
+  margin: 2,
 } as const;
-
-export const ROOM: Room = {
-  width: WORLD.width,
-  height: WORLD.height,
-  bounds: { minX: TILE, minY: TILE * 2, maxX: TILE * 39, maxY: TILE * 23 },
-};
-
-export const PLAYER_SPAWN: Vec2 = { x: 320, y: 320 };
-
-export const ENEMY_SPAWNS: ReadonlyArray<{
-  id: string;
-  kind: EnemyKind;
-  x: number;
-  y: number;
-}> = [
-  { id: "melee-a", kind: "melee", x: 448, y: 128 },
-  { id: "melee-b", kind: "melee", x: 224, y: 112 },
-  { id: "ranged", kind: "ranged", x: 560, y: 96 },
-];
 
 export const PLAYER = {
   speed: 120,

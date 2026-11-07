@@ -1,10 +1,22 @@
 import { describe, expect, it } from "vitest";
-import { ENEMY_SPAWNS, MELEE, RANGED, ROOM } from "../data/config";
+import { MELEE, RANGED } from "../data/config";
 import { createEnemy } from "../../state/initialState";
 import { staggerEnemy, updateEnemy } from "./enemy";
+import { openFloor } from "./testFloor";
 
-const meleeSpawn = ENEMY_SPAWNS[0];
-const rangedSpawn = ENEMY_SPAWNS[2];
+const ROOM = openFloor();
+const meleeSpawn = {
+  id: "melee-a",
+  kind: "melee" as const,
+  x: 448,
+  y: 128,
+};
+const rangedSpawn = {
+  id: "ranged",
+  kind: "ranged" as const,
+  x: 560,
+  y: 96,
+};
 
 describe("melee enemy", () => {
   it("idles while the player is outside the aggro radius", () => {
@@ -84,7 +96,10 @@ describe("melee enemy", () => {
   it("cannot chase through a wall", () => {
     const enemy = { ...createEnemy(meleeSpawn), x: 30, y: 100 };
     const result = updateEnemy(enemy, { x: 22, y: 60 }, ROOM, 1);
-    expect(result.enemy.x).toBe(ROOM.bounds.minX + enemy.radius);
+    expect(result.enemy.x).toBeGreaterThanOrEqual(
+      ROOM.rooms[0]!.x + enemy.radius,
+    );
+    expect(result.enemy.x).toBeLessThan(enemy.x);
   });
 
   it("fades out and dies without dealing damage", () => {
@@ -187,7 +202,7 @@ describe("ranged enemy", () => {
     const enemy = { ...createEnemy(rangedSpawn), x: 100, y: 100 };
     const result = updateEnemy(
       enemy,
-      { x: 100, y: ROOM.bounds.minY - 20 },
+      { x: 100, y: ROOM.rooms[0]!.y - 20 },
       ROOM,
       0.01,
     );
@@ -199,15 +214,18 @@ describe("ranged enemy", () => {
     const enemy = {
       ...createEnemy(rangedSpawn),
       x: 100,
-      y: ROOM.bounds.minY + 20,
+      y: ROOM.rooms[0]!.y + 20,
     };
     const result = updateEnemy(
       enemy,
-      { x: 100, y: ROOM.bounds.minY + 26 },
+      { x: 100, y: ROOM.rooms[0]!.y + 26 },
       ROOM,
       0.5,
     );
-    expect(result.enemy.y).toBe(ROOM.bounds.minY + enemy.radius);
+    expect(result.enemy.y).toBeGreaterThanOrEqual(
+      ROOM.rooms[0]!.y + enemy.radius,
+    );
+    expect(result.enemy.y).toBeLessThanOrEqual(enemy.y);
   });
 
   it("never damages the player directly", () => {

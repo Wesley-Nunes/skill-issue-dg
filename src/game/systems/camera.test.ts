@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { ROOM } from "../data/config";
 import { clampCamera, updateCamera } from "./camera";
+import { openFloor } from "./testFloor";
+
+const ROOM = openFloor();
 
 describe("clampCamera", () => {
   it("clamps to the top-left corner", () => {

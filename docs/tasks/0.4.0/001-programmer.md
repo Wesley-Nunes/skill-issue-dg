@@ -7,7 +7,7 @@
 | Version | `0.4.0` |
 | Task ID | `001` |
 | Owning agent | `programmer` |
-| Status | `Ready for implementation` |
+| Status | `Completed` |
 | Depends on | `docs/tasks/0.4.0/001-design.md`, `design/0.4.0/design-decisions.md` |
 | Produces | Generated floor, tile collision, descent flow, renderer/HUD updates, tests, `programmer/0.4.0/CoT.md` |
 

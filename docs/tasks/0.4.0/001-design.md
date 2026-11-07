@@ -7,7 +7,7 @@
 | Version | `0.4.0` |
 | Task ID | `001` |
 | Owning agent | `design` |
-| Status | `Ready for design` |
+| Status | `Passed` |
 | Depends on | Operator approval of the dungeon-slice direction (2026-11-06) |
 | Produces | `design/0.4.0/design-decisions.md` |
 

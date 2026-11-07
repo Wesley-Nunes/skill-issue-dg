@@ -5,10 +5,13 @@ import {
   PLAYER,
   PURIFICATION,
   TILE,
-  WORLD,
   ZOOM,
 } from "../../game/data/config";
-import { floorTileAt, wallTiles } from "../../game/data/room";
+import {
+  floorTileAt,
+  isWalkableTile,
+  wallTiles,
+} from "../../game/data/floor";
 import { SPRITES } from "../../game/data/sprites";
 import { comboWindowOpen } from "../../game/systems/combo";
 import {
@@ -17,6 +20,7 @@ import {
 } from "../../game/systems/purification";
 import type {
   Enemy,
+  Floor,
   GameEvent,
   GameState,
   Viewport,
@@ -55,7 +59,8 @@ function stepDefinition(step: number) {
 
 export class Renderer {
   private readonly context: CanvasRenderingContext2D;
-  private readonly background: HTMLCanvasElement;
+  private background: HTMLCanvasElement | null = null;
+  private backgroundKey = "";
   private readonly tintCache = new Map<string, HTMLCanvasElement>();
   private readonly effects = new VisualEffects();
   private dpr = 1;
@@ -67,7 +72,6 @@ export class Renderer {
     const context = canvas.getContext("2d");
     if (!context) throw new Error("Canvas 2D context is unavailable.");
     this.context = context;
-    this.background = this.buildBackground();
   }
 
   worldViewport(): Viewport {
@@ -102,7 +106,8 @@ export class Renderer {
       -cameraY * scale,
     );
 
-    context.drawImage(this.background, 0, 0);
+    context.drawImage(this.ensureBackground(state.floor), 0, 0);
+    this.drawStairs(state);
     this.drawShadows(state);
     this.drawEntities(state);
     this.drawFragments(state);
@@ -116,11 +121,10 @@ export class Renderer {
     this.drawAim(state);
 
     context.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
-    this.drawHud(state, cssHeight);
+    this.drawHud(state, cssWidth, cssHeight);
+    this.drawFloorEntryFlash(state, cssWidth, cssHeight);
     if (state.status === "dead") {
       this.drawDeathOverlay(cssWidth, cssHeight);
-    } else if (state.status === "purified") {
-      this.drawPurifiedOverlay(cssWidth, cssHeight);
     }
   }
 
@@ -142,18 +146,24 @@ export class Renderer {
     return { cssWidth, cssHeight };
   }
 
-  private buildBackground(): HTMLCanvasElement {
+  private ensureBackground(floor: Floor): HTMLCanvasElement {
+    const key = `${floor.seed}:${floor.depth}`;
+    if (this.background && this.backgroundKey === key) {
+      return this.background;
+    }
+
     const canvas = document.createElement("canvas");
-    canvas.width = WORLD.width;
-    canvas.height = WORLD.height;
+    canvas.width = floor.width;
+    canvas.height = floor.height;
     const context = canvas.getContext("2d");
     if (!context) throw new Error("Canvas 2D context is unavailable.");
     context.imageSmoothingEnabled = false;
     context.fillStyle = VOID_COLOR;
     context.fillRect(0, 0, canvas.width, canvas.height);
 
-    for (let row = 2; row < WORLD.rows - 1; row += 1) {
-      for (let column = 1; column < WORLD.cols - 1; column += 1) {
+    for (let row = 0; row < floor.rows; row += 1) {
+      for (let column = 0; column < floor.cols; column += 1) {
+        if (!isWalkableTile(floor, column, row)) continue;
         const tile = this.assets.get(floorTileAt(column, row));
         if (tile) {
           context.drawImage(tile, column * TILE, row * TILE);
@@ -161,13 +171,15 @@ export class Renderer {
       }
     }
 
-    for (const wall of wallTiles()) {
+    for (const wall of wallTiles(floor)) {
       const tile = this.assets.get(wall.file);
       if (tile) {
         context.drawImage(tile, wall.x, wall.y);
       }
     }
 
+    this.background = canvas;
+    this.backgroundKey = key;
     return canvas;
   }
 
@@ -195,6 +207,74 @@ export class Renderer {
     context.fillRect(0, 0, canvas.width, canvas.height);
     this.tintCache.set(key, canvas);
     return canvas;
+  }
+
+  private drawStairs(state: GameState): void {
+    const context = this.context;
+    const stairs = state.floor.stairs;
+    const open = state.run.exitOpen;
+    const pulse = 0.55 + 0.25 * Math.sin(state.time * 5);
+    const centreX = stairs.x + stairs.width / 2;
+    const centreY = stairs.y + stairs.height / 2;
+
+    if (open) {
+      context.fillStyle = `rgba(191, 233, 255, ${0.12 + 0.05 * pulse})`;
+      context.fillRect(
+        stairs.x - 5,
+        stairs.y - 5,
+        stairs.width + 10,
+        stairs.height + 10,
+      );
+    }
+
+    context.fillStyle = open
+      ? "rgba(12, 24, 32, 0.92)"
+      : "rgba(4, 6, 10, 0.85)";
+    context.fillRect(
+      stairs.x + 2,
+      stairs.y + 2,
+      stairs.width - 4,
+      stairs.height - 4,
+    );
+
+    context.strokeStyle = open
+      ? `rgba(191, 233, 255, ${pulse})`
+      : "rgba(150, 150, 165, 0.35)";
+    context.lineWidth = 1.5;
+    context.strokeRect(
+      stairs.x + 2,
+      stairs.y + 2,
+      stairs.width - 4,
+      stairs.height - 4,
+    );
+
+    context.strokeStyle = open
+      ? "rgba(191, 233, 255, 0.75)"
+      : "rgba(130, 130, 145, 0.35)";
+    context.lineWidth = 1;
+    for (let index = 0; index < 3; index += 1) {
+      const inset = 6 + index * 5;
+      context.beginPath();
+      context.moveTo(stairs.x + inset, stairs.y + inset);
+      context.lineTo(
+        stairs.x + stairs.width - inset,
+        stairs.y + inset,
+      );
+      context.stroke();
+    }
+
+    context.strokeStyle = open
+      ? `rgba(191, 233, 255, ${0.55 + 0.3 * pulse})`
+      : "rgba(150, 150, 165, 0.35)";
+    context.lineWidth = 1.6;
+    for (let index = 0; index < 2; index += 1) {
+      const offset = (index - 0.5) * 7;
+      context.beginPath();
+      context.moveTo(centreX - 5, centreY + offset - 2);
+      context.lineTo(centreX, centreY + offset + 2);
+      context.lineTo(centreX + 5, centreY + offset - 2);
+      context.stroke();
+    }
   }
 
   private drawShadows(state: GameState): void {
@@ -578,7 +658,11 @@ export class Renderer {
     drawCross("rgba(255, 255, 255, 0.7)", 4);
   }
 
-  private drawHud(state: GameState, cssHeight: number): void {
+  private drawHud(
+    state: GameState,
+    cssWidth: number,
+    cssHeight: number,
+  ): void {
     const context = this.context;
     const full = Math.floor(state.player.hp / 2);
     const half = state.player.hp % 2;
@@ -598,6 +682,26 @@ export class Renderer {
         HEART_SIZE.height,
       );
     }
+
+    context.textAlign = "right";
+    context.textBaseline = "top";
+    context.font = "16px system-ui, sans-serif";
+    context.fillStyle = "rgba(255, 255, 255, 0.88)";
+    context.fillText(
+      `Depth ${state.run.depth}`,
+      cssWidth - HUD_INSET,
+      HUD_INSET,
+    );
+    context.font = "13px system-ui, sans-serif";
+    context.fillStyle = state.run.exitOpen
+      ? SPIRIT_COLOR
+      : "rgba(255, 255, 255, 0.55)";
+    context.fillText(
+      state.run.exitOpen ? "Stairs open" : "Stairs sealed",
+      cssWidth - HUD_INSET,
+      HUD_INSET + 23,
+    );
+    context.textAlign = "left";
 
     // The spirit meter is hidden on the death screen, which covers the HUD.
     if (state.status === "playing") {
@@ -648,26 +752,34 @@ export class Renderer {
     context.textBaseline = "alphabetic";
   }
 
-  private drawPurifiedOverlay(cssWidth: number, cssHeight: number): void {
+  private drawFloorEntryFlash(
+    state: GameState,
+    cssWidth: number,
+    cssHeight: number,
+  ): void {
+    if (state.status !== "playing") return;
     const context = this.context;
-    context.fillStyle = "rgba(5, 10, 16, 0.72)";
-    context.fillRect(0, 0, cssWidth, cssHeight);
 
-    context.textAlign = "center";
-    context.textBaseline = "middle";
-    context.fillStyle = "#e8f7ff";
-    context.font = "48px system-ui, sans-serif";
-    context.fillText("Floor purified", cssWidth / 2, cssHeight / 2 - 30);
+    if (state.time < 0.35) {
+      context.fillStyle = `rgba(191, 233, 255, ${
+        0.1 * (1 - state.time / 0.35)
+      })`;
+      context.fillRect(0, 0, cssWidth, cssHeight);
+    }
 
-    context.fillStyle = "rgba(191, 233, 255, 0.9)";
-    context.font = "20px system-ui, sans-serif";
-    context.fillText("The boss awaits", cssWidth / 2, cssHeight / 2 + 22);
-
-    context.fillStyle = "rgba(255, 255, 255, 0.75)";
-    context.font = "16px system-ui, sans-serif";
-    context.fillText("Press R to restart", cssWidth / 2, cssHeight / 2 + 60);
-
-    context.textAlign = "left";
+    if (state.time < 1.6) {
+      const fade = Math.min(1, (1.6 - state.time) / 0.45);
+      context.textAlign = "center";
+      context.textBaseline = "middle";
+      context.fillStyle = `rgba(232, 247, 255, ${0.85 * fade})`;
+      context.font = "30px system-ui, sans-serif";
+      context.fillText(
+        `Depth ${state.run.depth}`,
+        cssWidth / 2,
+        cssHeight * 0.2,
+      );
+      context.textAlign = "left";
+    }
   }
 
   private drawDeathOverlay(cssWidth: number, cssHeight: number): void {

@@ -1,19 +1,25 @@
 import { describe, expect, it } from "vitest";
 import { PLAYER } from "../data/config";
 import { createEnemy, createPlayer } from "../../state/initialState";
-import { ENEMY_SPAWNS, ROOM } from "../data/config";
 import {
   damageEnemy,
   damagePlayer,
   knockbackEnemy,
   tickPlayerTimers,
 } from "./damage";
+import { openFloor } from "./testFloor";
 
-const meleeSpawn = ENEMY_SPAWNS[0];
+const ROOM = openFloor();
+const meleeSpawn = {
+  id: "melee-a",
+  kind: "melee" as const,
+  x: 100,
+  y: 100,
+};
 
 describe("damagePlayer", () => {
   it("applies damage and starts invulnerability", () => {
-    const result = damagePlayer(createPlayer(), 1);
+    const result = damagePlayer(createPlayer(ROOM.spawn), 1);
     expect(result.applied).toBe(true);
     expect(result.died).toBe(false);
     expect(result.player.hp).toBe(PLAYER.maxHp - 1);
@@ -24,14 +30,14 @@ describe("damagePlayer", () => {
   });
 
   it("blocks a second hit during invulnerability", () => {
-    const first = damagePlayer(createPlayer(), 1);
+    const first = damagePlayer(createPlayer(ROOM.spawn), 1);
     const second = damagePlayer(first.player, 1);
     expect(second.applied).toBe(false);
     expect(second.player.hp).toBe(first.player.hp);
   });
 
   it("accepts damage again after invulnerability expires", () => {
-    const first = damagePlayer(createPlayer(), 1);
+    const first = damagePlayer(createPlayer(ROOM.spawn), 1);
     const cleared = tickPlayerTimers(
       first.player,
       PLAYER.damageInvulnerability,
@@ -42,13 +48,13 @@ describe("damagePlayer", () => {
   });
 
   it("clamps at zero and reports death", () => {
-    const result = damagePlayer({ ...createPlayer(), hp: 1 }, 1);
+    const result = damagePlayer({ ...createPlayer(ROOM.spawn), hp: 1 }, 1);
     expect(result.player.hp).toBe(0);
     expect(result.died).toBe(true);
   });
 
   it("ignores damage once dead", () => {
-    const result = damagePlayer({ ...createPlayer(), hp: 0 }, 1);
+    const result = damagePlayer({ ...createPlayer(ROOM.spawn), hp: 0 }, 1);
     expect(result.applied).toBe(false);
   });
 });
@@ -91,13 +97,17 @@ describe("knockbackEnemy", () => {
   });
 
   it("keeps the enemy inside the room", () => {
+    const base = createEnemy(meleeSpawn);
     const enemy = {
-      ...createEnemy(meleeSpawn),
-      x: ROOM.bounds.maxX - 2,
+      ...base,
+      x: ROOM.rooms[0]!.x + ROOM.rooms[0]!.width - base.radius - 1,
       y: 100,
     };
     const result = knockbackEnemy(enemy, { x: 1, y: 0 }, 6, ROOM);
-    expect(result.x).toBe(ROOM.bounds.maxX - enemy.radius);
+    expect(result.x).toBeLessThanOrEqual(
+      ROOM.rooms[0]!.x + ROOM.rooms[0]!.width - enemy.radius,
+    );
+    expect(result.x).toBeGreaterThanOrEqual(enemy.x);
   });
 
   it("does not move a dying enemy", () => {

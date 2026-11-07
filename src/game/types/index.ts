@@ -3,7 +3,7 @@ export interface Vec2 {
   y: number;
 }
 
-export type GameStatus = "playing" | "dead" | "purified";
+export type GameStatus = "playing" | "dead";
 
 /** Why a combo chain stopped being available. */
 export type ComboEndReason =
@@ -17,10 +17,34 @@ export type EnemyStatus = "alive" | "dying" | "dead";
 
 export type EnemyKind = "melee" | "ranged";
 
-export interface Room {
+export interface Rect {
+  x: number;
+  y: number;
   width: number;
   height: number;
-  bounds: { minX: number; minY: number; maxX: number; maxY: number };
+}
+
+export interface EnemySpawn {
+  id: string;
+  kind: EnemyKind;
+  x: number;
+  y: number;
+}
+
+export interface Floor {
+  seed: number;
+  depth: number;
+  cols: number;
+  rows: number;
+  width: number;
+  height: number;
+  /** Row-major walkable tile map. */
+  walkable: boolean[];
+  /** Generated rooms in world pixels. */
+  rooms: Rect[];
+  spawn: Vec2;
+  stairs: Rect;
+  enemySpawns: EnemySpawn[];
 }
 
 export interface Viewport {
@@ -102,10 +126,14 @@ export interface Projectile {
 }
 
 export interface RunState {
-  /** Spirit gained from enemies put to rest, capped at the threshold. */
+  /** Current floor number, starting at 1. */
+  depth: number;
+  /** Spirit gained on this floor, capped at the threshold. */
   spirit: number;
-  /** True when the spirit meter is full and the floor is purified. */
+  /** True when every enemy on the floor has been put to rest. */
   floorPurified: boolean;
+  /** True when the stairs may be used. Mirrors floorPurified. */
+  exitOpen: boolean;
 }
 
 export type GameEvent =
@@ -126,6 +154,7 @@ export type GameEvent =
   | { type: "enemy-rested"; x: number; y: number; spirit: number }
   | { type: "enemy-respawned"; x: number; y: number }
   | { type: "floor-purified" }
+  | { type: "floor-descended"; depth: number; seed: number }
   | { type: "run-reset" };
 
 export interface GameState {
@@ -138,6 +167,7 @@ export interface GameState {
   hitstop: number;
   camera: Vec2;
   pointer: Vec2;
+  floor: Floor;
   run: RunState;
 }
 
@@ -176,6 +206,19 @@ export interface DebugSnapshot {
   projectiles: Array<{ x: number; y: number }>;
   spirit: number;
   floorPurified: boolean;
+  exitOpen: boolean;
+  depth: number;
+  floor: {
+    seed: number;
+    depth: number;
+    cols: number;
+    rows: number;
+    width: number;
+    height: number;
+    spawn: Vec2;
+    stairs: Rect;
+    rooms: Rect[];
+  };
   camera: Vec2;
   pointer: Vec2;
   viewport: Viewport;
