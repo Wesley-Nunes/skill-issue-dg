@@ -14,10 +14,10 @@ This file is the canonical workflow state for the repository. It is maintained b
 | Active agent | `orchestrator` |
 | Git branch | `feature/0.4.0-001-dungeon-slice` |
 | Last accepted commit | `e4499d7` (QA report; implementation head `11a37f8`) |
-| Pushed HEAD | Local branch only; nothing pushed yet |
-| Pull request | None for `0.4.0`; the operator pushes and opens it to `dev` on GitHub |
+| Pushed HEAD | `origin/feature/0.4.0-001-dungeon-slice` is at the state-update commit immediately after `20b99fb` (code/QA head) |
+| Pull request | Not created: `gh`/`hub` and a GitHub token are unavailable. Draft title/body are in the orchestrator handoff message; open the PR to `dev` on GitHub |
 | Blocking questions remaining | `0` |
-| Overall status | `In progress` — implementation and QA are complete on the branch; push, the first hosted CI run, and merge remain |
+| Overall status | `In progress` — QA passed and the branch is pushed; PR creation, the first hosted CI run, and merge await the operator on GitHub |
 
 Update this snapshot whenever a value changes. Do not leave stale status after a handoff.
 
@@ -124,6 +124,7 @@ Append one entry for each meaningful phase transition:
 | 2026-11-06 | 0.4.0/001 | Design decisions → Implementation | Design contract approved with existing tiles only, stairs states, depth HUD, camera and floor-entry feedback; implementation next | `5d83e4e` |
 | 2026-11-07 | 0.4.0/001 | Implementation → QA verification | Seeded four-room floor, tile collision, stairs/descent, depth HUD, purified-freeze removal; 132 unit + 16 Chrome e2e tests pass; bundle has no `__gameDebug` | `11a37f8` |
 | 2026-11-07 | 0.4.0/001 | QA verification → QA pass | All 13 criteria met; typecheck/unit/build/e2e pass; QA added an explicit exit-lock assertion to the respawn test; verdict Passed; hosted CI pending on GitHub | `e4499d7` |
+| 2026-11-07 | 0.4.0/001 | QA pass → Pushed, PR pending | Branch pushed; PR creation blocked because `gh`/`hub` and a GitHub token are unavailable; first hosted CI run will be checked on GitHub after the operator opens the PR | `20b99fb`, plus this state commit |
 
 ## Status vocabulary
 
