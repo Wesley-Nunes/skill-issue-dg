@@ -1,10 +1,11 @@
-import { MELEE, PLAYER, PURIFICATION, RANGED } from "../game/data/config";
+import { BOSS, MELEE, PLAYER, PURIFICATION, RANGED } from "../game/data/config";
 import { generateFloor } from "../game/data/floor";
 import type {
   Enemy,
   EnemySpawn,
   Floor,
   GameState,
+  GameStatus,
   Player,
   Vec2,
 } from "../game/types";
@@ -59,6 +60,38 @@ export function createEnemy(spawn: EnemySpawn): Enemy {
     fragments: PURIFICATION.angles.map(() => true),
     rested: false,
     respawn: 0,
+    attackKind: null,
+    bombCooldown: 0,
+  };
+}
+
+/** Creates the Floor Warden at its floor spawn. */
+export function createBoss(floor: Floor): Enemy {
+  return {
+    id: "floor-warden",
+    kind: "boss",
+    x: floor.bossSpawn.x,
+    y: floor.bossSpawn.y,
+    homeX: floor.bossSpawn.x,
+    homeY: floor.bossSpawn.y,
+    radius: BOSS.radius,
+    hp: BOSS.maxHp,
+    maxHp: BOSS.maxHp,
+    status: "alive",
+    fade: 0,
+    hurtFlash: 0,
+    stagger: 0,
+    aggro: false,
+    windup: 0,
+    active: 0,
+    attackCooldown: 0,
+    attackHit: false,
+    moving: false,
+    fragments: [],
+    rested: false,
+    respawn: 0,
+    attackKind: null,
+    bombCooldown: BOSS.bombCooldown,
   };
 }
 
@@ -69,17 +102,20 @@ export function createEnemies(floor: Floor): Enemy[] {
 export function createInitialState(
   seed = 1,
   depth = 1,
+  status: GameStatus = "playing",
 ): GameState {
   const floor = generateFloor(seed, depth);
   const player = createPlayer(floor.spawn);
 
   return {
     time: 0,
-    status: "playing",
+    status,
     player,
     enemies: createEnemies(floor),
     projectiles: [],
+    bombs: [],
     nextProjectileId: 1,
+    nextBombId: 1,
     hitstop: 0,
     camera: { x: 0, y: 0 },
     pointer: { x: player.x + 80, y: player.y - 80 },
@@ -88,6 +124,7 @@ export function createInitialState(
       depth,
       spirit: 0,
       floorPurified: false,
+      bossAwake: false,
       exitOpen: false,
     },
   };

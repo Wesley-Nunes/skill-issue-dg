@@ -1,5 +1,6 @@
 import type { DebugSnapshot } from "../../src/game/types";
 import {
+  bossTarget,
   cameraSettled,
   meleeTarget,
   movementKeys,
@@ -104,6 +105,31 @@ Cypress.Commands.add(
   },
 );
 
+Cypress.Commands.add("startGame", () => {
+  cy.gameSnapshot().then((snapshot) => {
+    if (snapshot.status === "playing") return;
+    cy.document().trigger("keydown", { key: "Enter" });
+    cy.document().trigger("keyup", { key: "Enter" });
+    cy.waitForGame(
+      (after) => after.status === "playing",
+      "the title screen to start",
+      5000,
+    );
+  });
+});
+
+Cypress.Commands.add("summonBoss", () => {
+  cy.window().then((win) => {
+    if (!win.__gameDebug) throw new Error("Game debug hook is unavailable.");
+    win.__gameDebug.summonBoss();
+  });
+  return cy.waitForGame(
+    (snapshot) => snapshot.bossAwake,
+    "the Floor Warden to awaken",
+    5000,
+  );
+});
+
 Cypress.Commands.add("waitForDeath", (timeout = DEFAULT_DEATH_TIMEOUT) => {
   return cy.waitForGame(
     (snapshot) => snapshot.status === "dead",
@@ -118,6 +144,10 @@ Cypress.Commands.add("walkTo", (worldX, worldY, options = {}) => {
 
 Cypress.Commands.add("approachMelee", (options = {}) => {
   walkToTarget((snapshot) => meleeTarget(snapshot), options);
+});
+
+Cypress.Commands.add("approachBoss", (options = {}) => {
+  walkToTarget((snapshot) => bossTarget(snapshot), options);
 });
 
 Cypress.Commands.add("clickWorld", (worldX, worldY, options = {}) => {

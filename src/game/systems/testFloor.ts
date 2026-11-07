@@ -32,6 +32,7 @@ export function openFloor(): Floor {
     ],
     spawn: { x: 320, y: 320 },
     stairs: { x: 320, y: 320, width: 32, height: 32 },
+    bossSpawn: { x: 320, y: 320 },
     enemySpawns: [],
   };
 }

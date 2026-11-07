@@ -7,17 +7,17 @@ This file is the canonical workflow state for the repository. It is maintained b
 | Field | Value |
 |---|---|
 | Project | skill issue dg |
-| Goal | `0.4.0` seeded dungeon slice — generated rooms and corridors, encounters, stairs, and descent |
-| Current SemVer ID | `0.4.0` |
+| Goal | `0.5.0` portfolio release — Floor Warden and bombs, restrained audio, title/pause/death, heal-on-descent, Vercel-ready build |
+| Current SemVer ID | `0.5.0` |
 | Current task ID | `001` |
-| Active phase | `QA passed — push/PR pending` |
+| Active phase | `QA passed` — push and PR pending |
 | Active agent | `orchestrator` |
-| Git branch | `feature/0.4.0-001-dungeon-slice` |
-| Last accepted commit | `e4499d7` (QA report; implementation head `11a37f8`) |
-| Pushed HEAD | `origin/feature/0.4.0-001-dungeon-slice` is at the state-update commit immediately after `20b99fb` (code/QA head) |
-| Pull request | Not created: `gh`/`hub` and a GitHub token are unavailable. Draft title/body are in the orchestrator handoff message; open the PR to `dev` on GitHub |
+| Git branch | `feature/0.5.0-001-portfolio-release` |
+| Last accepted commit | `d6491e1` (QA report); implementation/test tip `d52f507` |
+| Pushed HEAD | Branch pushed; QA-tested commit `d6491e1`; later state-only commits are on the same remote branch |
+| Pull request | Not created; PR target is `dev` (staging). Production is `main`. `gh`/`hub` unavailable; open via the GitHub branch link |
 | Blocking questions remaining | `0` |
-| Overall status | `In progress` — QA passed and the branch is pushed; PR creation, the first hosted CI run, and merge await the operator on GitHub |
+| Overall status | `Passed locally` — typecheck, 150 unit tests, build, and 20/20 Chrome e2e green from `npm ci`; branch push and PR pending |
 
 Update this snapshot whenever a value changes. Do not leave stale status after a handoff.
 
@@ -40,12 +40,35 @@ The state manager must not invent decisions, change product scope, edit game cod
 Populate these links when the version and task have been approved:
 
 - Product overview: `docs/about-the-project.md`
-- Task package: `docs/tasks/0.4.0/001-design.md`, `001-programmer.md`, `001-qa.md`
-- Design decisions: `design/0.4.0/design-decisions.md`
-- Implementation decision log: `programmer/0.4.0/CoT.md`
-- QA report: `qa/0.4.0/001-report.md` (`Passed` on `11a37f8`; report `e4499d7`)
+- Task package: `docs/tasks/0.5.0/001-design.md`, `001-programmer.md`, `001-qa.md`
+- Design decisions: `design/0.5.0/design-decisions.md`
+- Implementation decision log: `programmer/0.5.0/CoT.md`
+- QA report: `qa/0.5.0/001-report.md` (Passed)
+- Deployment: Vercel — `dev` is staging, `main` is production; the operator
+  connects the repository in Vercel.
 
-### Version 0.4.0 scope (operator-approved 2026-11-06)
+### Version 0.5.0 scope (operator-approved 2026-11-07)
+
+- **Deliverable:** a portfolio release that makes the vertical slice feel
+  finished without adding the reward loop.
+- **Included:** one Floor Warden per floor summoned by a full spirit meter;
+  telegraphed melee and fused bomb attacks; stairs open on boss defeat; boss
+  bar and HUD states; title/start screen; Escape pause; death summary; heal
+  2 HP on descent (capped); Web Audio ambient/CC0 SFX/synthesized boss layers
+  with `M` mute; README; `vercel.json`; version `0.5.0`.
+- **Assets supplied by the operator:** `big_demon` and `bomb` frames from the
+  same CC0 DungeonTileset II pack; CC0 audio under `public/assets/audio/`
+  (congusbongus, themightyglider, colorsCrimsonTears, EZduzziteh,
+  trazzz123, Kenney).
+- **Defaults recorded as assumptions:** the boss does not carry spirit
+  fragments; bombs target the player's position at throw time; `R` restarts
+  directly into a new run; `Escape` pauses; the boss values live in
+  `src/game/data/config.ts`.
+- **Excluded:** safe rooms, shops, currency, consumables, loot, artifacts,
+  multiple bosses, difficulty scaling, floor themes, persistence,
+  meta-progression, a final floor, settings menus, remapping.
+
+### Version 0.4.0 scope (operator-approved 2026-11-06) — delivered
 
 - **Deliverable:** the first dungeon slice — development priority 5 in
   `docs/about-the-project.md` §11.
@@ -125,6 +148,12 @@ Append one entry for each meaningful phase transition:
 | 2026-11-07 | 0.4.0/001 | Implementation → QA verification | Seeded four-room floor, tile collision, stairs/descent, depth HUD, purified-freeze removal; 132 unit + 16 Chrome e2e tests pass; bundle has no `__gameDebug` | `11a37f8` |
 | 2026-11-07 | 0.4.0/001 | QA verification → QA pass | All 13 criteria met; typecheck/unit/build/e2e pass; QA added an explicit exit-lock assertion to the respawn test; verdict Passed; hosted CI pending on GitHub | `e4499d7` |
 | 2026-11-07 | 0.4.0/001 | QA pass → Pushed, PR pending | Branch pushed; PR creation blocked because `gh`/`hub` and a GitHub token are unavailable; first hosted CI run will be checked on GitHub after the operator opens the PR | `20b99fb`, plus this state commit |
+| 2026-11-07 | 0.4.0/001 | PR pending → Merged | PR #4 merged into `dev`; `dev` is at `90c1066` | `90c1066` |
+| 2026-11-07 | 0.5.0/001 | Discovery → Docs/design approved | Operator approved the portfolio-release scope: Floor Warden + bombs, hybrid audio, Vercel (`dev` staging / `main` production), heal 2 HP on descent; assets supplied | `3d1f97a` (assets) |
+| 2026-11-07 | 0.5.0/001 | Docs/design approved → Implementation | Task package and design decisions written; implementation started | `3d1f97a` |
+| 2026-11-07 | 0.5.0/001 | Implementation → QA verification | Floor Warden, bombs, audio, title/pause/death, heal-on-descent, README/Vercel delivered; 150 unit + 20 Chrome e2e; production bundle has no debug hooks | `b5de2b1`, `e522ac0`, `5a5b86b`, `a6636be`, `fa38422`, `d52f507` |
+| 2026-11-07 | 0.5.0/001 | QA verification → QA pass | Clean `npm ci`; typecheck/unit/build/e2e pass; bomb e2e flake found and fixed in `d52f507`; title/pause/boss/bomb/death visuals inspected; verdict Passed; hosted CI and Vercel pending | `d6491e1` |
+| 2026-11-07 | 0.5.0/001 | QA pass → Pushed, PR pending | Branch pushed; `origin/feature/0.5.0-001-portfolio-release` matched `5d96c0e`; PR creation blocked because `gh`/`hub` are unavailable, so the operator opens the PR against `dev`; hosted CI and Vercel remain pending | `5d96c0e`, plus this state commit |
 
 ## Status vocabulary
 

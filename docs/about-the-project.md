@@ -42,10 +42,12 @@ The game's identity should emphasize mastery rather than relying only on
 character statistics. Players should be rewarded for playing well,
 avoiding damage, and executing combos.
 
-The current `0.2.0` slice adds a dark-fantasy liberation frame: a mob is
-not simply killed. Its spirit fragments must be broken without taking a
-hit, and only then can it be put to rest. Conventional kills return the
-mob, while a completed rite grants spirit toward the floor's boss.
+The current `0.5.0` slice completes the dark-fantasy liberation frame: a
+mob is not simply killed. Its spirit fragments must be broken without
+taking a hit, and only then can it be put to rest. Conventional kills
+return the mob, while a completed rite grants spirit toward the floor's
+boss. Purifying every mob fills the spirit meter and summons the Floor
+Warden; defeating it opens the stairs.
 
 ### Design principles
 
@@ -112,6 +114,18 @@ license information with the project.
 and its attribution note are stored under
 `public/assets/dungeon-tileset-ii/`. The pack has no attack or death
 animations, so combat feedback for those states is drawn in code.
+
+The `0.5.0` boss and bomb frames (`big_demon`, `bomb`) come from the same
+CC0 pack. Explosions, smoke, and the boss aura are drawn procedurally.
+
+### Audio direction
+
+The initial audio direction is atmospheric and restrained. Concrete events
+use the supplied CC0 sounds under `public/assets/audio/`; the boss's
+presence, breathing, fire, voice, and magic are synthesized with the Web
+Audio API. Audio is optional: the game must remain fully playable and
+readable when muted, and no gameplay state may depend on hearing a cue.
+Licenses and authors are recorded with the assets.
 
 ------------------------------------------------------------------------
 
@@ -193,6 +207,14 @@ values recorded in the version's design decisions. Ordered breaks,
 moving fragments, and per-mob fragment variation are future difficulty
 levers, not part of `0.2.0`.
 
+The `0.5.0` slice gives the spirit meter its payoff (operator-approved
+2026-11-07). When every mob on the floor is at rest and the meter is full,
+the **Floor Warden** appears in the final room. The Warden does not carry
+spirit fragments and does not rest or respawn; it fights with a telegraphed
+melee attack and fused bombs. Defeating it opens the stairs, and the run
+continues downward. The boss bar, telegraphs, and bomb landing marker are
+defined in the version's design decisions.
+
 Skill points and the combo challenge from the first `0.2.0` pass are
 removed. Skill-point spending, drops, and shops remain future work.
 
@@ -224,17 +246,25 @@ Difficulty should increase as the player descends. Floors may introduce
 different enemy pools and combinations. The exact generation algorithm,
 room and corridor rules, floor themes, and difficulty scaling are open.
 
-#### Current slice: `0.4.0`
+#### Current slice: `0.5.0`
 
 The first dungeon slice uses a simple seeded generator. A floor has four
 rooms joined by walkable corridors, with the player starting in the first
 room and the stairs in the last. The three non-start rooms contain the
-existing melee and ranged enemies. Every enemy must be put to rest to unlock
-the stairs; walking onto unlocked stairs descends to a newly generated floor.
-The spirit meter is per floor and resets on descent, while the player's HP
-persists. There is no difficulty scaling, safe room, shop, boss, or final
-floor in this slice. These are deferred to later versions, not removed from
-the product direction.
+existing melee and ranged enemies. Every mob must be put to rest to fill the
+spirit meter; that summons the Floor Warden in the final room. Defeating the
+Warden opens the stairs, and walking onto them descends to a newly generated
+floor.
+
+The spirit meter and boss state are per floor and reset on descent. The
+player's HP persists and is restored by 2 HP on descent, capped at the
+maximum. There is no difficulty scaling, safe room, shop, consumable, loot,
+artifact, or final floor in this slice. These are deferred to later versions,
+not removed from the product direction.
+
+The release also adds a title/start screen, Escape pause, a death summary,
+restrained CC0/synthesized audio with a mute toggle, and a Vercel deployment
+(`dev` staging, `main` production).
 
 ### 4.2 Safe rooms
 
@@ -323,6 +353,14 @@ design.
 
 The number of bosses, boss frequency, encounter structure, and whether
 bosses appear at fixed floor intervals remain open.
+
+The `0.5.0` slice implements the first floor boss, the **Floor Warden**
+(operator-approved 2026-11-07). One Warden appears on every floor when the
+spirit meter fills. It uses the `big_demon` frames, chases the player, and
+alternates a telegraphed melee attack with a thrown, fused bomb. It carries no
+spirit fragments and is not a source of artifacts. Its defeat opens the
+stairs rather than ending the run. Boss variety, phases, and artifact drops
+remain future work.
 
 ------------------------------------------------------------------------
 
@@ -425,6 +463,11 @@ functionality itself, including:
 Do not build a general-purpose game engine. Implement only the systems
 needed by the game, and expand them when concrete gameplay requirements
 demand it.
+
+Audio uses the native **Web Audio API**. Short CC0 sound files cover concrete
+events, and the boss's presence layers are synthesized. Audio must unlock on
+a user gesture, must be mutable, and must never be required to understand or
+complete a gameplay state.
 
 ------------------------------------------------------------------------
 
@@ -532,6 +575,12 @@ The MVP should validate:
 7.  The player can complete the floor's progression and understand the
     run-ending flow.
 
+**Status after `0.5.0` (2026-11-07):** items 1–4, 6, and 7 are implemented
+and validated in the current slice. Item 5 remains open: there are no
+consumables, currency, loot, skill points, or safe room/shop. The post-death
+purchase flow and meta-progression also remain undefined. The MVP is therefore
+not complete, even though the vertical slice is portfolio-ready.
+
 ### Not required for the first MVP
 
 The following are part of the broader vision or possible future
@@ -573,9 +622,14 @@ playtesting.
 
 ### Dungeon generation and progression
 
--   How rooms and corridors are generated and connected.
--   How the player finds the exit to the next floor.
--   Whether every floor has a boss or bosses appear at intervals.
+-   ~~How rooms and corridors are generated and connected.~~ Resolved for
+    the current slice: a seeded four-room left-to-right chain (`0.4.0`).
+-   ~~How the player finds the exit to the next floor.~~ Resolved for the
+    current slice: stairs in the final room, opened by defeating the boss
+    (`0.4.0`/`0.5.0`).
+-   ~~Whether every floor has a boss or bosses appear at intervals.~~
+    Resolved for the current slice: one Floor Warden per floor (`0.5.0`).
+    Whether that remains the long-term pacing is still open.
 -   Floor difficulty scaling and enemy selection.
 -   Safe-room placement and how players reach them.
 -   Whether safe-room types are unique per floor (the current
@@ -618,22 +672,26 @@ system is about to be built, rather than specified prematurely.
 A pragmatic implementation order is:
 
 1.  **Application foundation:** Start the browser app, create the
-    Canvas, load assets, and establish the game loop.
+    Canvas, load assets, and establish the game loop. — **Done** (`0.1.0`).
 2.  **Player foundation:** Implement movement, mouse aiming, camera
-    follow, and collision with the environment.
+    follow, and collision with the environment. — **Done** (`0.1.0`).
 3.  **Combat foundation:** Add attacks, damage, health, dodge, and one
-    enemy.
+    enemy. — **Done** (`0.1.0`).
 4.  **Combat depth and liberation loop:** Add combos, additional basic
-    enemy archetypes, spirit fragments, and a spirit meter.
+    enemy archetypes, spirit fragments, and a spirit meter. — **Done**
+    (`0.2.0`).
 5.  **Dungeon slice:** Generate one traversable floor with an exit and a
-    small encounter sequence.
+    small encounter sequence. — **Done** (`0.4.0`).
 6.  **Rewards and safe room:** Add consumables, currency, skill points,
-    and one shop room.
-7.  **Boss encounter:** Add one boss with a readable attack pattern.
+    and one shop room. — **Not started.**
+7.  **Boss encounter:** Add one boss with a readable attack pattern. —
+    **Done** (`0.5.0`, Floor Warden).
 8.  **Run lifecycle:** Add death, game-over, post-death purchase
-    behavior when specified, and a clearly confirmed manual reset.
+    behavior when specified, and a clearly confirmed manual reset. —
+    **Partial:** death, summary, and `R` restart exist; the post-death
+    purchase flow is undefined.
 9.  **Playtesting and refinement:** Tune responsiveness, difficulty,
-    feedback, and the overall fight--loot--prepare loop.
+    feedback, and the overall fight--loot--prepare loop. — **Ongoing.**
 
 The order can change when implementation discoveries justify it. Keep
 the first playable slice small and testable.

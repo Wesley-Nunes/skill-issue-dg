@@ -28,6 +28,24 @@ The docs agent must use `docs/about-the-project.md` as the primary product conte
 
 Do not fill these sections with guesses. Record operator-approved decisions in `docs/about-the-project.md` and the versioned task files, then summarize the agreed goal here.
 
+## Current progress (2026-11-07)
+
+The `0.5.0` portfolio release delivers a complete vertical slice:
+
+- one playable character with WASD movement, mouse aim, a three-hit hard-timed
+  combo, dodge with i-frames, HP, and damage;
+- a seeded four-room dungeon floor with corridors, tile collision, line of
+  sight, three melee/ranged mobs, spirit fragments, and endless descent;
+- a Floor Warden summoned by a full spirit meter, with a telegraphed melee
+  attack and fused bombs;
+- death, run summary, restart, heal-on-descent, a title/start screen, pause,
+  restrained CC0/synthesized audio, and a mute toggle;
+- a Vite build configured for Vercel (`dev` staging, `main` production).
+
+This is **not** a completed MVP. The remaining `docs/about-the-project.md` §9
+gaps are the reward loop: consumables, currency, skill points, loot, a safe
+room/shop, the post-death purchase flow, and difficulty scaling.
+
 ## Definition of MVP completion
 
 The MVP is complete only when all of the following are true:

@@ -147,6 +147,10 @@ export function generateFloor(seed: number, depth = 1): Floor {
     width: 2 * TILE,
     height: FLOOR.corridorRows * TILE,
   };
+  const bossSpawn = tileCenter(
+    last.x + Math.floor(last.width / 2),
+    last.y + Math.floor(last.height / 2),
+  );
 
   const kinds = ["melee", "melee", "ranged"] as const;
   const enemySpawns: EnemySpawn[] = rooms.slice(1).map((room, index) => {
@@ -179,6 +183,7 @@ export function generateFloor(seed: number, depth = 1): Floor {
     })),
     spawn,
     stairs,
+    bossSpawn,
     enemySpawns,
   };
 }

@@ -117,6 +117,21 @@ describe("generateFloor", () => {
     }
   });
 
+  it("places the boss spawn in the final room on a walkable tile", () => {
+    for (let seed = 1; seed <= 20; seed += 1) {
+      const floor = generateFloor(seed, 1);
+      const final = floor.rooms[floor.rooms.length - 1]!;
+      expect(isWalkablePoint(floor, floor.bossSpawn.x, floor.bossSpawn.y)).toBe(
+        true,
+      );
+      expect(floor.bossSpawn.x).toBeGreaterThanOrEqual(final.x);
+      expect(floor.bossSpawn.x).toBeLessThanOrEqual(final.x + final.width);
+      expect(floor.bossSpawn.y).toBeGreaterThanOrEqual(final.y);
+      expect(floor.bossSpawn.y).toBeLessThanOrEqual(final.y + final.height);
+      expect(reachable(floor, floor.spawn, floor.bossSpawn)).toBe(true);
+    }
+  });
+
   it("keeps the start room free of enemies", () => {
     const floor = generateFloor(7, 1);
     const [start] = floor.rooms;
