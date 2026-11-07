@@ -10,14 +10,14 @@ This file is the canonical workflow state for the repository. It is maintained b
 | Goal | `0.4.0` seeded dungeon slice — generated rooms and corridors, encounters, stairs, and descent |
 | Current SemVer ID | `0.4.0` |
 | Current task ID | `001` |
-| Active phase | `Design decisions → Implementation` |
-| Active agent | `programmer` |
+| Active phase | `QA passed — push/PR pending` |
+| Active agent | `orchestrator` |
 | Git branch | `feature/0.4.0-001-dungeon-slice` |
-| Last accepted commit | `8984fc3` (`0.3.0` merged to `dev`; branch base) |
+| Last accepted commit | `e4499d7` (QA report; implementation head `11a37f8`) |
 | Pushed HEAD | Local branch only; nothing pushed yet |
-| Pull request | None for `0.4.0`; open after implementation and QA |
+| Pull request | None for `0.4.0`; the operator pushes and opens it to `dev` on GitHub |
 | Blocking questions remaining | `0` |
-| Overall status | `In progress` — task package and design decisions are written; implementation is next |
+| Overall status | `In progress` — implementation and QA are complete on the branch; push, the first hosted CI run, and merge remain |
 
 Update this snapshot whenever a value changes. Do not leave stale status after a handoff.
 
@@ -42,8 +42,8 @@ Populate these links when the version and task have been approved:
 - Product overview: `docs/about-the-project.md`
 - Task package: `docs/tasks/0.4.0/001-design.md`, `001-programmer.md`, `001-qa.md`
 - Design decisions: `design/0.4.0/design-decisions.md`
-- Implementation decision log: `programmer/0.4.0/CoT.md` (pending)
-- QA report: `qa/0.4.0/001-report.md` (pending)
+- Implementation decision log: `programmer/0.4.0/CoT.md`
+- QA report: `qa/0.4.0/001-report.md` (`Passed` on `11a37f8`; report `e4499d7`)
 
 ### Version 0.4.0 scope (operator-approved 2026-11-06)
 
@@ -120,8 +120,10 @@ Append one entry for each meaningful phase transition:
 | 2026-11-05 | 0.3.0/001 | Docs discovery → Design decisions | Operator approved the full e2e pipeline plan after reviewing the Cypress AI Skills documentation; task package and design decisions created; no visual or interaction decisions required | `1a5b75f` |
 | 2026-11-06 | 0.3.0/001 | Implementation → QA verification | Pinned skills, project skill, typed support layer, stabilised specs, Chrome CI workflow; 123 unit + 15 e2e tests; three consecutive Chrome passes; no `__gameDebug` in the production bundle | `e6b5091` |
 | 2026-11-06 | 0.3.0/001 | QA verification → QA pass | All 12 criteria met; three consecutive 15/15 Chrome runs; no product-source diff; verdict Passed; hosted CI recorded as pending on GitHub per the new CI policy | `5929130` |
-| 2026-11-06 | 0.4.0/001 | Docs discovery → Design decisions | Operator approved the seeded dungeon-slice direction; four-room generator, stairs/descent, no purified freeze; task package and design decisions written | pending |
-| 2026-11-06 | 0.4.0/001 | Design decisions → Implementation | Design contract approved with existing tiles only, stairs states, depth HUD, camera and floor-entry feedback; implementation next | pending |
+| 2026-11-06 | 0.4.0/001 | Docs discovery → Design decisions | Operator approved the seeded dungeon-slice direction; four-room generator, stairs/descent, no purified freeze; task package and design decisions written | `df20519` |
+| 2026-11-06 | 0.4.0/001 | Design decisions → Implementation | Design contract approved with existing tiles only, stairs states, depth HUD, camera and floor-entry feedback; implementation next | `5d83e4e` |
+| 2026-11-07 | 0.4.0/001 | Implementation → QA verification | Seeded four-room floor, tile collision, stairs/descent, depth HUD, purified-freeze removal; 132 unit + 16 Chrome e2e tests pass; bundle has no `__gameDebug` | `11a37f8` |
+| 2026-11-07 | 0.4.0/001 | QA verification → QA pass | All 13 criteria met; typecheck/unit/build/e2e pass; QA added an explicit exit-lock assertion to the respawn test; verdict Passed; hosted CI pending on GitHub | `e4499d7` |
 
 ## Status vocabulary
 
