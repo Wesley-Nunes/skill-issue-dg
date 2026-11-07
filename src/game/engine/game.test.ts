@@ -268,6 +268,7 @@ describe("Game", () => {
       5,
     );
     expect(game.state.run.spirit).toBe(0);
+    expect(game.state.run.exitOpen).toBe(false);
 
     const events = stepFor(game, 2.6, {});
 
@@ -277,6 +278,8 @@ describe("Game", () => {
     expect(revived.hp).toBe(MELEE.maxHp);
     expect(revived.fragments).toEqual([true, true]);
     expect([revived.x, revived.y]).toEqual([home.x, home.y]);
+    expect(game.state.run.exitOpen).toBe(false);
+    expect(game.state.run.floorPurified).toBe(false);
   });
 
   it("puts a fully broken mob to rest and grants spirit", () => {
