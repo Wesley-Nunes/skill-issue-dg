@@ -18,21 +18,28 @@ export function clamp(value: number, min: number, max: number): number {
   return Math.min(Math.max(value, min), max);
 }
 
+/** Camera top-left that frames the player inside the floor bounds. */
+export function cameraTarget(snapshot: DebugSnapshot): { x: number; y: number } {
+  return {
+    x: clamp(
+      snapshot.player.x - snapshot.viewport.width / 2,
+      0,
+      snapshot.floor.width - snapshot.viewport.width,
+    ),
+    y: clamp(
+      snapshot.player.y - snapshot.viewport.height / 2,
+      0,
+      snapshot.floor.height - snapshot.viewport.height,
+    ),
+  };
+}
+
 /** True once the smoothed camera has caught up with its clamped target. */
 export function cameraSettled(snapshot: DebugSnapshot): boolean {
-  const targetX = clamp(
-    snapshot.player.x - snapshot.viewport.width / 2,
-    0,
-    640 - snapshot.viewport.width,
-  );
-  const targetY = clamp(
-    snapshot.player.y - snapshot.viewport.height / 2,
-    0,
-    384 - snapshot.viewport.height,
-  );
+  const target = cameraTarget(snapshot);
   return (
-    Math.abs(snapshot.camera.x - targetX) < 1 &&
-    Math.abs(snapshot.camera.y - targetY) < 1
+    Math.abs(snapshot.camera.x - target.x) < 1 &&
+    Math.abs(snapshot.camera.y - target.y) < 1
   );
 }
 

@@ -7,17 +7,17 @@ This file is the canonical workflow state for the repository. It is maintained b
 | Field | Value |
 |---|---|
 | Project | skill issue dg |
-| Goal | `0.3.0` e2e pipeline hardening — pinned Cypress AI skills, stable shared support layer, GitHub Actions CI |
-| Current SemVer ID | `0.3.0` |
+| Goal | `0.4.0` seeded dungeon slice — generated rooms and corridors, encounters, stairs, and descent |
+| Current SemVer ID | `0.4.0` |
 | Current task ID | `001` |
-| Active phase | `QA passed — PR pending` |
+| Active phase | `QA passed — push/PR pending` |
 | Active agent | `orchestrator` |
-| Git branch | `feature/0.3.0-001-e2e-pipeline` |
-| Last accepted commit | `5929130` (QA report; implementation head `e6b5091`) |
-| Pushed HEAD | `origin/feature/0.3.0-001-e2e-pipeline` is at `e6b5091`; the QA and state commits after it are local until the operator pushes |
-| Pull request | None for `0.3.0`. The operator opens the PR to `dev` on GitHub; the first hosted E2E run is verified there, not locally (see `AGENTS.md` → CI and hosted checks) |
+| Git branch | `feature/0.4.0-001-dungeon-slice` |
+| Last accepted commit | `e4499d7` (QA report; implementation head `11a37f8`) |
+| Pushed HEAD | `origin/feature/0.4.0-001-dungeon-slice` is at the state-update commit immediately after `20b99fb` (code/QA head) |
+| Pull request | Not created: `gh`/`hub` and a GitHub token are unavailable. Draft title/body are in the orchestrator handoff message; open the PR to `dev` on GitHub |
 | Blocking questions remaining | `0` |
-| Overall status | `In progress` — implementation and QA are complete on the branch; PR creation, the first hosted CI run, and merge await the operator on GitHub |
+| Overall status | `In progress` — QA passed and the branch is pushed; PR creation, the first hosted CI run, and merge await the operator on GitHub |
 
 Update this snapshot whenever a value changes. Do not leave stale status after a handoff.
 
@@ -40,10 +40,28 @@ The state manager must not invent decisions, change product scope, edit game cod
 Populate these links when the version and task have been approved:
 
 - Product overview: `docs/about-the-project.md`
-- Task package: `docs/tasks/0.3.0/001-design.md`, `001-programmer.md`, `001-qa.md`
-- Design decisions: `design/0.3.0/design-decisions.md` (tooling only; no visual or interaction decisions)
-- Implementation decision log: `programmer/0.3.0/CoT.md`
-- QA report: `qa/0.3.0/001-report.md` (`Passed` on `e6b5091`; report `5929130`)
+- Task package: `docs/tasks/0.4.0/001-design.md`, `001-programmer.md`, `001-qa.md`
+- Design decisions: `design/0.4.0/design-decisions.md`
+- Implementation decision log: `programmer/0.4.0/CoT.md`
+- QA report: `qa/0.4.0/001-report.md` (`Passed` on `11a37f8`; report `e4499d7`)
+
+### Version 0.4.0 scope (operator-approved 2026-11-06)
+
+- **Deliverable:** the first dungeon slice — development priority 5 in
+  `docs/about-the-project.md` §11.
+- **Included:** seeded four-room floor with corridors; tile-grid collision and
+  line of sight; three enemies distributed across the non-start rooms; a
+  locked/unlocked stairs exit; automatic descent to a newly generated floor
+  with depth increment; depth/exit HUD; removal of the purified freeze.
+- **Defaults recorded as assumptions:** HP persists between floors, spirit is
+  per floor, restart starts a fresh depth-1 run with a new seed, and descent is
+  automatic on unlocked stairs.
+- **Excluded:** safe rooms, shops, currency, consumables, loot, artifacts,
+  boss, difficulty scaling, floor themes, audio, menus, persistence, and a
+  final floor.
+- **Known structural consequence:** the single `ROOM`/`ENEMY_SPAWNS` model is
+  replaced by a generated `Floor`; `GameStatus` loses `"purified"`; `RunState`
+  gains `depth` and `exitOpen`.
 
 ### Version 0.3.0 scope (operator-approved 2026-11-05)
 
@@ -102,6 +120,11 @@ Append one entry for each meaningful phase transition:
 | 2026-11-05 | 0.3.0/001 | Docs discovery → Design decisions | Operator approved the full e2e pipeline plan after reviewing the Cypress AI Skills documentation; task package and design decisions created; no visual or interaction decisions required | `1a5b75f` |
 | 2026-11-06 | 0.3.0/001 | Implementation → QA verification | Pinned skills, project skill, typed support layer, stabilised specs, Chrome CI workflow; 123 unit + 15 e2e tests; three consecutive Chrome passes; no `__gameDebug` in the production bundle | `e6b5091` |
 | 2026-11-06 | 0.3.0/001 | QA verification → QA pass | All 12 criteria met; three consecutive 15/15 Chrome runs; no product-source diff; verdict Passed; hosted CI recorded as pending on GitHub per the new CI policy | `5929130` |
+| 2026-11-06 | 0.4.0/001 | Docs discovery → Design decisions | Operator approved the seeded dungeon-slice direction; four-room generator, stairs/descent, no purified freeze; task package and design decisions written | `df20519` |
+| 2026-11-06 | 0.4.0/001 | Design decisions → Implementation | Design contract approved with existing tiles only, stairs states, depth HUD, camera and floor-entry feedback; implementation next | `5d83e4e` |
+| 2026-11-07 | 0.4.0/001 | Implementation → QA verification | Seeded four-room floor, tile collision, stairs/descent, depth HUD, purified-freeze removal; 132 unit + 16 Chrome e2e tests pass; bundle has no `__gameDebug` | `11a37f8` |
+| 2026-11-07 | 0.4.0/001 | QA verification → QA pass | All 13 criteria met; typecheck/unit/build/e2e pass; QA added an explicit exit-lock assertion to the respawn test; verdict Passed; hosted CI pending on GitHub | `e4499d7` |
+| 2026-11-07 | 0.4.0/001 | QA pass → Pushed, PR pending | Branch pushed; PR creation blocked because `gh`/`hub` and a GitHub token are unavailable; first hosted CI run will be checked on GitHub after the operator opens the PR | `20b99fb`, plus this state commit |
 
 ## Status vocabulary
 

@@ -1,4 +1,5 @@
-import { CAMERA, COMBO, PROJECTILE, PURIFICATION, ROOM, ZOOM } from "../data/config";
+import { CAMERA, COMBO, PROJECTILE, PURIFICATION, ZOOM } from "../data/config";
+import { isOnStairs, nextSeed, randomSeed } from "../data/floor";
 import {
   comboPhase,
   comboWindowOpen,
@@ -48,13 +49,16 @@ export interface ViewportSource {
 export class Game {
   state: GameState;
 
-  constructor(private readonly viewportSource: ViewportSource) {
-    this.state = createInitialState();
+  constructor(
+    private readonly viewportSource: ViewportSource,
+    seed = randomSeed(),
+  ) {
+    this.state = createInitialState(seed);
     this.snapCamera();
   }
 
   reset(): void {
-    this.state = createInitialState();
+    this.state = createInitialState(nextSeed(this.state.floor.seed), 1);
     this.snapCamera();
   }
 
@@ -66,7 +70,7 @@ export class Game {
         y: this.state.player.y - view.height / 2,
       },
       view,
-      ROOM,
+      this.state.floor,
     );
   }
 
@@ -102,7 +106,7 @@ export class Game {
       }
     }
 
-    player = movePlayer(player, input.move, dt, ROOM);
+    player = movePlayer(player, input.move, dt, state.floor);
     player = tickDodgeTimers(player, dt);
     player = {
       ...player,
@@ -150,13 +154,21 @@ export class Game {
         y: player.y - view.height / 2,
       },
       view,
-      ROOM,
+      state.floor,
     );
 
     state.player = player;
     state.camera = updateCamera(state.camera, cameraTarget, dt, CAMERA.tau);
     state.pointer = input.pointer;
     state.time += dt;
+
+    if (
+      state.status === "playing" &&
+      state.run.exitOpen &&
+      isOnStairs(state.floor, player.x, player.y, player.radius)
+    ) {
+      this.descend(events);
+    }
 
     return events;
   }
@@ -171,8 +183,9 @@ export class Game {
     const finisher = player.comboStep === 3;
     const origin = { x: player.x, y: player.y };
     let hitAny = false;
+    let restedAny = false;
 
-    this.state.enemies = this.state.enemies.map((enemy) => {
+    const enemies = this.state.enemies.map((enemy) => {
       if (enemy.status !== "alive") return enemy;
 
       const fragmentHit = breakFragmentsInArc(
@@ -212,7 +225,7 @@ export class Game {
       next = result.enemy;
       if (finisher) {
         next = staggerEnemy(next, COMBO.stagger);
-        next = knockbackEnemy(next, player.aim, COMBO.knockback, ROOM);
+        next = knockbackEnemy(next, player.aim, COMBO.knockback, this.state.floor);
       }
 
       events.push({
@@ -227,6 +240,7 @@ export class Game {
       if (restable) {
         // The rite is complete: the mob rests permanently and yields spirit.
         next = { ...next, rested: true, respawn: 0 };
+        restedAny = true;
         const gained = addSpirit(this.state.run.spirit, PURIFICATION.spiritPerMob);
         this.state.run.spirit = gained.spirit;
         events.push({
@@ -235,12 +249,6 @@ export class Game {
           y: enemy.y,
           spirit: gained.spirit,
         });
-
-        if (gained.purified && !this.state.run.floorPurified) {
-          this.state.run.floorPurified = true;
-          this.state.status = "purified";
-          events.push({ type: "floor-purified" });
-        }
       } else {
         // A conventional kill is a failed rite; the mob will return.
         next = { ...next, rested: false, respawn: PURIFICATION.respawnDelay };
@@ -249,6 +257,17 @@ export class Game {
 
       return next;
     });
+    this.state.enemies = enemies;
+
+    if (
+      restedAny &&
+      !this.state.run.floorPurified &&
+      enemies.every((enemy) => enemy.rested)
+    ) {
+      this.state.run.floorPurified = true;
+      this.state.run.exitOpen = true;
+      events.push({ type: "floor-purified" });
+    }
 
     const resolved = markStepResolved(player, hitAny);
     if (finisher && hitAny) this.state.hitstop = COMBO.hitstop;
@@ -274,7 +293,7 @@ export class Game {
         });
       }
 
-      const update = updateEnemy(revived.enemy, target, ROOM, dt);
+      const update = updateEnemy(revived.enemy, target, state.floor, dt);
       const next = update.enemy;
 
       if (update.attackStarted) {
@@ -322,7 +341,7 @@ export class Game {
     const remaining: Projectile[] = [];
 
     for (const projectile of this.state.projectiles) {
-      const advanced = advanceProjectile(projectile, dt, ROOM);
+      const advanced = advanceProjectile(projectile, dt, this.state.floor);
       if (advanced.wallHit) {
         events.push({
           type: "projectile-blocked",
@@ -347,6 +366,23 @@ export class Game {
     }
 
     return remaining;
+  }
+
+  /** Generates the next floor, preserving the player's current HP. */
+  private descend(events: GameEvent[]): void {
+    const current = this.state;
+    const depth = current.run.depth + 1;
+    const seed = nextSeed(current.floor.seed);
+    const next = createInitialState(seed, depth);
+    next.player = {
+      ...next.player,
+      hp: current.player.hp,
+      maxHp: current.player.maxHp,
+    };
+
+    this.state = next;
+    this.snapCamera();
+    events.push({ type: "floor-descended", depth, seed });
   }
 
   /** Applies one damage instance, respecting invulnerability and death. */
@@ -408,6 +444,7 @@ export class Game {
       time,
       status,
       hitstop,
+      floor,
       run,
     } = this.state;
 
@@ -448,6 +485,19 @@ export class Game {
       })),
       spirit: run.spirit,
       floorPurified: run.floorPurified,
+      exitOpen: run.exitOpen,
+      depth: run.depth,
+      floor: {
+        seed: floor.seed,
+        depth: floor.depth,
+        cols: floor.cols,
+        rows: floor.rows,
+        width: floor.width,
+        height: floor.height,
+        spawn: { x: floor.spawn.x, y: floor.spawn.y },
+        stairs: { ...floor.stairs },
+        rooms: floor.rooms.map((room) => ({ ...room })),
+      },
       camera: { x: camera.x, y: camera.y },
       pointer,
       viewport: view,

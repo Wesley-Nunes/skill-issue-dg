@@ -1,6 +1,6 @@
 import { DODGE, PLAYER } from "../data/config";
-import type { Player, Room, Vec2 } from "../types";
-import { clampToRoom } from "./collision";
+import type { Floor, Player, Vec2 } from "../types";
+import { moveCircle } from "./collision";
 
 /** Clamps raw movement input to a unit vector so diagonals are not faster. */
 export function normalizeMove(move: Vec2): Vec2 {
@@ -14,7 +14,7 @@ export function movePlayer(
   player: Player,
   move: Vec2,
   dt: number,
-  room: Room,
+  floor: Floor,
 ): Player {
   const dodging = player.dodgeTime > 0;
   const direction = dodging ? player.dodgeDir : normalizeMove(move);
@@ -22,11 +22,13 @@ export function movePlayer(
   // A dodge only advances for the time left in its window, so a long frame
   // cannot push the player past the configured distance.
   const step = dodging ? Math.min(dt, player.dodgeTime) : dt;
-  const position = clampToRoom(
-    player.x + direction.x * speed * step,
-    player.y + direction.y * speed * step,
+  const position = moveCircle(
+    floor,
+    player.x,
+    player.y,
+    direction.x * speed * step,
+    direction.y * speed * step,
     player.radius,
-    room,
   );
 
   return {

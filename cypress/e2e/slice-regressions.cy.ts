@@ -1,4 +1,4 @@
-import { fragmentPoint, meleeTarget } from "../support/game";
+import { cameraTarget, fragmentPoint, meleeTarget } from "../support/game";
 
 const exceptions: string[] = [];
 
@@ -60,7 +60,12 @@ describe("0.2.0 QA verification", () => {
       expect(snapshot.viewport.width).to.be.closeTo(1024 / 3, 0.1);
       expect(snapshot.viewport.height).to.be.closeTo(640 / 3, 0.1);
       expect(snapshot.camera.x).to.be.at.least(0);
-      expect(snapshot.camera.y).to.be.at.most(384 - 640 / 3 + 0.01);
+      expect(snapshot.camera.x).to.be.at.most(
+        snapshot.floor.width - snapshot.viewport.width + 0.01,
+      );
+      expect(snapshot.camera.y).to.be.at.most(
+        snapshot.floor.height - snapshot.viewport.height + 0.01,
+      );
     });
 
     cy.get("canvas#game").then(($canvas) => {
@@ -90,35 +95,49 @@ describe("0.2.0 QA verification", () => {
 
     cy.viewport(1440, 810);
     cy.waitForGame(
-      (snapshot) =>
-        Math.abs(snapshot.camera.x - 80) < 1 &&
-        Math.abs(snapshot.camera.y - 114) < 1,
+      (snapshot) => {
+        const target = cameraTarget(snapshot);
+        return (
+          Math.abs(snapshot.camera.x - target.x) < 1 &&
+          Math.abs(snapshot.camera.y - target.y) < 1
+        );
+      },
       "the camera to settle at the spawn framing",
     ).then((snapshot) => {
+      const target = cameraTarget(snapshot);
       expect(snapshot.viewport.width).to.be.closeTo(480, 0.1);
       expect(snapshot.viewport.height).to.be.closeTo(270, 0.1);
-      expect(snapshot.camera.x).to.be.closeTo(80, 1);
-      expect(snapshot.camera.y).to.be.closeTo(114, 1);
+      expect(snapshot.camera.x).to.be.closeTo(target.x, 1);
+      expect(snapshot.camera.y).to.be.closeTo(target.y, 1);
     });
   });
 
   it("dodges the configured distance", () => {
     cy.document().trigger("keydown", { key: " " });
     cy.document().trigger("keyup", { key: " " });
-    cy.waitForGame(
-      (snapshot) =>
-        Math.hypot(snapshot.player.x - 320, snapshot.player.y - 320) > 40,
-      "the dodge to move the player",
-      5000,
-    );
-    cy.waitForGame(
-      (snapshot) => !snapshot.player.dodging,
-      "the dodge to finish",
-      5000,
-    ).then((snapshot) => {
-      const distance = Math.hypot(snapshot.player.x - 320, snapshot.player.y - 320);
-      expect(distance, "dodge distance").to.be.greaterThan(40);
-      expect(distance).to.be.at.most(65);
+    cy.gameSnapshot().then((start) => {
+      const origin = { x: start.player.x, y: start.player.y };
+      cy.waitForGame(
+        (snapshot) =>
+          Math.hypot(
+            snapshot.player.x - origin.x,
+            snapshot.player.y - origin.y,
+          ) > 40,
+        "the dodge to move the player",
+        5000,
+      );
+      cy.waitForGame(
+        (snapshot) => !snapshot.player.dodging,
+        "the dodge to finish",
+        5000,
+      ).then((snapshot) => {
+        const distance = Math.hypot(
+          snapshot.player.x - origin.x,
+          snapshot.player.y - origin.y,
+        );
+        expect(distance, "dodge distance").to.be.greaterThan(40);
+        expect(distance).to.be.at.most(65);
+      });
     });
   });
 
@@ -262,7 +281,10 @@ describe("0.2.0 QA verification", () => {
 
   it("fires projectiles that can hit the player", () => {
     // Walk into the ranged enemy's aggro band without entering its retreat ring.
-    cy.walkTo(560, 96, { stop: 200 });
+    cy.gameSnapshot().then((snapshot) => {
+      const ranged = snapshot.enemies.find((enemy) => enemy.kind === "ranged");
+      cy.walkTo(ranged!.x, ranged!.y, { stop: 200 });
+    });
 
     cy.waitForGame(
       (snapshot) => snapshot.projectiles.length > 0,
@@ -315,8 +337,10 @@ describe("0.2.0 QA verification", () => {
       ).then((snapshot) => {
         expect(snapshot.status).to.equal("playing");
         expect(snapshot.player.hp).to.equal(6);
-        expect(snapshot.player.x).to.be.closeTo(320, 1);
-        expect(snapshot.player.y).to.be.closeTo(320, 1);
+        expect(snapshot.player.x).to.be.closeTo(snapshot.floor.spawn.x, 1);
+        expect(snapshot.player.y).to.be.closeTo(snapshot.floor.spawn.y, 1);
+        expect(snapshot.depth).to.equal(1);
+        expect(snapshot.exitOpen).to.equal(false);
         expect(snapshot.enemies.map((enemy) => enemy.hp)).to.deep.equal([
           10, 10, 6,
         ]);

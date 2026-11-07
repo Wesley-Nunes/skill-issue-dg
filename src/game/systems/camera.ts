@@ -1,18 +1,23 @@
 import { CAMERA } from "../data/config";
-import type { Room, Vec2, Viewport } from "../types";
+import type { Vec2, Viewport } from "../types";
+
+interface WorldBounds {
+  width: number;
+  height: number;
+}
 
 function clamp(value: number, min: number, max: number): number {
   return Math.min(Math.max(value, min), max);
 }
 
-/** Clamps a camera top-left so the view stays inside the room. */
+/** Clamps a camera top-left so the view stays inside the world bounds. */
 export function clampCamera(
   target: Vec2,
   viewport: Viewport,
-  room: Room,
+  world: WorldBounds,
 ): Vec2 {
-  const maxX = room.width - viewport.width;
-  const maxY = room.height - viewport.height;
+  const maxX = world.width - viewport.width;
+  const maxY = world.height - viewport.height;
 
   return {
     x: maxX <= 0 ? maxX / 2 : clamp(target.x, 0, maxX),

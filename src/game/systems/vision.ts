@@ -1,16 +1,16 @@
-import type { Room, Vec2 } from "../types";
+import { isWalkablePoint } from "../data/floor";
+import type { Floor, Vec2 } from "../types";
 
 const SAMPLE_STEP = 4;
 
 /**
- * True when the segment between two points stays inside the walkable room.
- * The shipped room is a convex rectangle, so this always passes there; it
- * exists so rooms with interior walls can use the same ranged-enemy rule.
+ * True when the segment between two points stays on walkable tiles. Corridor
+ * walls and room edges block ranged sight, not just the outer floor boundary.
  */
 export function hasLineOfSight(
   from: Vec2,
   to: Vec2,
-  room: Room,
+  floor: Floor,
   step: number = SAMPLE_STEP,
 ): boolean {
   const distance = Math.hypot(to.x - from.x, to.y - from.y);
@@ -20,14 +20,7 @@ export function hasLineOfSight(
     const t = index / samples;
     const x = from.x + (to.x - from.x) * t;
     const y = from.y + (to.y - from.y) * t;
-    if (
-      x < room.bounds.minX ||
-      x > room.bounds.maxX ||
-      y < room.bounds.minY ||
-      y > room.bounds.maxY
-    ) {
-      return false;
-    }
+    if (!isWalkablePoint(floor, x, y)) return false;
   }
 
   return true;

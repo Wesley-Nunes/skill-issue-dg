@@ -224,6 +224,18 @@ Difficulty should increase as the player descends. Floors may introduce
 different enemy pools and combinations. The exact generation algorithm,
 room and corridor rules, floor themes, and difficulty scaling are open.
 
+#### Current slice: `0.4.0`
+
+The first dungeon slice uses a simple seeded generator. A floor has four
+rooms joined by walkable corridors, with the player starting in the first
+room and the stairs in the last. The three non-start rooms contain the
+existing melee and ranged enemies. Every enemy must be put to rest to unlock
+the stairs; walking onto unlocked stairs descends to a newly generated floor.
+The spirit meter is per floor and resets on descent, while the player's HP
+persists. There is no difficulty scaling, safe room, shop, boss, or final
+floor in this slice. These are deferred to later versions, not removed from
+the product direction.
+
 ### 4.2 Safe rooms
 
 Each floor generates:

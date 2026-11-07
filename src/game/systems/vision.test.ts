@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { ROOM } from "../data/config";
 import { hasLineOfSight } from "./vision";
+import { openFloor } from "./testFloor";
+
+const ROOM = openFloor();
 
 describe("hasLineOfSight", () => {
   it("sees across the open room", () => {
@@ -13,7 +15,7 @@ describe("hasLineOfSight", () => {
     expect(
       hasLineOfSight(
         { x: 100, y: 100 },
-        { x: 500, y: ROOM.bounds.minY - 20 },
+        { x: 500, y: ROOM.rooms[0]!.y - 20 },
         ROOM,
       ),
     ).toBe(false);

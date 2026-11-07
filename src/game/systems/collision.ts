@@ -1,14 +1,37 @@
-import type { Room, Vec2 } from "../types";
+import { isCircleWalkable } from "../data/floor";
+import type { Floor, Vec2 } from "../types";
 
-/** Clamps a circle's center so the whole body stays inside the walkable room area. */
-export function clampToRoom(
+/**
+ * Moves a circle by a delta, resolving each axis separately so the body slides
+ * along walls instead of sticking to them. Long frames are split into small
+ * steps so a fast body cannot tunnel through a tile.
+ */
+export function moveCircle(
+  floor: Floor,
   x: number,
   y: number,
+  dx: number,
+  dy: number,
   radius: number,
-  room: Room,
 ): Vec2 {
-  return {
-    x: Math.min(Math.max(x, room.bounds.minX + radius), room.bounds.maxX - radius),
-    y: Math.min(Math.max(y, room.bounds.minY + radius), room.bounds.maxY - radius),
-  };
+  const distance = Math.hypot(dx, dy);
+  const steps = Math.max(
+    1,
+    Math.ceil(distance / Math.max(1, radius / 2)),
+  );
+  const stepX = dx / steps;
+  const stepY = dy / steps;
+
+  let nextX = x;
+  let nextY = y;
+  for (let step = 0; step < steps; step += 1) {
+    if (isCircleWalkable(floor, nextX + stepX, nextY, radius)) {
+      nextX += stepX;
+    }
+    if (isCircleWalkable(floor, nextX, nextY + stepY, radius)) {
+      nextY += stepY;
+    }
+  }
+
+  return { x: nextX, y: nextY };
 }

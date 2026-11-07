@@ -1,17 +1,18 @@
-import {
-  ENEMY_SPAWNS,
-  MELEE,
-  PLAYER,
-  PLAYER_SPAWN,
-  PURIFICATION,
-  RANGED,
-} from "../game/data/config";
-import type { Enemy, GameState, Player } from "../game/types";
+import { MELEE, PLAYER, PURIFICATION, RANGED } from "../game/data/config";
+import { generateFloor } from "../game/data/floor";
+import type {
+  Enemy,
+  EnemySpawn,
+  Floor,
+  GameState,
+  Player,
+  Vec2,
+} from "../game/types";
 
-export function createPlayer(): Player {
+export function createPlayer(spawn: Vec2 = { x: 0, y: 0 }): Player {
   return {
-    x: PLAYER_SPAWN.x,
-    y: PLAYER_SPAWN.y,
+    x: spawn.x,
+    y: spawn.y,
     radius: PLAYER.radius,
     hp: PLAYER.maxHp,
     maxHp: PLAYER.maxHp,
@@ -31,9 +32,7 @@ export function createPlayer(): Player {
   };
 }
 
-export function createEnemy(
-  spawn: (typeof ENEMY_SPAWNS)[number],
-): Enemy {
+export function createEnemy(spawn: EnemySpawn): Enemy {
   const ranged = spawn.kind === "ranged";
   const stats = ranged ? RANGED : MELEE;
 
@@ -63,21 +62,33 @@ export function createEnemy(
   };
 }
 
-export function createEnemies(): Enemy[] {
-  return ENEMY_SPAWNS.map((spawn) => createEnemy(spawn));
+export function createEnemies(floor: Floor): Enemy[] {
+  return floor.enemySpawns.map((spawn) => createEnemy(spawn));
 }
 
-export function createInitialState(): GameState {
+export function createInitialState(
+  seed = 1,
+  depth = 1,
+): GameState {
+  const floor = generateFloor(seed, depth);
+  const player = createPlayer(floor.spawn);
+
   return {
     time: 0,
     status: "playing",
-    player: createPlayer(),
-    enemies: createEnemies(),
+    player,
+    enemies: createEnemies(floor),
     projectiles: [],
     nextProjectileId: 1,
     hitstop: 0,
     camera: { x: 0, y: 0 },
-    pointer: { x: PLAYER_SPAWN.x + 80, y: PLAYER_SPAWN.y - 80 },
-    run: { spirit: 0, floorPurified: false },
+    pointer: { x: player.x + 80, y: player.y - 80 },
+    floor,
+    run: {
+      depth,
+      spirit: 0,
+      floorPurified: false,
+      exitOpen: false,
+    },
   };
 }

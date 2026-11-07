@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { PROJECTILE, ROOM } from "../data/config";
+import { PROJECTILE } from "../data/config";
 import { createPlayer } from "../../state/initialState";
 import type { Projectile } from "../types";
 import {
@@ -7,6 +7,9 @@ import {
   projectileHitsPlayer,
   spawnProjectile,
 } from "./projectile";
+import { openFloor } from "./testFloor";
+
+const ROOM = openFloor();
 
 function projectileAt(x: number, y: number): Projectile {
   return {
@@ -44,7 +47,10 @@ describe("advanceProjectile", () => {
 
   it("is destroyed by the room boundary", () => {
     const projectile = {
-      ...projectileAt(ROOM.bounds.maxX - 1, 100),
+      ...projectileAt(
+        ROOM.rooms[0]!.x + ROOM.rooms[0]!.width - 1,
+        100,
+      ),
       vx: PROJECTILE.speed,
     };
     const result = advanceProjectile(projectile, 0.1, ROOM);
@@ -61,7 +67,7 @@ describe("advanceProjectile", () => {
 
 describe("projectileHitsPlayer", () => {
   it("hits when the bodies overlap", () => {
-    const player = createPlayer();
+    const player = createPlayer(ROOM.spawn);
     expect(
       projectileHitsPlayer(
         projectileAt(player.x + player.radius, player.y),
@@ -71,7 +77,7 @@ describe("projectileHitsPlayer", () => {
   });
 
   it("misses at range", () => {
-    const player = createPlayer();
+    const player = createPlayer(ROOM.spawn);
     expect(
       projectileHitsPlayer(projectileAt(player.x + 40, player.y), player),
     ).toBe(false);
