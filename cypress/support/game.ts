@@ -52,6 +52,15 @@ export function meleeTarget(snapshot: DebugSnapshot) {
   );
 }
 
+/** The living Floor Warden, or the first boss entry as a fallback. */
+export function bossTarget(snapshot: DebugSnapshot) {
+  return (
+    snapshot.enemies.find(
+      (enemy) => enemy.kind === "boss" && enemy.status === "alive",
+    ) ?? snapshot.enemies.find((enemy) => enemy.kind === "boss")!
+  );
+}
+
 /** World-space centre of the upper-right intact fragment. */
 export function fragmentPoint(enemy: DebugSnapshot["enemies"][number]) {
   const angle = (-45 * Math.PI) / 180;

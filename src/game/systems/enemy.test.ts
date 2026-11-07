@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { MELEE, RANGED } from "../data/config";
-import { createEnemy } from "../../state/initialState";
+import { BOSS, MELEE, RANGED } from "../data/config";
+import { createBoss, createEnemy } from "../../state/initialState";
 import { staggerEnemy, updateEnemy } from "./enemy";
 import { openFloor } from "./testFloor";
 
@@ -237,6 +237,84 @@ describe("ranged enemy", () => {
     };
     const result = updateEnemy(enemy, { x: 100, y: 105 }, ROOM, 0.02);
     expect(result.damageToPlayer).toBe(0);
+  });
+});
+
+describe("Floor Warden", () => {
+  const boss = (overrides: Partial<ReturnType<typeof createBoss>> = {}) => ({
+    ...createBoss(ROOM),
+    x: 100,
+    y: 100,
+    ...overrides,
+  });
+
+  it("chases the player outside melee range", () => {
+    const result = updateEnemy(
+      boss({ bombCooldown: 5 }),
+      { x: 100, y: 100 + BOSS.attackRange + 60 },
+      ROOM,
+      0.1,
+    );
+    expect(result.enemy.aggro).toBe(true);
+    expect(result.enemy.moving).toBe(true);
+    expect(result.enemy.y).toBeGreaterThan(100);
+  });
+
+  it("starts a telegraphed melee attack in range", () => {
+    const result = updateEnemy(
+      boss(),
+      { x: 100, y: 100 + BOSS.attackRange - 4 },
+      ROOM,
+      0.01,
+    );
+    expect(result.attackStarted).toBe(true);
+    expect(result.enemy.attackKind).toBe("melee");
+    expect(result.enemy.windup).toBeCloseTo(BOSS.windup);
+  });
+
+  it("starts a bomb windup and releases a bomb target", () => {
+    const started = updateEnemy(
+      boss({ bombCooldown: 0 }),
+      { x: 100, y: 100 + BOSS.attackRange + 40 },
+      ROOM,
+      0.01,
+    );
+    expect(started.attackStarted).toBe(true);
+    expect(started.enemy.attackKind).toBe("bomb");
+    expect(started.enemy.windup).toBeCloseTo(BOSS.bombWindup);
+
+    const released = updateEnemy(
+      { ...started.enemy, windup: 0.01 },
+      { x: 120, y: 180 },
+      ROOM,
+      0.02,
+    );
+    expect(released.bombTarget).toEqual({ x: 120, y: 180 });
+    expect(released.enemy.bombCooldown).toBeCloseTo(BOSS.bombCooldown);
+  });
+
+  it("deals melee damage once per active window", () => {
+    const first = updateEnemy(
+      boss({ active: 0.1, attackHit: false, attackKind: "melee" }),
+      { x: 100, y: 100 + BOSS.attackRange - 4 },
+      ROOM,
+      0.01,
+    );
+    expect(first.damageToPlayer).toBe(BOSS.damage);
+
+    const second = updateEnemy(
+      first.enemy,
+      { x: 100, y: 100 + BOSS.attackRange - 4 },
+      ROOM,
+      0.01,
+    );
+    expect(second.damageToPlayer).toBe(0);
+  });
+
+  it("scales stagger instead of treating it like a mob's", () => {
+    const staggered = staggerEnemy(boss({ windup: 0.3 }), 1);
+    expect(staggered.windup).toBe(0);
+    expect(staggered.stagger).toBeCloseTo(BOSS.staggerScale);
   });
 });
 

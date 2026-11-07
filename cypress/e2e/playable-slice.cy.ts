@@ -5,7 +5,7 @@ describe("0.1.0 playable combat slice", () => {
     cy.visit("/");
     // The debug hook is exposed after assets load and the input listeners are
     // attached, so this also prevents interacting with a half-booted game.
-    cy.gameSnapshot();
+    cy.startGame();
   });
 
   it("boots with a canvas, the player at full health and three enemies", () => {

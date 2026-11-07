@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { COMBO, MELEE, PURIFICATION } from "../data/config";
+import { BOMB, COMBO, MELEE, PURIFICATION } from "../data/config";
 import { nextSeed } from "../data/floor";
 import { createInitialState } from "../../state/initialState";
+import { spawnBomb } from "../systems/bomb";
 import { comboWindowOpen } from "../systems/combo";
 import { fragmentPosition } from "../systems/purification";
 import type { GameEvent, InputFrame } from "../types";
@@ -11,7 +12,9 @@ const SEED = 12345;
 const VIEWPORT = { width: 480, height: 270 };
 
 function createGame(seed = SEED): Game {
-  return new Game({ worldViewport: () => VIEWPORT }, seed);
+  const game = new Game({ worldViewport: () => VIEWPORT }, seed);
+  game.start();
+  return game;
 }
 
 function idle(overrides: Partial<InputFrame> = {}): InputFrame {
@@ -21,6 +24,10 @@ function idle(overrides: Partial<InputFrame> = {}): InputFrame {
     attack: false,
     dodge: false,
     restart: false,
+    start: false,
+    pause: false,
+    mute: false,
+    gesture: false,
     pointer: { x: 0, y: 0 },
     ...overrides,
   };
@@ -106,6 +113,7 @@ describe("Game", () => {
       depth: 1,
       spirit: 0,
       floorPurified: false,
+      bossAwake: false,
       exitOpen: false,
     });
     expect(game.state.floor.rooms).toHaveLength(4);
@@ -363,7 +371,7 @@ describe("Game", () => {
     ).toBe(false);
   });
 
-  it("opens the stairs when every enemy rests and keeps the run playing", () => {
+  it("summons the Warden when every mob rests and keeps the stairs sealed", () => {
     const game = createGame();
     duel(game);
     game.state.enemies = game.state.enemies.map((enemy, index) =>
@@ -381,9 +389,20 @@ describe("Game", () => {
 
     expect(game.state.run.spirit).toBe(PURIFICATION.spiritThreshold);
     expect(game.state.run.floorPurified).toBe(true);
-    expect(game.state.run.exitOpen).toBe(true);
+    expect(game.state.run.bossAwake).toBe(true);
+    expect(game.state.run.exitOpen).toBe(false);
     expect(game.state.status).toBe("playing");
     expect(events.some((event) => event.type === "floor-purified")).toBe(true);
+    expect(events.some((event) => event.type === "boss-summoned")).toBe(true);
+
+    const bosses = game.state.enemies.filter(
+      (enemy) => enemy.kind === "boss",
+    );
+    expect(bosses).toHaveLength(1);
+    expect([bosses[0]!.x, bosses[0]!.y]).toEqual([
+      game.state.floor.bossSpawn.x,
+      game.state.floor.bossSpawn.y,
+    ]);
 
     const time = game.state.time;
     const x = game.state.player.x;
@@ -438,10 +457,12 @@ describe("Game", () => {
     expect(game.state.floor.seed).toBe(nextSeed(oldSeed));
     expect(game.state.run.spirit).toBe(0);
     expect(game.state.run.floorPurified).toBe(false);
+    expect(game.state.run.bossAwake).toBe(false);
     expect(game.state.run.exitOpen).toBe(false);
-    expect(game.state.player.hp).toBe(3);
+    expect(game.state.player.hp).toBe(5);
     expect(game.state.enemies).toHaveLength(3);
     expect(game.state.projectiles).toHaveLength(0);
+    expect(events.some((event) => event.type === "player-healed")).toBe(true);
   });
 
   it("leaves the enemy untouched when the swing misses", () => {
@@ -685,6 +706,7 @@ describe("Game", () => {
       depth: 1,
       spirit: 80,
       floorPurified: false,
+      bossAwake: false,
       exitOpen: false,
     };
     game.state.enemies[0] = {
@@ -716,6 +738,7 @@ describe("Game", () => {
       depth: 1,
       spirit: 0,
       floorPurified: false,
+      bossAwake: false,
       exitOpen: false,
     });
     expect(game.state.projectiles).toHaveLength(0);
@@ -787,5 +810,168 @@ describe("Game", () => {
         game.state.floor.height - VIEWPORT.height,
       ),
     });
+  });
+
+  it("starts on the title screen and does not simulate until started", () => {
+    const game = new Game({ worldViewport: () => VIEWPORT }, SEED);
+    expect(game.state.status).toBe("title");
+
+    const time = game.state.time;
+    stepFor(game, 0.5, { move: { x: 1, y: 0 } });
+    expect(game.state.status).toBe("title");
+    expect(game.state.time).toBe(time);
+
+    const events = game.step(0.01, idle({ start: true }));
+    expect(game.state.status).toBe("playing");
+    expect(events.some((event) => event.type === "run-started")).toBe(true);
+  });
+
+  it("pauses and resumes without advancing the simulation", () => {
+    const game = createGame();
+
+    const paused = game.step(0.01, idle({ pause: true }));
+    expect(game.state.status).toBe("paused");
+    expect(paused.some((event) => event.type === "run-paused")).toBe(true);
+
+    const time = game.state.time;
+    const x = game.state.player.x;
+    stepFor(game, 0.5, { move: { x: 1, y: 0 } });
+    expect(game.state.time).toBe(time);
+    expect(game.state.player.x).toBe(x);
+
+    const resumed = game.step(0.01, idle({ pause: true }));
+    expect(game.state.status).toBe("playing");
+    expect(resumed.some((event) => event.type === "run-resumed")).toBe(true);
+  });
+
+  it("summons exactly one Warden and keeps the stairs sealed", () => {
+    const game = createGame();
+    game.debugSummonBoss();
+    game.debugSummonBoss();
+
+    const bosses = game.state.enemies.filter((enemy) => enemy.kind === "boss");
+    expect(bosses).toHaveLength(1);
+    expect(bosses[0]?.hp).toBe(30);
+    expect(game.state.run.bossAwake).toBe(true);
+    expect(game.state.run.floorPurified).toBe(true);
+    expect(game.state.run.exitOpen).toBe(false);
+  });
+
+  it("defeats the Warden, opens the stairs, and ignores knockback", () => {
+    const game = createGame();
+    game.debugSummonBoss();
+    const index = game.state.enemies.findIndex(
+      (enemy) => enemy.kind === "boss",
+    );
+    const boss = game.state.enemies[index]!;
+    game.state.enemies[index] = {
+      ...boss,
+      x: game.state.player.x + 20,
+      y: game.state.player.y,
+      hp: COMBO.steps[0].damage,
+      stagger: 9,
+    };
+    const x = game.state.enemies[index]!.x;
+
+    const events = stepFor(game, 0.2, pressOn([0]));
+
+    expect(game.state.enemies[index]?.hp).toBe(0);
+    expect(game.state.enemies[index]?.status).toBe("dying");
+    expect(game.state.enemies[index]?.x).toBe(x);
+    expect(game.state.run.bossAwake).toBe(false);
+    expect(game.state.run.exitOpen).toBe(true);
+    expect(events.some((event) => event.type === "boss-defeated")).toBe(true);
+  });
+
+  it("damages the player when a bomb explodes inside the blast", () => {
+    const game = createGame();
+    game.state.enemies = game.state.enemies.map((enemy) => ({
+      ...enemy,
+      status: "dead" as const,
+      hp: 0,
+      rested: true,
+    }));
+    game.state.bombs = [
+      spawnBomb(
+        1,
+        { x: game.state.player.x + 40, y: game.state.player.y },
+        { x: game.state.player.x, y: game.state.player.y },
+      ),
+    ];
+
+    const events = stepFor(game, BOMB.flightTime + BOMB.fuse + 0.1, {});
+
+    expect(game.state.player.hp).toBe(6 - BOMB.damage);
+    expect(events.some((event) => event.type === "bomb-landed")).toBe(true);
+    expect(events.some((event) => event.type === "bomb-exploded")).toBe(true);
+    expect(game.state.bombs).toHaveLength(0);
+  });
+
+  it("lets invulnerability avoid bomb damage", () => {
+    const game = createGame();
+    game.state.enemies = game.state.enemies.map((enemy) => ({
+      ...enemy,
+      status: "dead" as const,
+      hp: 0,
+      rested: true,
+    }));
+    game.state.player = { ...game.state.player, invulnerable: 5 };
+    game.state.bombs = [
+      spawnBomb(
+        1,
+        { x: game.state.player.x + 40, y: game.state.player.y },
+        { x: game.state.player.x, y: game.state.player.y },
+      ),
+    ];
+
+    stepFor(game, BOMB.flightTime + BOMB.fuse + 0.1, {});
+
+    expect(game.state.player.hp).toBe(6);
+  });
+
+  it("caps the descent heal at max HP and skips the event when full", () => {
+    const game = createGame();
+    const stairs = game.state.floor.stairs;
+    game.state.enemies = game.state.enemies.map((enemy) => ({
+      ...enemy,
+      status: "dead" as const,
+      hp: 0,
+      rested: true,
+    }));
+    game.state.run.exitOpen = true;
+    game.state.player = {
+      ...game.state.player,
+      hp: 5,
+      x: stairs.x + stairs.width / 2,
+      y: stairs.y + stairs.height / 2,
+    };
+
+    const events = stepFor(game, 0.02, {});
+
+    expect(game.state.player.hp).toBe(6);
+    expect(events.some((event) => event.type === "player-healed")).toBe(true);
+
+    const full = createGame();
+    full.state.enemies = full.state.enemies.map((enemy) => ({
+      ...enemy,
+      status: "dead" as const,
+      hp: 0,
+      rested: true,
+    }));
+    full.state.run.exitOpen = true;
+    const nextStairs = full.state.floor.stairs;
+    full.state.player = {
+      ...full.state.player,
+      hp: 6,
+      x: nextStairs.x + nextStairs.width / 2,
+      y: nextStairs.y + nextStairs.height / 2,
+    };
+
+    const fullEvents = stepFor(full, 0.02, {});
+
+    expect(full.state.player.hp).toBe(6);
+    expect(fullEvents.some((event) => event.type === "player-healed")).toBe(
+      false,
+    );
   });
 });

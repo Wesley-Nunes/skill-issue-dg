@@ -15,6 +15,10 @@ declare global {
         label: string,
         timeout?: number,
       ): Chainable<DebugSnapshot>;
+      /** Leaves the title screen and waits for the run to start. */
+      startGame(): Chainable<void>;
+      /** Test-only shortcut that rests the floor and summons the Warden. */
+      summonBoss(): Chainable<DebugSnapshot>;
       /** Waits until the player dies. */
       waitForDeath(timeout?: number): Chainable<DebugSnapshot>;
       /** Walks the player toward a fixed world position. */
@@ -25,6 +29,8 @@ declare global {
       ): Chainable<void>;
       /** Walks the player into melee range of the first living melee enemy. */
       approachMelee(options?: WalkOptions): Chainable<void>;
+      /** Walks the player toward the living Floor Warden. */
+      approachBoss(options?: WalkOptions): Chainable<void>;
       /** Moves the pointer and clicks a world-space position on the canvas. */
       clickWorld(
         worldX: number,
