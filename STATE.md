@@ -10,14 +10,14 @@ This file is the canonical workflow state for the repository. It is maintained b
 | Goal | `0.5.0` portfolio release — Floor Warden and bombs, restrained audio, title/pause/death, heal-on-descent, Vercel-ready build |
 | Current SemVer ID | `0.5.0` |
 | Current task ID | `001` |
-| Active phase | `Implementation` |
-| Active agent | `programmer` (orchestrated by the main agent) |
+| Active phase | `QA passed` — push and PR pending |
+| Active agent | `orchestrator` |
 | Git branch | `feature/0.5.0-001-portfolio-release` |
-| Last accepted commit | `3d1f97a` (boss, bomb, and audio assets) |
+| Last accepted commit | `d6491e1` (QA report); implementation/test tip `d52f507` |
 | Pushed HEAD | Not pushed yet; `origin/dev` is at `90c1066` (0.4.0 merge) |
 | Pull request | Not created; PR target is `dev` (staging). Production is `main` |
 | Blocking questions remaining | `0` |
-| Overall status | `In progress` — docs/design approved, implementation underway |
+| Overall status | `Passed locally` — typecheck, 150 unit tests, build, and 20/20 Chrome e2e green from `npm ci`; branch push and PR pending |
 
 Update this snapshot whenever a value changes. Do not leave stale status after a handoff.
 
@@ -43,7 +43,7 @@ Populate these links when the version and task have been approved:
 - Task package: `docs/tasks/0.5.0/001-design.md`, `001-programmer.md`, `001-qa.md`
 - Design decisions: `design/0.5.0/design-decisions.md`
 - Implementation decision log: `programmer/0.5.0/CoT.md`
-- QA report: `qa/0.5.0/001-report.md` (pending)
+- QA report: `qa/0.5.0/001-report.md` (Passed)
 - Deployment: Vercel — `dev` is staging, `main` is production; the operator
   connects the repository in Vercel.
 
@@ -150,7 +150,9 @@ Append one entry for each meaningful phase transition:
 | 2026-11-07 | 0.4.0/001 | QA pass → Pushed, PR pending | Branch pushed; PR creation blocked because `gh`/`hub` and a GitHub token are unavailable; first hosted CI run will be checked on GitHub after the operator opens the PR | `20b99fb`, plus this state commit |
 | 2026-11-07 | 0.4.0/001 | PR pending → Merged | PR #4 merged into `dev`; `dev` is at `90c1066` | `90c1066` |
 | 2026-11-07 | 0.5.0/001 | Discovery → Docs/design approved | Operator approved the portfolio-release scope: Floor Warden + bombs, hybrid audio, Vercel (`dev` staging / `main` production), heal 2 HP on descent; assets supplied | `3d1f97a` (assets) |
-| 2026-11-07 | 0.5.0/001 | Docs/design approved → Implementation | Task package and design decisions written; implementation in progress | pending |
+| 2026-11-07 | 0.5.0/001 | Docs/design approved → Implementation | Task package and design decisions written; implementation started | `3d1f97a` |
+| 2026-11-07 | 0.5.0/001 | Implementation → QA verification | Floor Warden, bombs, audio, title/pause/death, heal-on-descent, README/Vercel delivered; 150 unit + 20 Chrome e2e; production bundle has no debug hooks | `b5de2b1`, `e522ac0`, `5a5b86b`, `a6636be`, `fa38422`, `d52f507` |
+| 2026-11-07 | 0.5.0/001 | QA verification → QA pass | Clean `npm ci`; typecheck/unit/build/e2e pass; bomb e2e flake found and fixed in `d52f507`; title/pause/boss/bomb/death visuals inspected; verdict Passed; hosted CI and Vercel pending | `d6491e1` |
 
 ## Status vocabulary
 
