@@ -180,6 +180,14 @@ image failure is.
   including `cloth1–4.ogg` and `creak2.ogg`.
 - The page makes no external network request for fonts, images, or audio.
 
+Typography sources verified on 2026-11-08:
+
+- [Grenze Gotisch — Google Fonts specimen](https://fonts.google.com/specimen/Grenze+Gotisch)
+- [Grenze Gotisch — Fontsource details and OFL attribution](https://fontsource.org/fonts/grenze-gotisch/about)
+- [SIL Open Font License 1.1](https://openfontlicense.org/open-font-license-official-text/)
+- Considered alternative: [Jacquard 12](https://fonts.google.com/specimen/Jacquard+12)
+  (OFL, pixel/needlepoint display; rejected for small-text legibility).
+
 ## 11. Deferred work
 
 Skipping the loader, rotating tips, lore text, staged status messages,
