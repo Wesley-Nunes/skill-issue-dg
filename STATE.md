@@ -10,14 +10,14 @@ This file is the canonical workflow state for the repository. It is maintained b
 | Goal | `0.6.0` boot loading screen, complete image/audio/font preload, and self-hosted display typography |
 | Current SemVer ID | `0.6.0` |
 | Current task ID | `001` |
-| Active phase | `Docs and design approved` — implementation pending |
-| Active agent | `orchestrator` |
+| Active phase | `Implementation complete` — QA verification pending |
+| Active agent | `qa` |
 | Git branch | `feature/0.6.0-001-loading-screen` |
 | Last accepted commit | `3c2f62d` (merged `0.5.0` on `dev`) |
 | Pushed HEAD | Not pushed |
 | Pull request | Not created; PR target is `dev` |
 | Blocking questions remaining | `0` |
-| Overall status | `Planned locally` — task package and design contract written; typecheck/tests not rerun for this docs-only change |
+| Overall status | `Implemented locally` — boot loading screen, full image/audio/font preload, and Grenze Gotisch integration delivered at `a627259` (log `0094c17`); typecheck, 157 unit tests, build, and 25 Chrome e2e tests pass; QA report and hosted CI pending |
 
 Update this snapshot whenever a value changes. Do not leave stale status after a handoff.
 
@@ -43,7 +43,7 @@ Populate these links when the version and task have been approved:
 - Task package: `docs/tasks/0.6.0/001-design.md`,
   `001-programmer.md`, `001-qa.md`
 - Design decisions: `design/0.6.0/design-decisions.md`
-- Implementation decision log: `programmer/0.6.0/CoT.md` (pending)
+- Implementation decision log: `programmer/0.6.0/CoT.md` (`0094c17`)
 - QA report: `qa/0.6.0/001-report.md` (pending)
 - Deployment: Vercel — `dev` is staging, `main` is production; the operator
   connects the repository in Vercel.
@@ -185,6 +185,7 @@ Append one entry for each meaningful phase transition:
 | 2026-11-07 | 0.5.0/001 | QA pass → Pushed, PR pending | Branch pushed; `origin/feature/0.5.0-001-portfolio-release` matched `5d96c0e`; PR creation blocked because `gh`/`hub` are unavailable, so the operator opens the PR against `dev`; hosted CI and Vercel remain pending | `5d96c0e`, plus this state commit |
 | 2026-11-07 | 0.5.0/001 | PR pending → Merged | PR #5 merged into `dev`; `dev` and `origin/dev` are at `3c2f62d` | `3c2f62d` |
 | 2026-11-08 | 0.6.0/001 | Discovery → Docs/design approved | Operator requested a game-styled boot loading screen, full audio preload with the images, and a matching font; approved Grenze Gotisch; task package, design contract, product overview, and state written | `4dbf903` |
+| 2026-11-08 | 0.6.0/001 | Docs/design approved → Implementation | Static boot overlay, monotonic image/audio/font progress, offline audio decode of all 41 cues, delayed input attach, self-hosted Grenze Gotisch, boot error state, and Cypress coverage delivered; 157 unit + 25 Chrome e2e tests, typecheck/build pass; QA pending | `a627259`, `0094c17` |
 
 ## Status vocabulary
 
