@@ -7,6 +7,8 @@ export interface AudioSnapshot {
   muted: boolean;
   ambient: boolean;
   bossLayers: boolean;
+  preloaded: number;
+  preloadTotal: number;
 }
 
 interface PlayOptions {
@@ -60,8 +62,11 @@ const EXPLOSIONS = [
 
 const CLOTH = ["cloth1.ogg", "cloth2.ogg", "cloth3.ogg", "cloth4.ogg"];
 
-const PRELOAD = [
-  "caverns.ogg",
+/**
+ * Every audio file the game can play. Keep the long ambient bed last so the
+ * boot bar advances through the short cues before its decode finishes.
+ */
+export const AUDIO_MANIFEST: readonly string[] = [
   "knifeSlice.ogg",
   "knifeSlice2.ogg",
   "metalClick.ogg",
@@ -72,12 +77,19 @@ const PRELOAD = [
   "doorOpen_2.ogg",
   "doorClose_3.ogg",
   "impactBell_heavy_000.ogg",
+  "impactBell_heavy_001.ogg",
+  "creak2.ogg",
   ...PUNCH,
   ...SOFT,
   ...GENERIC,
   ...GLASS,
   ...EXPLOSIONS,
+  ...CLOTH,
+  "caverns.ogg",
 ];
+
+const AUDIO_FETCH_TIMEOUT_MS = 10_000;
+const AUDIO_DECODE_TIMEOUT_MS = 10_000;
 
 function pick<T>(items: T[]): T {
   return items[Math.floor(Math.random() * items.length)] ?? items[0]!;
@@ -89,6 +101,41 @@ function clamp(value: number, min: number, max: number): number {
 
 function randomBetween(min: number, max: number): number {
   return min + Math.random() * (max - min);
+}
+
+async function fetchWithTimeout(url: string): Promise<Response> {
+  const controller = new AbortController();
+  const timer = window.setTimeout(
+    () => controller.abort(),
+    AUDIO_FETCH_TIMEOUT_MS,
+  );
+
+  try {
+    return await fetch(url, { signal: controller.signal });
+  } finally {
+    window.clearTimeout(timer);
+  }
+}
+
+async function decodeWithTimeout(
+  context: BaseAudioContext,
+  data: ArrayBuffer,
+): Promise<AudioBuffer> {
+  let timer: number | undefined;
+
+  try {
+    return await Promise.race([
+      context.decodeAudioData(data),
+      new Promise<AudioBuffer>((_, reject) => {
+        timer = window.setTimeout(
+          () => reject(new Error("Audio decode timed out.")),
+          AUDIO_DECODE_TIMEOUT_MS,
+        );
+      }),
+    ]);
+  } finally {
+    if (timer !== undefined) window.clearTimeout(timer);
+  }
 }
 
 function audioSupported(): boolean {
@@ -142,11 +189,45 @@ export class AudioManager {
       this.master = master;
       void context.resume().catch(() => undefined);
       this.startAmbient();
-      for (const file of PRELOAD) void this.load(file);
+      for (const file of AUDIO_MANIFEST) void this.load(file);
     } catch {
       this.context = null;
       this.master = null;
       this.supported = false;
+    }
+  }
+
+  /**
+   * Downloads and decodes every cue before the first gesture. Decoding uses
+   * an offline context, so no autoplay permission is required and the
+   * resulting buffers remain usable by the live context created on unlock.
+   */
+  async preload(
+    onSettled?: (file: string, loaded: boolean) => void,
+  ): Promise<void> {
+    const context = this.supported ? this.createDecodeContext() : null;
+
+    for (const file of AUDIO_MANIFEST) {
+      if (this.buffers.has(file)) {
+        onSettled?.(file, true);
+        continue;
+      }
+
+      let loaded = false;
+      if (context) {
+        try {
+          const response = await fetchWithTimeout(`${AUDIO_BASE}${file}`);
+          if (!response.ok) throw new Error(`Missing audio: ${file}`);
+          const data = await response.arrayBuffer();
+          const buffer = await decodeWithTimeout(context, data);
+          this.buffers.set(file, buffer);
+          loaded = true;
+        } catch {
+          // Optional audio: keep boot moving and let the game stay silent.
+        }
+      }
+
+      onSettled?.(file, loaded);
     }
   }
 
@@ -336,7 +417,20 @@ export class AudioManager {
       muted: this.muted,
       ambient: this.ambientSource !== null,
       bossLayers: this.bossBus !== null,
+      preloaded: this.buffers.size,
+      preloadTotal: AUDIO_MANIFEST.length,
     };
+  }
+
+  private createDecodeContext(): BaseAudioContext | null {
+    try {
+      if (typeof OfflineAudioContext === "function") {
+        return new OfflineAudioContext(1, 1, 44_100);
+      }
+    } catch {
+      // Fall through to the lazy load-on-unlock path.
+    }
+    return null;
   }
 
   private async load(file: string): Promise<AudioBuffer | null> {

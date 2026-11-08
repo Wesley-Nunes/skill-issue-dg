@@ -36,6 +36,7 @@ import {
   HEAL_PULSE_LIFE,
   VisualEffects,
 } from "./effects";
+import { displayFont } from "./fonts";
 
 const VOID_COLOR = "#0b0a0f";
 const HUD_INSET = 24;
@@ -1006,7 +1007,7 @@ export class Renderer {
 
     context.textAlign = "center";
     context.textBaseline = "bottom";
-    context.font = "13px system-ui, sans-serif";
+    context.font = displayFont(16, 600);
     context.fillStyle = EMBER;
     context.fillText(BOSS.name, cssWidth / 2, y - 4);
 
@@ -1047,7 +1048,7 @@ export class Renderer {
       context.textAlign = "center";
       context.textBaseline = "middle";
       context.fillStyle = `rgba(232, 247, 255, ${0.85 * fade})`;
-      context.font = "30px system-ui, sans-serif";
+      context.font = displayFont(30, 500);
       context.fillText(
         `Depth ${state.run.depth}`,
         cssWidth / 2,
@@ -1084,7 +1085,7 @@ export class Renderer {
     context.textBaseline = "middle";
 
     context.fillStyle = TITLE_TEXT;
-    context.font = "56px system-ui, sans-serif";
+    context.font = displayFont(56, 600);
     context.fillText("skill issue dg", centreX, titleY);
 
     context.fillStyle = SPIRIT_COLOR;
@@ -1118,7 +1119,7 @@ export class Renderer {
     context.textAlign = "center";
     context.textBaseline = "middle";
     context.fillStyle = TITLE_TEXT;
-    context.font = "36px system-ui, sans-serif";
+    context.font = displayFont(36, 600);
     context.fillText("Paused", cssWidth / 2, cssHeight / 2 - 24);
 
     context.fillStyle = "rgba(255, 255, 255, 0.8)";
@@ -1149,7 +1150,7 @@ export class Renderer {
     context.textAlign = "center";
     context.textBaseline = "middle";
     context.fillStyle = TITLE_TEXT;
-    context.font = "48px system-ui, sans-serif";
+    context.font = displayFont(48, 600);
     context.fillText("You died", centreX, centreY - 56);
 
     context.fillStyle = "rgba(255, 255, 255, 0.8)";

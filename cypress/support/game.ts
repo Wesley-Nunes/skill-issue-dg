@@ -73,9 +73,9 @@ export function fragmentPoint(enemy: DebugSnapshot["enemies"][number]) {
 /** WASD keys that move the player toward a world-space delta. */
 export function movementKeys(dx: number, dy: number): string[] {
   const keys: string[] = [];
-  if (dy < -6) keys.push("w");
-  else if (dy > 6) keys.push("s");
-  if (dx < -6) keys.push("a");
-  else if (dx > 6) keys.push("d");
+  if (dy < -2) keys.push("w");
+  else if (dy > 2) keys.push("s");
+  if (dx < -2) keys.push("a");
+  else if (dx > 2) keys.push("d");
   return keys;
 }

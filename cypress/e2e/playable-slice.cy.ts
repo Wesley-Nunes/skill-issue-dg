@@ -2,9 +2,9 @@ import { meleeTarget } from "../support/game";
 
 describe("0.1.0 playable combat slice", () => {
   beforeEach(() => {
-    cy.visit("/");
-    // The debug hook is exposed after assets load and the input listeners are
-    // attached, so this also prevents interacting with a half-booted game.
+    cy.visitGame();
+    // visitGame waits for boot, the debug hook, and the input listeners, so
+    // this also prevents interacting with a half-booted game.
     cy.startGame();
   });
 
