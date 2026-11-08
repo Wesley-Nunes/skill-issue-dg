@@ -7,7 +7,7 @@
 | Version | `0.6.0` |
 | Task ID | `001` |
 | Owning agent | `programmer` |
-| Status | `Not started` |
+| Status | `Completed` (2026-11-08) |
 | Depends on | `docs/tasks/0.6.0/001-design.md`, `design/0.6.0/design-decisions.md` |
 | Produces | Boot loading UI, full image/audio/font preload, font integration, tests, `programmer/0.6.0/CoT.md` |
 
