@@ -3,10 +3,64 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#0b0a0f" />
     <title>skill issue dg</title>
+    <link
+      rel="preload"
+      href="/assets/fonts/GrenzeGotisch-Variable.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
+    />
+    <link rel="stylesheet" href="/src/ui/styles/boot.css" />
   </head>
   <body>
     <canvas id="game"></canvas>
+
+    <div id="boot" class="boot" aria-busy="true">
+      <main class="boot__content">
+        <h1 class="boot__title">skill issue dg</h1>
+        <div class="boot__rule" aria-hidden="true"></div>
+        <p class="boot__tagline">A dark-fantasy action roguelike</p>
+
+        <div
+          class="boot__progress"
+          role="progressbar"
+          aria-label="Loading game assets"
+          aria-valuemin="0"
+          aria-valuemax="100"
+          aria-valuenow="0"
+        >
+          <div class="boot__fill"></div>
+        </div>
+
+        <div class="boot__meta">
+          <span class="boot__status">Preparing the descent…</span>
+          <span class="boot__percent" aria-hidden="true">0%</span>
+        </div>
+
+        <div class="boot__error" role="alert" hidden>
+          <p class="boot__error-title">The descent could not begin.</p>
+          <pre class="boot-error"></pre>
+          <p class="boot__error-hint">Reload to try again.</p>
+        </div>
+
+        <span class="boot__live sr-only" role="status" aria-live="polite"></span>
+      </main>
+
+      <div class="boot__motes" aria-hidden="true">
+        <span class="boot__mote"></span>
+        <span class="boot__mote"></span>
+        <span class="boot__mote"></span>
+        <span class="boot__mote"></span>
+        <span class="boot__mote boot__mote--ember"></span>
+      </div>
+    </div>
+
+    <noscript>
+      <p class="boot-noscript">This game requires JavaScript.</p>
+    </noscript>
+
     <script type="module" src="/src/index.ts"></script>
   </body>
 </html>

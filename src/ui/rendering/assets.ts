@@ -40,11 +40,14 @@ async function loadImage(file: string): Promise<HTMLImageElement> {
  * Loads frames one at a time. Requesting every frame at once intermittently
  * aborts a response, which surfaces as an undecodable image during boot.
  */
-export async function loadAssets(): Promise<AssetMap> {
+export async function loadAssets(
+  onSettled?: (file: string) => void,
+): Promise<AssetMap> {
   const assets: AssetMap = new Map();
 
   for (const file of ALL_SPRITE_FILES) {
     assets.set(file, await loadImage(file));
+    onSettled?.(file);
   }
 
   return assets;

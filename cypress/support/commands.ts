@@ -11,15 +11,18 @@ import {
 const DEFAULT_STOP = 28;
 const DEFAULT_WALK_TIMEOUT = 15_000;
 const DEFAULT_STATE_TIMEOUT = 10_000;
+const DEFAULT_BOOT_TIMEOUT = 30_000;
 const DEFAULT_DEATH_TIMEOUT = 30_000;
 const MOVE_STEP_MS = 120;
 
 /**
  * Walks the player toward a target that may move between steps.
  *
- * The game only samples input on animation frames, so the key hold uses a
- * short real-time wait. That wait is the simulated input duration, not a
- * synchronization delay; all state checks go through `cy.gameSnapshot()`.
+ * The game only samples input on animation frames, so a one-shot key tap can
+ * fall between frames when Cypress commands are slow. The tracked keys stay
+ * held across polls and are only released when the direction changes, so the
+ * player keeps moving while the next snapshot is fetched. All state checks go
+ * through `cy.gameSnapshot()`.
  */
 function walkToTarget(
   getTarget: (snapshot: DebugSnapshot) => { x: number; y: number },
@@ -28,10 +31,17 @@ function walkToTarget(
   const stop = options.stop ?? DEFAULT_STOP;
   const timeout = options.timeout ?? DEFAULT_WALK_TIMEOUT;
   const deadline = Date.now() + timeout;
+  let held: string[] = [];
+
+  const release = (): void => {
+    held.forEach((key) => cy.document().trigger("keyup", { key }));
+    held = [];
+  };
 
   const step = (): void => {
     cy.gameSnapshot().then((snapshot) => {
       if (snapshot.status !== "playing") {
+        release();
         throw new Error(
           `walkTo stopped because the run is ${snapshot.status} at player ` +
             `(${snapshot.player.x.toFixed(1)}, ${snapshot.player.y.toFixed(1)})`,
@@ -45,6 +55,7 @@ function walkToTarget(
       if (Math.hypot(dx, dy) < stop) {
         // The aim pointer is stored in screen space, so let the camera stop
         // before the caller aims at a world position.
+        release();
         if (cameraSettled(snapshot)) return;
         cy.waitForGame(
           cameraSettled,
@@ -55,6 +66,7 @@ function walkToTarget(
       }
 
       if (Date.now() >= deadline) {
+        release();
         throw new Error(
           `walkTo timed out after ${timeout}ms at player ` +
             `(${snapshot.player.x.toFixed(1)}, ${snapshot.player.y.toFixed(1)}) ` +
@@ -63,13 +75,20 @@ function walkToTarget(
       }
 
       const keys = movementKeys(dx, dy);
-      if (keys.length === 0) return;
+      if (keys.length === 0) {
+        release();
+        return;
+      }
 
-      keys.forEach((key) => cy.document().trigger("keydown", { key }));
-      cy.wait(MOVE_STEP_MS).then(() => {
-        keys.forEach((key) => cy.document().trigger("keyup", { key }));
-        step();
-      });
+      held
+        .filter((key) => !keys.includes(key))
+        .forEach((key) => cy.document().trigger("keyup", { key }));
+      keys
+        .filter((key) => !held.includes(key))
+        .forEach((key) => cy.document().trigger("keydown", { key }));
+      held = keys;
+
+      cy.wait(MOVE_STEP_MS).then(step);
     });
   };
 
@@ -88,6 +107,33 @@ Cypress.Commands.add("gameSnapshot", () => {
       }
       return win.__gameDebug.getSnapshot();
     });
+});
+
+Cypress.Commands.add(
+  "waitForBoot",
+  (check, label, timeout = DEFAULT_BOOT_TIMEOUT) => {
+    return cy
+      .window({ timeout })
+      .should((win) => {
+        const snapshot = win.__bootDebug?.getState();
+        expect(snapshot, `boot snapshot while waiting for ${label}`).to.exist;
+        expect(check(snapshot!), `waiting for ${label}`).to.equal(true);
+      })
+      .then((win) => win.__bootDebug!.getState());
+  },
+);
+
+Cypress.Commands.add("visitGame", () => {
+  cy.visit("/");
+  cy.window().should((win) => {
+    expect(win.__bootDebug, "boot debug hook").to.exist;
+  });
+  cy.waitForBoot(
+    (snapshot) => snapshot.phase === "done",
+    "boot to finish",
+    DEFAULT_BOOT_TIMEOUT,
+  );
+  cy.gameSnapshot();
 });
 
 Cypress.Commands.add(

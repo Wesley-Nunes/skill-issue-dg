@@ -1,9 +1,21 @@
 import type { DebugSnapshot } from "../../src/game/types";
+import type { BootSnapshot } from "../../src/ui/boot/screen";
 import type { ClickWorldOptions, WalkOptions } from "./game";
 
 declare global {
   namespace Cypress {
     interface Chainable {
+      /** Visits the page and waits for the boot loading screen to finish. */
+      visitGame(): Chainable<void>;
+      /**
+       * Retries until the boot snapshot satisfies the predicate, then yields
+       * the matching snapshot. The label appears in the timeout error.
+       */
+      waitForBoot(
+        check: (snapshot: BootSnapshot) => boolean,
+        label: string,
+        timeout?: number,
+      ): Chainable<BootSnapshot>;
       /** Reads the game debug snapshot, waiting for the hook to be exposed. */
       gameSnapshot(): Chainable<DebugSnapshot>;
       /**

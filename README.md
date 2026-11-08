@@ -70,6 +70,7 @@ src/
   state/        runtime state factories
   ui/
     audio/      Web Audio manager and synthesized boss layers
+    boot/       boot loading-screen progress and DOM controller
     input/      keyboard and pointer translation
     rendering/  canvas renderer and visual effects
     styles/     page styling
@@ -79,12 +80,27 @@ cypress/        end-to-end specs and shared commands
 Game rules stay independent from rendering and input. Systems are pure where
 practical; the engine coordinates them and owns the mutable run state.
 
+## Boot and font
+
+The game opens on a loading screen that reports real progress while it fetches
+all 54 sprite images, downloads and decodes every audio cue, and prepares the
+display font. The screen paints from static markup before the JavaScript
+bundle runs, then fades into the title once those assets are settled. It is
+boot-only; restart and descent do not repeat it. A missing image is a fatal
+boot error, while unavailable audio or a failed font falls back silently.
+
+Display headings use the self-hosted **Grenze Gotisch** variable font
+(SIL Open Font License 1.1). See
+[`public/assets/fonts/ATTRIBUTION.md`](public/assets/fonts/ATTRIBUTION.md).
+Small HUD values, controls, and status text stay in the system UI stack.
+
 ## Audio
 
 Concrete events use supplied CC0 sound files under `public/assets/audio/`.
 The Warden's presence, breathing, fire, voice, and magic are synthesized with
-the Web Audio API. Audio unlocks on the first user gesture, toggles with `M`,
-and never blocks play. The game is fully playable muted.
+the Web Audio API. Every cue is downloaded and decoded before play, then
+unlocked on the first user gesture, toggled with `M`, and never blocks play.
+The game is fully playable muted.
 
 See [`public/assets/audio/ATTRIBUTION.md`](public/assets/audio/ATTRIBUTION.md)
 and the DungeonTileset II attribution note under
@@ -105,13 +121,14 @@ and `main` to production; no hosting credentials live in this repository.
 
 ## Debug hooks
 
-Development and e2e builds expose `window.__gameDebug` and
-`window.__audioDebug` for Cypress. Production builds expose neither. The e2e
-bundle is built with `VITE_E2E=1`.
+Development and e2e builds expose `window.__bootDebug`, `window.__gameDebug`,
+and `window.__audioDebug` for Cypress. Production builds expose none of them.
+The e2e bundle is built with `VITE_E2E=1`.
 
 ## Scope
 
-`0.5.0` is a portfolio-ready vertical slice, not the complete MVP. The reward
+`0.6.0` adds a polished boot experience and display typography to the
+portfolio-ready `0.5.0` vertical slice; it is not the complete MVP. The reward
 loop (consumables, currency, loot, safe room/shop, meta-progression,
 difficulty scaling, multiple bosses) is deferred. See
 [`docs/about-the-project.md`](docs/about-the-project.md) for the product

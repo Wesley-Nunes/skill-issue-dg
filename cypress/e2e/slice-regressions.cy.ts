@@ -9,7 +9,7 @@ describe("0.2.0 QA verification", () => {
       exceptions.push(String(error.message));
       return false;
     });
-    cy.visit("/");
+    cy.visitGame();
     // The debug hook is exposed after assets load and the input listeners are
     // attached, so this also prevents interacting with a half-booted game.
     cy.startGame();

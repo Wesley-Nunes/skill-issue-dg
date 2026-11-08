@@ -1,7 +1,8 @@
 import type { DebugSnapshot } from "../game/types";
 import type { AudioSnapshot } from "./audio/audio";
+import type { BootSnapshot } from "./boot/screen";
 
-export type { AudioSnapshot, DebugSnapshot };
+export type { AudioSnapshot, BootSnapshot, DebugSnapshot };
 
 declare global {
   interface Window {
@@ -12,6 +13,9 @@ declare global {
     };
     __audioDebug?: {
       getState(): AudioSnapshot;
+    };
+    __bootDebug?: {
+      getState(): BootSnapshot;
     };
   }
 }

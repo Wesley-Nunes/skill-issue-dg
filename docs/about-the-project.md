@@ -127,6 +127,16 @@ Audio API. Audio is optional: the game must remain fully playable and
 readable when muted, and no gameplay state may depend on hearing a cue.
 Licenses and authors are recorded with the assets.
 
+### Typography
+
+The `0.6.0` presentation direction gives the game one self-hosted display
+typeface: **Grenze Gotisch** (SIL Open Font License 1.1, variable
+100–900). It is used for the loading title, main title, pause and death
+headings, the floor-entry banner, and the boss name. Small HUD values,
+controls, taglines, and status text remain in the system UI stack for
+legibility. The font ships under `public/assets/fonts/` with its licence
+and attribution; no third-party font CDN is used.
+
 ------------------------------------------------------------------------
 
 ## 3. Core gameplay
@@ -265,6 +275,11 @@ not removed from the product direction.
 The release also adds a title/start screen, Escape pause, a death summary,
 restrained CC0/synthesized audio with a mute toggle, and a Vercel deployment
 (`dev` staging, `main` production).
+
+The `0.6.0` presentation pass adds a boot loading screen that reports progress
+while sprite images, audio, and the display font are prepared, then fades into
+the existing title screen. It does not add a second loading screen on restart
+or descent.
 
 ### 4.2 Safe rooms
 
@@ -469,6 +484,19 @@ events, and the boss's presence layers are synthesized. Audio must unlock on
 a user gesture, must be mutable, and must never be required to understand or
 complete a gameplay state.
 
+### Boot and asset loading
+
+The game opens on a loading screen before the title. Boot waits for every
+sprite image, every audio cue used by the game, and the display font; it
+reports one monotonic progress value and only reveals the title when those
+items have settled. Images keep the existing retry-and-fail-loudly rule.
+
+Audio is downloaded during boot and decoded through a suspended Web Audio
+context where the browser allows it, then resumed on the first gesture.
+Unsupported audio, a blocked decode, or a missing audio file degrades to a
+silent but fully playable game; a missing image remains a fatal boot error.
+The loading screen is boot-only; restart and descent do not repeat it.
+
 ------------------------------------------------------------------------
 
 ## 8. Architectural direction
@@ -581,6 +609,10 @@ consumables, currency, loot, skill points, or safe room/shop. The post-death
 purchase flow and meta-progression also remain undefined. The MVP is therefore
 not complete, even though the vertical slice is portfolio-ready.
 
+The `0.6.0` presentation pass adds a boot loading screen, complete
+asset/audio preload, and display typography. It improves the first
+impression but does not close item 5; the MVP remains incomplete.
+
 ### Not required for the first MVP
 
 The following are part of the broader vision or possible future
@@ -651,7 +683,11 @@ playtesting.
 -   HUD layout and required information.
 -   Sprite animation requirements.
 -   Lighting, shadows, particles, and combat feedback.
--   Audio direction and accessibility options.
+-   Audio direction and accessibility options beyond the approved mute,
+    optional-audio, and readable-cue rules.
+-   ~~Typography for display text.~~ Resolved for the current slice:
+    Grenze Gotisch for display headings and the system UI stack for small
+    text (`0.6.0`).
 
 ### Technical implementation
 
@@ -659,7 +695,9 @@ playtesting.
 -   Collision representation for walls and entities.
 -   Spatial organization and depth-sorting rules.
 -   Game-loop timing and pause behavior.
--   Asset loading and error handling.
+-   ~~Asset loading and error handling.~~ Resolved for the current slice: a
+    boot loading screen, complete image/audio/font preload, and a fatal image
+    error state (`0.6.0`).
 -   Browser compatibility and performance targets.
 
 These are intentionally open. They should be decided when the relevant
@@ -692,6 +730,10 @@ A pragmatic implementation order is:
     purchase flow is undefined.
 9.  **Playtesting and refinement:** Tune responsiveness, difficulty,
     feedback, and the overall fight--loot--prepare loop. — **Ongoing.**
+
+The `0.6.0` presentation pass adds the boot loading screen, complete
+asset/audio preload, and approved display typography without changing this
+priority order or the gameplay loop.
 
 The order can change when implementation discoveries justify it. Keep
 the first playable slice small and testable.
