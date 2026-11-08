@@ -1,0 +1,286 @@
+@font-face {
+  font-family: "Grenze Gotisch";
+  src: url("/assets/fonts/GrenzeGotisch-Variable.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+}
+
+:root {
+  --boot-void: #0b0a0f;
+  --boot-title: #f2e9da;
+  --boot-spirit: #bfe9ff;
+  --boot-ember: #ff6a4d;
+  --boot-display: "Grenze Gotisch", system-ui, sans-serif;
+  --boot-ui: system-ui, sans-serif;
+}
+
+.boot {
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  background: var(--boot-void);
+  color: var(--boot-title);
+  font-family: var(--boot-ui);
+  cursor: default;
+  opacity: 1;
+  transition: opacity 300ms ease;
+}
+
+.boot::before {
+  position: absolute;
+  inset: 0;
+  content: "";
+  background:
+    radial-gradient(
+      ellipse 60% 45% at 50% 38%,
+      rgba(191, 233, 255, 0.09),
+      transparent 70%
+    ),
+    radial-gradient(
+      ellipse 80% 42% at 50% 108%,
+      rgba(255, 106, 77, 0.12),
+      transparent 70%
+    );
+  pointer-events: none;
+}
+
+.boot::after {
+  position: absolute;
+  inset: 0;
+  content: "";
+  box-shadow: inset 0 0 180px 40px rgba(0, 0, 0, 0.82);
+  pointer-events: none;
+}
+
+.boot--fading {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.boot__content {
+  position: relative;
+  z-index: 2;
+  width: min(560px, 86vw);
+  text-align: center;
+  transform: translateY(-2vh);
+}
+
+.boot__title {
+  margin: 0;
+  color: var(--boot-title);
+  font-family: var(--boot-display);
+  font-size: clamp(56px, 5vw, 80px);
+  font-weight: 600;
+  line-height: 0.95;
+  letter-spacing: 0;
+}
+
+.boot__rule {
+  width: 140px;
+  height: 3px;
+  margin: 22px auto 0;
+  background: var(--boot-spirit);
+  box-shadow: 0 0 18px rgba(191, 233, 255, 0.65);
+}
+
+.boot__tagline {
+  margin: 18px 0 0;
+  color: rgba(255, 255, 255, 0.48);
+  font: 14px/1.4 var(--boot-ui);
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+}
+
+.boot__progress {
+  position: relative;
+  height: 5px;
+  margin-top: 54px;
+  overflow: hidden;
+  border: 1px solid rgba(191, 233, 255, 0.28);
+  background: rgba(191, 233, 255, 0.06);
+}
+
+.boot__fill {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, #7fd6ff, #bfe9ff);
+  box-shadow: 0 0 12px rgba(191, 233, 255, 0.55);
+  transform: scaleX(0);
+  transform-origin: left center;
+  transition: transform 200ms ease-out;
+}
+
+.boot__meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  margin-top: 14px;
+  font: 12px/1.4 var(--boot-ui);
+}
+
+.boot__status {
+  color: rgba(255, 255, 255, 0.5);
+  text-align: left;
+}
+
+.boot__percent {
+  color: var(--boot-spirit);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.boot__motes {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.boot__mote {
+  position: absolute;
+  bottom: -8px;
+  left: var(--boot-mote-left);
+  width: 2px;
+  height: 2px;
+  border-radius: 50%;
+  background: var(--boot-spirit);
+  box-shadow: 0 0 8px 1px rgba(191, 233, 255, 0.6);
+  opacity: 0;
+  animation: boot-drift var(--boot-mote-duration) linear
+    var(--boot-mote-delay) infinite;
+}
+
+.boot__mote--ember {
+  background: var(--boot-ember);
+  box-shadow: 0 0 8px 1px rgba(255, 106, 77, 0.6);
+}
+
+.boot__mote:nth-child(1) {
+  --boot-mote-left: 18%;
+  --boot-mote-duration: 13s;
+  --boot-mote-delay: -2s;
+}
+
+.boot__mote:nth-child(2) {
+  --boot-mote-left: 34%;
+  --boot-mote-duration: 17s;
+  --boot-mote-delay: -8s;
+}
+
+.boot__mote:nth-child(3) {
+  --boot-mote-left: 52%;
+  --boot-mote-duration: 19s;
+  --boot-mote-delay: -4s;
+}
+
+.boot__mote:nth-child(4) {
+  --boot-mote-left: 72%;
+  --boot-mote-duration: 15s;
+  --boot-mote-delay: -11s;
+}
+
+.boot__mote:nth-child(5) {
+  --boot-mote-left: 84%;
+  --boot-mote-duration: 11s;
+  --boot-mote-delay: -6s;
+}
+
+@keyframes boot-drift {
+  0% {
+    opacity: 0;
+    transform: translateY(0);
+  }
+  12% {
+    opacity: 0.28;
+  }
+  80% {
+    opacity: 0.22;
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-105vh);
+  }
+}
+
+.boot__error {
+  display: none;
+  margin-top: 32px;
+  padding: 20px 22px;
+  border: 1px solid rgba(255, 106, 77, 0.4);
+  background: rgba(20, 10, 12, 0.75);
+  text-align: left;
+}
+
+.boot--error .boot__tagline,
+.boot--error .boot__progress,
+.boot--error .boot__meta {
+  display: none;
+}
+
+.boot--error .boot__error {
+  display: block;
+}
+
+.boot__error-title {
+  margin: 0 0 10px;
+  color: var(--boot-ember);
+  font: 600 16px/1.4 var(--boot-ui);
+}
+
+.boot__error .boot-error {
+  margin: 0;
+  padding: 0;
+  color: var(--boot-title);
+  font: 13px/1.5 ui-monospace, monospace;
+  white-space: pre-wrap;
+}
+
+.boot__error-hint {
+  margin: 14px 0 0;
+  color: rgba(255, 255, 255, 0.55);
+  font: 13px/1.5 var(--boot-ui);
+}
+
+.boot__live {
+  position: absolute;
+}
+
+.boot-noscript {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: grid;
+  place-items: center;
+  margin: 0;
+  background: var(--boot-void);
+  color: var(--boot-title);
+  font: 16px/1.5 var(--boot-ui);
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .boot__mote {
+    opacity: 0.12;
+    animation: none;
+  }
+
+  .boot__fill {
+    transition: none;
+  }
+}

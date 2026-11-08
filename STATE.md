@@ -7,17 +7,17 @@ This file is the canonical workflow state for the repository. It is maintained b
 | Field | Value |
 |---|---|
 | Project | skill issue dg |
-| Goal | `0.5.0` portfolio release — Floor Warden and bombs, restrained audio, title/pause/death, heal-on-descent, Vercel-ready build |
-| Current SemVer ID | `0.5.0` |
+| Goal | `0.6.0` boot loading screen, complete image/audio/font preload, and self-hosted display typography |
+| Current SemVer ID | `0.6.0` |
 | Current task ID | `001` |
-| Active phase | `QA passed` — push and PR pending |
-| Active agent | `orchestrator` |
-| Git branch | `feature/0.5.0-001-portfolio-release` |
-| Last accepted commit | `d6491e1` (QA report); implementation/test tip `d52f507` |
-| Pushed HEAD | Branch pushed; QA-tested commit `d6491e1`; later state-only commits are on the same remote branch |
-| Pull request | Not created; PR target is `dev` (staging). Production is `main`. `gh`/`hub` unavailable; open via the GitHub branch link |
+| Active phase | `Implementation complete` — QA verification pending |
+| Active agent | `qa` |
+| Git branch | `feature/0.6.0-001-loading-screen` |
+| Last accepted commit | `3c2f62d` (merged `0.5.0` on `dev`) |
+| Pushed HEAD | Not pushed |
+| Pull request | Not created; PR target is `dev` |
 | Blocking questions remaining | `0` |
-| Overall status | `Passed locally` — typecheck, 150 unit tests, build, and 20/20 Chrome e2e green from `npm ci`; branch push and PR pending |
+| Overall status | `Implemented locally` — boot loading screen, full image/audio/font preload, and Grenze Gotisch integration delivered at `a627259` (log `0094c17`); typecheck, 157 unit tests, build, and 25 Chrome e2e tests pass; QA report and hosted CI pending |
 
 Update this snapshot whenever a value changes. Do not leave stale status after a handoff.
 
@@ -40,12 +40,41 @@ The state manager must not invent decisions, change product scope, edit game cod
 Populate these links when the version and task have been approved:
 
 - Product overview: `docs/about-the-project.md`
-- Task package: `docs/tasks/0.5.0/001-design.md`, `001-programmer.md`, `001-qa.md`
-- Design decisions: `design/0.5.0/design-decisions.md`
-- Implementation decision log: `programmer/0.5.0/CoT.md`
-- QA report: `qa/0.5.0/001-report.md` (Passed)
+- Task package: `docs/tasks/0.6.0/001-design.md`,
+  `001-programmer.md`, `001-qa.md`
+- Design decisions: `design/0.6.0/design-decisions.md`
+- Implementation decision log: `programmer/0.6.0/CoT.md` (`0094c17`)
+- QA report: `qa/0.6.0/001-report.md` (pending)
 - Deployment: Vercel — `dev` is staging, `main` is production; the operator
   connects the repository in Vercel.
+- Prior release: `0.5.0` is merged into `dev` via PR #5 (`3c2f62d`).
+
+### Version 0.6.0 scope (operator-approved 2026-11-08)
+
+- **Deliverable:** a game-styled boot loading screen that reports real
+  progress while all boot images, audio, and the display font are prepared,
+  then fades into the existing title screen. No gameplay changes.
+- **Included:** loading overlay with title, tagline, status, progress bar,
+  percentage, ember/spirit motion, reduced-motion handling, and accessible
+  progressbar semantics; complete image/audio/font preload; audio manifest
+  covering every used cue; suspended-context preload and gesture unlock;
+  non-blocking audio failure; fatal image error state; self-hosted Grenze
+  Gotisch with OFL license and attribution; display typography on loading,
+  title, pause/death headings, floor banner, and boss name; boot debug hook
+  behind DEV/`VITE_E2E`; unit and Cypress coverage; version bump to
+  `0.6.0`.
+- **Operator decisions:** the loading screen appears before the title; audio
+  is downloaded together with the images before play; **Grenze Gotisch** is
+  the display typeface. Defaults recorded as assumptions: 700 ms minimum
+  display, 300 ms fade, static status copy `Preparing the descent…`, and
+  small HUD/control text stays in `system-ui`.
+- **Excluded:** skip control, rotating tips/lore, staged loading copy,
+  settings/volume UI, download-size optimisation, service-worker caching, a
+  loader on restart/descent, localisation, mobile/touch layout, new audio,
+  new art, gameplay, balance, and progression changes.
+- **Known consequence:** boot now waits for every used audio file and the
+  font, so the first title reveal is gated on those downloads; failures are
+  fail-soft for audio/font and fail-loud for images.
 
 ### Version 0.5.0 scope (operator-approved 2026-11-07)
 
@@ -154,6 +183,9 @@ Append one entry for each meaningful phase transition:
 | 2026-11-07 | 0.5.0/001 | Implementation → QA verification | Floor Warden, bombs, audio, title/pause/death, heal-on-descent, README/Vercel delivered; 150 unit + 20 Chrome e2e; production bundle has no debug hooks | `b5de2b1`, `e522ac0`, `5a5b86b`, `a6636be`, `fa38422`, `d52f507` |
 | 2026-11-07 | 0.5.0/001 | QA verification → QA pass | Clean `npm ci`; typecheck/unit/build/e2e pass; bomb e2e flake found and fixed in `d52f507`; title/pause/boss/bomb/death visuals inspected; verdict Passed; hosted CI and Vercel pending | `d6491e1` |
 | 2026-11-07 | 0.5.0/001 | QA pass → Pushed, PR pending | Branch pushed; `origin/feature/0.5.0-001-portfolio-release` matched `5d96c0e`; PR creation blocked because `gh`/`hub` are unavailable, so the operator opens the PR against `dev`; hosted CI and Vercel remain pending | `5d96c0e`, plus this state commit |
+| 2026-11-07 | 0.5.0/001 | PR pending → Merged | PR #5 merged into `dev`; `dev` and `origin/dev` are at `3c2f62d` | `3c2f62d` |
+| 2026-11-08 | 0.6.0/001 | Discovery → Docs/design approved | Operator requested a game-styled boot loading screen, full audio preload with the images, and a matching font; approved Grenze Gotisch; task package, design contract, product overview, and state written | `4dbf903` |
+| 2026-11-08 | 0.6.0/001 | Docs/design approved → Implementation | Static boot overlay, monotonic image/audio/font progress, offline audio decode of all 41 cues, delayed input attach, self-hosted Grenze Gotisch, boot error state, and Cypress coverage delivered; 157 unit + 25 Chrome e2e tests, typecheck/build pass; QA pending | `a627259`, `0094c17` |
 
 ## Status vocabulary
 

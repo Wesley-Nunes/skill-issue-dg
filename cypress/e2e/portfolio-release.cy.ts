@@ -1,6 +1,6 @@
 describe("0.5.0 portfolio release", () => {
   beforeEach(() => {
-    cy.visit("/");
+    cy.visitGame();
   });
 
   it("opens on the title screen and starts with Enter", () => {
