@@ -184,7 +184,7 @@ Append one entry for each meaningful phase transition:
 | 2026-11-07 | 0.5.0/001 | QA verification → QA pass | Clean `npm ci`; typecheck/unit/build/e2e pass; bomb e2e flake found and fixed in `d52f507`; title/pause/boss/bomb/death visuals inspected; verdict Passed; hosted CI and Vercel pending | `d6491e1` |
 | 2026-11-07 | 0.5.0/001 | QA pass → Pushed, PR pending | Branch pushed; `origin/feature/0.5.0-001-portfolio-release` matched `5d96c0e`; PR creation blocked because `gh`/`hub` are unavailable, so the operator opens the PR against `dev`; hosted CI and Vercel remain pending | `5d96c0e`, plus this state commit |
 | 2026-11-07 | 0.5.0/001 | PR pending → Merged | PR #5 merged into `dev`; `dev` and `origin/dev` are at `3c2f62d` | `3c2f62d` |
-| 2026-11-08 | 0.6.0/001 | Discovery → Docs/design approved | Operator requested a game-styled boot loading screen, full audio preload with the images, and a matching font; approved Grenze Gotisch; task package, design contract, product overview, and state written | Pending docs commit |
+| 2026-11-08 | 0.6.0/001 | Discovery → Docs/design approved | Operator requested a game-styled boot loading screen, full audio preload with the images, and a matching font; approved Grenze Gotisch; task package, design contract, product overview, and state written | `4dbf903` |
 
 ## Status vocabulary
 
