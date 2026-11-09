@@ -8,7 +8,8 @@
 | Task ID | `001` |
 | Owning agent | `design` |
 | Status | `Not started` |
-| Depends on | Operator-approved `0.7.0` scope (2026-11-09); `docs/about-the-project.md` §4, §5, §6; `docs/tasks/0.7.0/001-programmer.md`; `docs/tasks/0.7.0/001-qa.md` |
+| Depends on | Operator-approved `0.7.0` scope (2026-11-09); `docs/about-the-project.md` §4, §5, §6 |
+| References | `docs/tasks/0.7.0/001-programmer.md`; `docs/tasks/0.7.0/001-qa.md` |
 | Produces | `design/0.7.0/design-decisions.md` |
 
 ## Context
