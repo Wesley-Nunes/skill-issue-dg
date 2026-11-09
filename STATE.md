@@ -10,14 +10,14 @@ This file is the canonical workflow state for the repository. It is maintained b
 | Goal | `0.7.0` reward loop: skill points, safe-room shop, branching floor, and a player-summoned Warden |
 | Current SemVer ID | `0.7.0` |
 | Current task ID | `001` |
-| Active phase | `Docs discovery` — operator-approved scope; task package next |
-| Active agent | `docs` |
+| Active phase | `Design decisions` — task package ready; design decisions next |
+| Active agent | `design` |
 | Git branch | `feature/0.7.0-001-reward-loop` |
 | Last accepted commit | `60318be` (merged `0.6.0` on `dev` via PR #9) |
 | Pushed HEAD | `dev` at `60318be`; feature branch created locally |
 | Pull request | Not created; PR target is `dev` |
 | Blocking questions remaining | `0` |
-| Overall status | `0.7.0 discovery complete` — skill-point-only economy, one carried healing draught, one-time Vigor, fixed branch layout with a shop dead end, and an explicit Warden summon approved; docs task package pending |
+| Overall status | `0.7.0 docs handoff complete` — skill-point-only economy, one carried healing draught, one-time Vigor, fixed six-room branch with a safe-room shop dead end, and an explicit Warden summon approved; design now owns layout, shop, summon, HUD, feedback, and accessibility decisions |
 
 Update this snapshot whenever a value changes. Do not leave stale status after a handoff.
 
@@ -41,10 +41,14 @@ Populate these links when the version and task have been approved:
 
 - Product overview: `docs/about-the-project.md`
 - Task package: `docs/tasks/0.7.0/001-design.md`,
-  `001-programmer.md`, `001-qa.md` (pending)
+  `001-programmer.md`, `001-qa.md` (ready)
 - Design decisions: `design/0.7.0/design-decisions.md` (pending)
 - Implementation decision log: `programmer/0.7.0/CoT.md` (pending)
 - QA report: `qa/0.7.0/001-report.md` (pending)
+- Docs handoff: the three task files define the fixed six-room branch,
+  safe-room shop, skill-point economy, explicit Warden summon, HUD, feedback,
+  accessibility, and the independent QA plan; the product overview was
+  updated for the current slice and future direction.
 - Deployment: Vercel — `dev` is staging, `main` is production; the operator
   connects the repository in Vercel.
 - Prior release: `0.6.0` is merged into `dev` via PR #9 (`60318be`);
@@ -220,6 +224,7 @@ Append one entry for each meaningful phase transition:
 | 2026-11-09 | 0.6.0/001 | QA pass → Pushed, PR pending | Branch pushed; `origin/feature/0.6.0-001-loading-screen` matches `e57c7eb`; PR creation blocked because `gh`/`hub` are unavailable, so the operator opens the PR against `dev`; hosted CI and Vercel remain pending | `e57c7eb`, plus this state commit |
 | 2026-11-09 | 0.6.0/001 | PR pending → Merged | PR #9 merged into `dev`; `dev` and `origin/dev` are at `60318be` | `60318be` |
 | 2026-11-09 | 0.7.0/001 | Complete → Docs discovery | Operator approved the reward-loop scope after six discovery decisions; branch created; task package next | this state commit |
+| 2026-11-09 | 0.7.0/001 | Docs discovery → Design decisions | Reward-loop task package written; product overview updated for the fixed six-room branch, safe-room shop, explicit Warden summon, skill-point economy, MVP status, open questions, and priority 6; design owns layout, shop, summon, HUD, feedback, and accessibility decisions | this docs commit |
 
 ## Status vocabulary
 
