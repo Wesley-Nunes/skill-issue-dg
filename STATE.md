@@ -7,17 +7,17 @@ This file is the canonical workflow state for the repository. It is maintained b
 | Field | Value |
 |---|---|
 | Project | skill issue dg |
-| Goal | `0.6.0` boot loading screen, complete image/audio/font preload, and self-hosted display typography |
-| Current SemVer ID | `0.6.0` |
+| Goal | `0.7.0` reward loop: skill points, safe-room shop, branching floor, and a player-summoned Warden |
+| Current SemVer ID | `0.7.0` |
 | Current task ID | `001` |
-| Active phase | `QA passed` — branch pushed; pull request and merge pending |
-| Active agent | `orchestrator` |
-| Git branch | `feature/0.6.0-001-loading-screen` |
-| Last accepted commit | `3c2f62d` (merged `0.5.0` on `dev`) |
-| Pushed HEAD | Branch pushed; QA commit `e57c7eb` verified on `origin/feature/0.6.0-001-loading-screen`, followed by this state commit |
-| Pull request | Not created; `gh`/`hub` unavailable; PR target is `dev` |
+| Active phase | `Docs discovery` — operator-approved scope; task package next |
+| Active agent | `docs` |
+| Git branch | `feature/0.7.0-001-reward-loop` |
+| Last accepted commit | `60318be` (merged `0.6.0` on `dev` via PR #9) |
+| Pushed HEAD | `dev` at `60318be`; feature branch created locally |
+| Pull request | Not created; PR target is `dev` |
 | Blocking questions remaining | `0` |
-| Overall status | `QA passed locally` — boot loading screen, full image/audio/font preload, and Grenze Gotisch integration delivered at `a627259` (log `0094c17`); QA report at `e57c7eb`; clean `npm ci`, typecheck, 157 unit tests, build, and 27 Chrome e2e tests pass in two consecutive runs; hosted CI and merge pending |
+| Overall status | `0.7.0 discovery complete` — skill-point-only economy, one carried healing draught, one-time Vigor, fixed branch layout with a shop dead end, and an explicit Warden summon approved; docs task package pending |
 
 Update this snapshot whenever a value changes. Do not leave stale status after a handoff.
 
@@ -40,16 +40,46 @@ The state manager must not invent decisions, change product scope, edit game cod
 Populate these links when the version and task have been approved:
 
 - Product overview: `docs/about-the-project.md`
-- Task package: `docs/tasks/0.6.0/001-design.md`,
-  `001-programmer.md`, `001-qa.md`
-- Design decisions: `design/0.6.0/design-decisions.md`
-- Implementation decision log: `programmer/0.6.0/CoT.md` (`0094c17`)
-- QA report: `qa/0.6.0/001-report.md` (`e57c7eb`, verdict Passed)
+- Task package: `docs/tasks/0.7.0/001-design.md`,
+  `001-programmer.md`, `001-qa.md` (pending)
+- Design decisions: `design/0.7.0/design-decisions.md` (pending)
+- Implementation decision log: `programmer/0.7.0/CoT.md` (pending)
+- QA report: `qa/0.7.0/001-report.md` (pending)
 - Deployment: Vercel — `dev` is staging, `main` is production; the operator
   connects the repository in Vercel.
-- Prior release: `0.5.0` is merged into `dev` via PR #5 (`3c2f62d`).
+- Prior release: `0.6.0` is merged into `dev` via PR #9 (`60318be`);
+  `0.5.0` is merged into `dev` via PR #5 (`3c2f62d`).
 
-### Version 0.6.0 scope (operator-approved 2026-11-08)
+### Version 0.7.0 scope (operator-approved 2026-11-09)
+
+- **Deliverable:** close the MVP reward loop with a skill-point economy, a
+  branching floor that contains one safe-room shop, and a player-controlled
+  Warden summon. No meta-progression or persistence.
+- **Included:** skill points as the only run currency, earned by putting mobs
+  to rest; a fixed branch layout (start → first mob → left: second mob →
+  shop dead end / right: third mob → locked boss arena); a safe-room shop;
+  healing draught (2 HP for 1 point, one carried slot); Vigor (+1 max HP for
+  the run for 3 points, one-time purchase per run); explicit Warden summon
+  after all mobs are at rest; spirit remains the readiness meter; HUD skill
+  points and carried-draught state; unit and Cypress coverage; version bump
+  to `0.7.0`.
+- **Operator decisions:** skill points are the only currency; no separate
+  combo resource; the shop is a dead end off the left branch; the player may
+  shop before summoning; the shop closes once the Warden is summoned; the
+  healing draught occupies one carried slot; rewards are shop-only.
+- **Defaults recorded as assumptions:** 1 skill point per rested mob and 3
+  for the Warden; `Q` uses the draught; skill points, Vigor, and the carried
+  draught persist across floors and reset on death/restart; the Warden is
+  summoned through an explicit interaction in the unlocked boss arena.
+- **Excluded:** separate gold currency, skill tree, artifacts, random drops,
+  chests, inventory grid, shop refresh, post-death purchases,
+  meta-progression, difficulty scaling, persistence, new enemies, and new art
+  unless design proves it necessary.
+- **Known consequence:** the floor generator changes from a linear four-room
+  chain to a fixed six-room branch, and the automatic full-spirit Warden
+  summon is replaced by an explicit player action.
+
+### Version 0.6.0 scope (operator-approved 2026-11-08) — delivered, merged via PR #9
 
 - **Deliverable:** a game-styled boot loading screen that reports real
   progress while all boot images, audio, and the display font are prepared,
@@ -188,6 +218,8 @@ Append one entry for each meaningful phase transition:
 | 2026-11-08 | 0.6.0/001 | Docs/design approved → Implementation | Static boot overlay, monotonic image/audio/font progress, offline audio decode of all 41 cues, delayed input attach, self-hosted Grenze Gotisch, boot error state, and Cypress coverage delivered; 157 unit + 25 Chrome e2e tests, typecheck/build pass; QA pending | `a627259`, `0094c17` |
 | 2026-11-09 | 0.6.0/001 | QA verification → QA pass | Clean `npm ci`; typecheck/unit/build pass; 27/27 Chrome e2e in two consecutive runs; audio-404 and missing-`AudioContext` degradation tests promoted into the permanent spec; restart boot assertion added; bundle has no debug hooks or external runtime font requests; boot/title/pause/boss/death visuals inspected; verdict Passed with 0 blocking findings | `e57c7eb` |
 | 2026-11-09 | 0.6.0/001 | QA pass → Pushed, PR pending | Branch pushed; `origin/feature/0.6.0-001-loading-screen` matches `e57c7eb`; PR creation blocked because `gh`/`hub` are unavailable, so the operator opens the PR against `dev`; hosted CI and Vercel remain pending | `e57c7eb`, plus this state commit |
+| 2026-11-09 | 0.6.0/001 | PR pending → Merged | PR #9 merged into `dev`; `dev` and `origin/dev` are at `60318be` | `60318be` |
+| 2026-11-09 | 0.7.0/001 | Complete → Docs discovery | Operator approved the reward-loop scope after six discovery decisions; branch created; task package next | this state commit |
 
 ## Status vocabulary
 
