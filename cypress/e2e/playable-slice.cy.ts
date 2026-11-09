@@ -179,6 +179,7 @@ describe("0.1.0 playable combat slice", () => {
       "the run to restart",
       5000,
     ).then((restarted) => {
+      cy.get("#boot").should("not.exist");
       expect(restarted.status).to.equal("playing");
       expect(restarted.player.hp).to.equal(6);
       expect(restarted.enemies).to.have.length(3);
