@@ -263,8 +263,8 @@ room and corridor rules, floor themes, and difficulty scaling are open.
 
 #### Current slice: `0.7.0`
 
-The current dungeon slice uses a fixed six-room branch, generated from a seed
-with varying room sizes, gaps, and decoration. The player starts in the first
+The current dungeon slice uses a fixed six-room branch, generated from a seed;
+room sizes, gaps, and decoration may vary. The player starts in the first
 room and follows a single corridor to the first mob room, then reaches a
 junction. The left branch leads to the second mob room and a shop dead end.
 The right branch leads to the third mob room and a boss arena whose gate stays
@@ -713,9 +713,9 @@ playtesting.
 ### Dungeon generation and progression
 
 -   ~~How rooms and corridors are generated and connected.~~ Resolved for
-    the current slice: a fixed six-room branch with seeded room sizes, gaps,
-    and decoration (`0.7.0`). A general graph/pathfinding generator remains
-    future work.
+    the current slice: a fixed six-room branch; seeded room sizes, gaps, and
+    decoration may vary (`0.7.0`). A general graph/pathfinding generator
+    remains future work.
 -   ~~How the player finds the exit to the next floor.~~ Resolved for the
     current slice: stairs in the boss arena, opened by defeating the Warden
     (`0.4.0`/`0.5.0`/`0.7.0`).
