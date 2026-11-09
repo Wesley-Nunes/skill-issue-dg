@@ -10,14 +10,14 @@ This file is the canonical workflow state for the repository. It is maintained b
 | Goal | `0.6.0` boot loading screen, complete image/audio/font preload, and self-hosted display typography |
 | Current SemVer ID | `0.6.0` |
 | Current task ID | `001` |
-| Active phase | `Implementation complete` — QA verification pending |
-| Active agent | `qa` |
+| Active phase | `QA passed` — branch pushed; pull request and merge pending |
+| Active agent | `orchestrator` |
 | Git branch | `feature/0.6.0-001-loading-screen` |
 | Last accepted commit | `3c2f62d` (merged `0.5.0` on `dev`) |
-| Pushed HEAD | Not pushed |
-| Pull request | Not created; PR target is `dev` |
+| Pushed HEAD | Branch pushed; QA commit `e57c7eb` verified on `origin/feature/0.6.0-001-loading-screen`, followed by this state commit |
+| Pull request | Not created; `gh`/`hub` unavailable; PR target is `dev` |
 | Blocking questions remaining | `0` |
-| Overall status | `Implemented locally` — boot loading screen, full image/audio/font preload, and Grenze Gotisch integration delivered at `a627259` (log `0094c17`); typecheck, 157 unit tests, build, and 25 Chrome e2e tests pass; QA report and hosted CI pending |
+| Overall status | `QA passed locally` — boot loading screen, full image/audio/font preload, and Grenze Gotisch integration delivered at `a627259` (log `0094c17`); QA report at `e57c7eb`; clean `npm ci`, typecheck, 157 unit tests, build, and 27 Chrome e2e tests pass in two consecutive runs; hosted CI and merge pending |
 
 Update this snapshot whenever a value changes. Do not leave stale status after a handoff.
 
@@ -44,7 +44,7 @@ Populate these links when the version and task have been approved:
   `001-programmer.md`, `001-qa.md`
 - Design decisions: `design/0.6.0/design-decisions.md`
 - Implementation decision log: `programmer/0.6.0/CoT.md` (`0094c17`)
-- QA report: `qa/0.6.0/001-report.md` (pending)
+- QA report: `qa/0.6.0/001-report.md` (`e57c7eb`, verdict Passed)
 - Deployment: Vercel — `dev` is staging, `main` is production; the operator
   connects the repository in Vercel.
 - Prior release: `0.5.0` is merged into `dev` via PR #5 (`3c2f62d`).
@@ -186,6 +186,8 @@ Append one entry for each meaningful phase transition:
 | 2026-11-07 | 0.5.0/001 | PR pending → Merged | PR #5 merged into `dev`; `dev` and `origin/dev` are at `3c2f62d` | `3c2f62d` |
 | 2026-11-08 | 0.6.0/001 | Discovery → Docs/design approved | Operator requested a game-styled boot loading screen, full audio preload with the images, and a matching font; approved Grenze Gotisch; task package, design contract, product overview, and state written | `4dbf903` |
 | 2026-11-08 | 0.6.0/001 | Docs/design approved → Implementation | Static boot overlay, monotonic image/audio/font progress, offline audio decode of all 41 cues, delayed input attach, self-hosted Grenze Gotisch, boot error state, and Cypress coverage delivered; 157 unit + 25 Chrome e2e tests, typecheck/build pass; QA pending | `a627259`, `0094c17` |
+| 2026-11-09 | 0.6.0/001 | QA verification → QA pass | Clean `npm ci`; typecheck/unit/build pass; 27/27 Chrome e2e in two consecutive runs; audio-404 and missing-`AudioContext` degradation tests promoted into the permanent spec; restart boot assertion added; bundle has no debug hooks or external runtime font requests; boot/title/pause/boss/death visuals inspected; verdict Passed with 0 blocking findings | `e57c7eb` |
+| 2026-11-09 | 0.6.0/001 | QA pass → Pushed, PR pending | Branch pushed; `origin/feature/0.6.0-001-loading-screen` matches `e57c7eb`; PR creation blocked because `gh`/`hub` are unavailable, so the operator opens the PR against `dev`; hosted CI and Vercel remain pending | `e57c7eb`, plus this state commit |
 
 ## Status vocabulary
 

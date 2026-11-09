@@ -89,6 +89,57 @@ describe("0.6.0 boot loading screen", () => {
     });
   });
 
+  it("completes boot when an audio file fails and stays playable", () => {
+    cy.intercept("**/assets/audio/knifeSlice.ogg", {
+      statusCode: 404,
+      body: "",
+    });
+
+    cy.visitGame();
+
+    cy.window().should((win) => {
+      const boot = win.__bootDebug!.getState();
+      expect(boot.phase).to.equal("done");
+      expect(boot.audio.settled).to.equal(boot.audio.total);
+      const audio = win.__audioDebug!.getState();
+      expect(audio.preloaded).to.equal(audio.preloadTotal - 1);
+    });
+
+    cy.startGame();
+    cy.gameSnapshot().then((snapshot) => {
+      expect(snapshot.status).to.equal("playing");
+      expect(snapshot.player.hp).to.equal(6);
+    });
+  });
+
+  it("completes boot and stays playable without AudioContext", () => {
+    cy.on("window:before:load", (win) => {
+      Object.defineProperty(win, "AudioContext", {
+        configurable: true,
+        value: undefined,
+      });
+    });
+
+    cy.visitGame();
+
+    cy.window().should((win) => {
+      const boot = win.__bootDebug!.getState();
+      expect(boot.phase).to.equal("done");
+      expect(boot.audio.settled).to.equal(boot.audio.total);
+    });
+
+    cy.startGame();
+    cy.window().should((win) => {
+      const audio = win.__audioDebug!.getState();
+      expect(audio.supported).to.equal(false);
+      expect(audio.unlocked).to.equal(true);
+      expect(audio.ambient).to.equal(false);
+    });
+    cy.gameSnapshot().then((snapshot) => {
+      expect(snapshot.status).to.equal("playing");
+    });
+  });
+
   it("does not replay the loader after boot, pause or resume", () => {
     cy.visitGame();
     cy.startGame();
