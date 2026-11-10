@@ -62,11 +62,12 @@ export function createEnemy(spawn: EnemySpawn): Enemy {
     respawn: 0,
     attackKind: null,
     bombCooldown: 0,
+    emerging: 0,
   };
 }
 
 /** Creates the Floor Warden at its floor spawn. */
-export function createBoss(floor: Floor): Enemy {
+export function createBoss(floor: Floor, emerging = 0): Enemy {
   return {
     id: "floor-warden",
     kind: "boss",
@@ -92,6 +93,7 @@ export function createBoss(floor: Floor): Enemy {
     respawn: 0,
     attackKind: null,
     bombCooldown: BOSS.bombCooldown,
+    emerging,
   };
 }
 
@@ -126,6 +128,18 @@ export function createInitialState(
       floorPurified: false,
       bossAwake: false,
       exitOpen: false,
+      gateOpenedAt: null,
+      shopClosed: false,
+      skillPoints: 0,
+      draughtCarried: false,
+      vigorPurchased: false,
+    },
+    shop: {
+      open: false,
+      selection: 0,
+      message: null,
+      tone: "success",
+      messageAt: 0,
     },
   };
 }

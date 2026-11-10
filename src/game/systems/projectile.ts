@@ -1,6 +1,6 @@
 import { PROJECTILE } from "../data/config";
 import { isCircleWalkable } from "../data/floor";
-import type { Floor, Player, Projectile, Vec2 } from "../types";
+import type { Floor, Player, Projectile, Rect, Vec2 } from "../types";
 
 export interface ProjectileStep {
   projectile: Projectile;
@@ -35,6 +35,7 @@ export function advanceProjectile(
   projectile: Projectile,
   dt: number,
   floor: Floor,
+  blocked: readonly Rect[] = [],
 ): ProjectileStep {
   const life = projectile.life - dt;
   const next: Projectile = {
@@ -49,6 +50,7 @@ export function advanceProjectile(
     next.x,
     next.y,
     next.radius,
+    blocked,
   );
 
   return { projectile: next, wallHit, expired: life <= 0 };

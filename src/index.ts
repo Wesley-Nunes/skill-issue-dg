@@ -113,6 +113,15 @@ async function start(): Promise<void> {
     window.__gameDebug = {
       getSnapshot: () => game.snapshot(),
       summonBoss: () => game.debugSummonBoss(),
+      restMobs: () => game.debugRestMobs(),
+      prepareRest: (id) => game.debugPrepareRest(id),
+      giveSkillPoints: (amount) => game.debugGiveSkillPoints(amount),
+      teleport: (x, y) => game.debugTeleport(x, y),
+      prepareRite: () => game.debugPrepareRite(),
+      weakenBoss: (hp) => game.debugWeakenBoss(hp),
+      setPlayerHp: (hp) => game.debugSetPlayerHp(hp),
+      killPlayer: () => game.debugKillPlayer(),
+      descend: () => game.debugDescend(),
     };
     window.__audioDebug = { getState: () => audio.snapshot() };
   }

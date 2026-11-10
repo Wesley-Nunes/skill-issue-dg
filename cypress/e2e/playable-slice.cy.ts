@@ -35,12 +35,23 @@ describe("0.1.0 playable combat slice", () => {
       expect(snapshot.spirit).to.equal(0);
       expect(snapshot.floorPurified).to.equal(false);
       expect(snapshot.exitOpen).to.equal(false);
+      expect(snapshot.gateOpen).to.equal(false);
+      expect(snapshot.summonAvailable).to.equal(false);
+      expect(snapshot.skillPoints).to.equal(0);
+      expect(snapshot.draughtCarried).to.equal(false);
       expect(snapshot.depth).to.equal(1);
-      expect(snapshot.floor.rooms).to.have.length(4);
+      expect(snapshot.floor.rooms).to.have.length(6);
+      expect(snapshot.floor.rooms.map((room) => room.role)).to.deep.equal([
+        "start",
+        "mob",
+        "mob",
+        "shop",
+        "mob",
+        "arena",
+      ]);
       expect(snapshot.floor.seed).to.be.a("number");
       expect(snapshot.floor.width).to.be.greaterThan(snapshot.viewport.width);
 
-      const [start, ...rest] = snapshot.floor.rooms;
       const inside = (
         point: { x: number; y: number },
         room: { x: number; y: number; width: number; height: number },
@@ -50,9 +61,15 @@ describe("0.1.0 playable combat slice", () => {
         point.y >= room.y &&
         point.y <= room.y + room.height;
 
-      expect(inside(snapshot.player, start!)).to.equal(true);
+      const start = snapshot.floor.rooms.find((room) => room.role === "start")!;
+      const mobRooms = snapshot.floor.rooms.filter(
+        (room) => room.role === "mob",
+      );
+      const arena = snapshot.floor.rooms.find((room) => room.role === "arena")!;
+
+      expect(inside(snapshot.player, start)).to.equal(true);
       snapshot.enemies.forEach((enemy, index) => {
-        expect(inside(enemy, rest[index]!)).to.equal(true);
+        expect(inside(enemy, mobRooms[index]!)).to.equal(true);
       });
       expect(
         inside(
@@ -60,44 +77,49 @@ describe("0.1.0 playable combat slice", () => {
             x: snapshot.floor.stairs.x + snapshot.floor.stairs.width / 2,
             y: snapshot.floor.stairs.y + snapshot.floor.stairs.height / 2,
           },
-          rest[rest.length - 1]!,
+          arena,
         ),
       ).to.equal(true);
     });
   });
 
   it("paints the room and the heart HUD on the canvas", () => {
-    cy.get("canvas#game").should(($canvas) => {
-      const canvas = $canvas[0] as HTMLCanvasElement;
-      const context = canvas.getContext("2d");
-      expect(context, "2d context").to.not.be.null;
-      const scale = canvas.width / canvas.clientWidth;
+    cy.gameSnapshot().then((snapshot) => {
+      cy.get("canvas#game").should(($canvas) => {
+        const canvas = $canvas[0] as HTMLCanvasElement;
+        const context = canvas.getContext("2d");
+        expect(context, "2d context").to.not.be.null;
+        const scale = canvas.width / canvas.clientWidth;
+        const playerX = (snapshot.player.x - snapshot.camera.x) * snapshot.zoom;
+        const playerY = (snapshot.player.y - snapshot.camera.y) * snapshot.zoom;
 
-      // The room floor must cover the area around the player, not the void fill.
-      const floor = context!.getImageData(
-        Math.round(canvas.width / 2 + 200),
-        Math.round(canvas.height / 2 + 100),
-        40,
-        40,
-      ).data;
-      let lit = 0;
-      for (let index = 0; index < floor.length; index += 4) {
-        if (floor[index + 3] > 0 && floor[index] > 40) lit += 1;
-      }
-      expect(lit, "lit floor pixels").to.be.greaterThan(400);
+        // The room floor must cover the area around the player, not the void
+        // fill. Sample beside the sprite so its pixels do not skew the count.
+        const floor = context!.getImageData(
+          Math.round((playerX + 60) * scale),
+          Math.round((playerY - 20) * scale),
+          Math.round(40 * scale),
+          Math.round(40 * scale),
+        ).data;
+        let lit = 0;
+        for (let index = 0; index < floor.length; index += 4) {
+          if (floor[index + 3] > 0 && floor[index] > 40) lit += 1;
+        }
+        expect(lit, "lit floor pixels").to.be.greaterThan(400);
 
-      // Three full hearts sit at the 24px HUD inset.
-      const hearts = context!.getImageData(
-        Math.round(24 * scale),
-        Math.round(24 * scale),
-        Math.round(39 * scale),
-        Math.round(36 * scale),
-      ).data;
-      let bright = 0;
-      for (let index = 0; index < hearts.length; index += 4) {
-        if (hearts[index] > 150 && hearts[index + 3] > 200) bright += 1;
-      }
-      expect(bright, "heart pixels").to.be.greaterThan(50);
+        // Three full hearts sit at the 24px HUD inset.
+        const hearts = context!.getImageData(
+          Math.round(24 * scale),
+          Math.round(24 * scale),
+          Math.round(39 * scale),
+          Math.round(36 * scale),
+        ).data;
+        let bright = 0;
+        for (let index = 0; index < hearts.length; index += 4) {
+          if (hearts[index] > 150 && hearts[index + 3] > 200) bright += 1;
+        }
+        expect(bright, "heart pixels").to.be.greaterThan(50);
+      });
     });
   });
 

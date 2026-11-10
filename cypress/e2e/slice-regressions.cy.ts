@@ -280,10 +280,14 @@ describe("0.2.0 QA verification", () => {
   });
 
   it("fires projectiles that can hit the player", () => {
-    // Walk into the ranged enemy's aggro band without entering its retreat ring.
+    // Set up the ranged enemy's aggro band in the junction corridor. The mob
+    // room centre can shift by a tile, so stand on the fixed corridor row
+    // instead of copying the enemy's y and possibly landing in a wall.
     cy.gameSnapshot().then((snapshot) => {
       const ranged = snapshot.enemies.find((enemy) => enemy.kind === "ranged");
-      cy.walkTo(ranged!.x, ranged!.y, { stop: 200 });
+      const corridorY =
+        snapshot.floor.junction.y + snapshot.floor.junction.height / 2;
+      cy.teleport(ranged!.x - 180, corridorY);
     });
 
     cy.waitForGame(

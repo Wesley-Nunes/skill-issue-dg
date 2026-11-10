@@ -1,5 +1,5 @@
 import { DODGE, PLAYER } from "../data/config";
-import type { Floor, Player, Vec2 } from "../types";
+import type { Floor, Player, Rect, Vec2 } from "../types";
 import { moveCircle } from "./collision";
 
 /** Clamps raw movement input to a unit vector so diagonals are not faster. */
@@ -15,6 +15,7 @@ export function movePlayer(
   move: Vec2,
   dt: number,
   floor: Floor,
+  blocked: readonly Rect[] = [],
 ): Player {
   const dodging = player.dodgeTime > 0;
   const direction = dodging ? player.dodgeDir : normalizeMove(move);
@@ -29,6 +30,7 @@ export function movePlayer(
     direction.x * speed * step,
     direction.y * speed * step,
     player.radius,
+    blocked,
   );
 
   return {

@@ -3,9 +3,11 @@ import {
   BOSS,
   COMBO,
   ENEMY_FADE,
+  GATE,
   MELEE,
   PLAYER,
   PURIFICATION,
+  SHOP,
   TILE,
   ZOOM,
 } from "../../game/data/config";
@@ -21,6 +23,7 @@ import {
   fragmentPosition,
   hasAllFragmentsBroken,
 } from "../../game/systems/purification";
+import { shopAvailable, shopRows } from "../../game/systems/shop";
 import type {
   Bomb,
   Enemy,
@@ -33,8 +36,10 @@ import type { AssetMap } from "./assets";
 import {
   CHAIN_BREAK_LIFE,
   EXPLOSION_LIFE,
+  FLOATING_TEXT_LIFE,
   HEAL_PULSE_LIFE,
   VisualEffects,
+  type TextTone,
 } from "./effects";
 import { displayFont } from "./fonts";
 
@@ -63,11 +68,29 @@ const EMBER_TRACK = "rgba(255, 106, 77, 0.16)";
 const EMBER_BORDER = "rgba(255, 106, 77, 0.55)";
 const TITLE_TEXT = "#f2e9da";
 const MUTED_TEXT = "rgba(255, 255, 255, 0.55)";
+const HINT_TEXT = "rgba(255, 255, 255, 0.50)";
+const SECONDARY_TEXT = "rgba(255, 255, 255, 0.70)";
 const BOSS_BAR_MAX_WIDTH = 360;
 const BOSS_BAR_HEIGHT = 10;
+const SKILL_POINTS_TOP = 112;
+const DRAUGHT_TOP = 136;
+const PANEL_BG = "rgba(11, 10, 15, 0.94)";
+const PANEL_BORDER = "rgba(191, 233, 255, 0.35)";
+const PANEL_SELECTED = "rgba(191, 233, 255, 0.08)";
+const PANEL_DIVIDER = "rgba(255, 255, 255, 0.12)";
+const STALL_WOOD = "rgba(44, 36, 34, 0.95)";
+const STALL_EDGE = "rgba(242, 233, 218, 0.18)";
+const GATE_IRON = "rgba(38, 34, 44, 0.95)";
+const GATE_HIGHLIGHT = "rgba(242, 233, 218, 0.25)";
 
 function clamp(value: number, min: number, max: number): number {
   return Math.min(Math.max(value, min), max);
+}
+
+function toneColor(tone: TextTone): string {
+  if (tone === "cyan") return SPIRIT_COLOR;
+  if (tone === "ember") return EMBER;
+  return SECONDARY_TEXT;
 }
 
 function stepDefinition(step: number) {
@@ -98,6 +121,14 @@ export class Renderer {
     };
   }
 
+  private get reducedMotion(): boolean {
+    return (
+      typeof window !== "undefined" &&
+      typeof window.matchMedia === "function" &&
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches
+    );
+  }
+
   draw(state: GameState, events: GameEvent[], muted = false): void {
     const { cssWidth, cssHeight } = this.syncSize();
     this.effects.handle(events, state);
@@ -124,6 +155,10 @@ export class Renderer {
     );
 
     context.drawImage(this.ensureBackground(state.floor), 0, 0);
+    this.drawShopDecor(state);
+    this.drawWaystone(state);
+    this.drawGate(state);
+    this.drawAltar(state);
     this.drawStairs(state);
     this.drawShadows(state);
     this.drawBossAuras(state);
@@ -137,6 +172,7 @@ export class Renderer {
     this.drawTelegraphs(state);
     this.drawSparks(state);
     this.drawExplosions(state);
+    this.drawFloatingTexts(state);
     this.drawComboGauge(state);
     this.drawAim(state);
 
@@ -144,8 +180,12 @@ export class Renderer {
     if (state.status !== "title") {
       this.drawHud(state, cssWidth, cssHeight, muted);
     }
+    this.drawBanners(state, cssWidth, cssHeight);
     this.drawFloorEntryFlash(state, cssWidth, cssHeight);
     this.drawScreenFlash(state, cssWidth, cssHeight);
+    if (state.shop.open) {
+      this.drawShopPanel(state, cssWidth, cssHeight);
+    }
 
     if (state.status === "title") {
       this.drawTitleOverlay(cssWidth, cssHeight);
@@ -235,6 +275,315 @@ export class Renderer {
     context.fillRect(0, 0, canvas.width, canvas.height);
     this.tintCache.set(key, canvas);
     return canvas;
+  }
+
+  private drawWorldLabel(
+    text: string,
+    x: number,
+    y: number,
+    color: string,
+    size = 9,
+    align: CanvasTextAlign = "center",
+  ): void {
+    const context = this.context;
+    context.font = `${size}px system-ui, sans-serif`;
+    context.textAlign = align;
+    context.textBaseline = "middle";
+    const width = context.measureText(text).width;
+    const left = align === "center" ? x - width / 2 : x;
+    context.fillStyle = "rgba(11, 10, 15, 0.80)";
+    context.fillRect(left - 3, y - size / 2 - 2, width + 6, size + 4);
+    context.strokeStyle = color;
+    context.lineWidth = 0.5;
+    context.strokeRect(left - 3, y - size / 2 - 2, width + 6, size + 4);
+    context.fillStyle = color;
+    context.fillText(text, x, y);
+    context.textAlign = "left";
+    context.textBaseline = "alphabetic";
+  }
+
+  private drawShopDecor(state: GameState): void {
+    const context = this.context;
+    const shop = state.floor.shop;
+    const closed = state.run.shopClosed;
+    const player = state.player;
+    const pulse = this.reducedMotion
+      ? 0.7
+      : 0.55 + 0.2 * (0.5 + 0.5 * Math.sin(state.time * 3));
+
+    // Safe threshold: a cyan line with rune ticks across the entrance.
+    const threshold = shop.threshold;
+    context.strokeStyle = `rgba(191, 233, 255, ${0.45 + 0.15 * pulse})`;
+    context.lineWidth = 1;
+    context.beginPath();
+    context.moveTo(threshold.x, threshold.y + threshold.height / 2);
+    context.lineTo(
+      threshold.x + threshold.width,
+      threshold.y + threshold.height / 2,
+    );
+    context.stroke();
+    for (let index = 0; index < 2; index += 1) {
+      const tickX = threshold.x + threshold.width * (0.3 + index * 0.4);
+      context.beginPath();
+      context.moveTo(tickX - 2, threshold.y + threshold.height / 2 - 3);
+      context.lineTo(tickX, threshold.y + threshold.height / 2);
+      context.lineTo(tickX + 2, threshold.y + threshold.height / 2 - 3);
+      context.stroke();
+    }
+
+    // Stall: a simple procedural counter against the west wall.
+    const stall = shop.stall;
+    context.fillStyle = STALL_WOOD;
+    context.fillRect(stall.x, stall.y, stall.width, stall.height);
+    context.strokeStyle = STALL_EDGE;
+    context.lineWidth = 1;
+    context.strokeRect(stall.x + 0.5, stall.y + 0.5, stall.width - 1, stall.height - 1);
+
+    // Awning: open stripes or a drawn-down closed band.
+    if (closed) {
+      context.fillStyle = "rgba(20, 16, 20, 0.95)";
+      context.fillRect(stall.x, stall.y, stall.width, 5);
+      context.strokeStyle = "rgba(255, 106, 77, 0.35)";
+      context.strokeRect(stall.x, stall.y, stall.width, 5);
+    } else {
+      for (let index = 0; index < 4; index += 1) {
+        context.fillStyle =
+          index % 2 === 0
+            ? "rgba(191, 233, 255, 0.30)"
+            : "rgba(242, 233, 218, 0.18)";
+        context.fillRect(stall.x + index * (stall.width / 4), stall.y, stall.width / 4, 4);
+      }
+    }
+
+    // Bottle glyph and ember lantern.
+    const bottleX = stall.x + stall.width / 2;
+    const bottleY = stall.y + stall.height / 2 + 2;
+    context.strokeStyle = closed ? "rgba(255,255,255,0.30)" : SPIRIT_COLOR;
+    context.lineWidth = 1.2;
+    context.beginPath();
+    context.moveTo(bottleX - 2, bottleY - 7);
+    context.lineTo(bottleX + 2, bottleY - 7);
+    context.lineTo(bottleX + 2, bottleY - 3);
+    context.lineTo(bottleX + 4, bottleY + 1);
+    context.lineTo(bottleX + 4, bottleY + 6);
+    context.lineTo(bottleX - 4, bottleY + 6);
+    context.lineTo(bottleX - 4, bottleY + 1);
+    context.lineTo(bottleX - 2, bottleY - 3);
+    context.closePath();
+    context.stroke();
+
+    context.fillStyle = closed
+      ? "rgba(255, 106, 77, 0.35)"
+      : `rgba(255, 106, 77, ${0.6 + 0.25 * pulse})`;
+    context.beginPath();
+    context.arc(stall.x + stall.width - 4, stall.y + 8, 2, 0, Math.PI * 2);
+    context.fill();
+
+    this.drawWorldLabel(
+      closed ? "CLOSED" : "SHOP · SAFE",
+      stall.x + stall.width / 2,
+      stall.y - 7,
+      closed ? "rgba(255, 106, 77, 0.85)" : SPIRIT_COLOR,
+      9,
+    );
+
+    const inZone =
+      player.x >= shop.interaction.x &&
+      player.x <= shop.interaction.x + shop.interaction.width &&
+      player.y >= shop.interaction.y &&
+      player.y <= shop.interaction.y + shop.interaction.height;
+    if (!inZone) return;
+
+    if (shopAvailable(state.run)) {
+      this.drawWorldLabel(
+        "[E] Browse wares",
+        stall.x + stall.width / 2,
+        stall.y - 19,
+        SPIRIT_COLOR,
+        9,
+      );
+    } else if (closed) {
+      this.drawWorldLabel(
+        "[E] Shop closed",
+        stall.x + stall.width / 2,
+        stall.y - 19,
+        "rgba(255, 255, 255, 0.55)",
+        9,
+      );
+    }
+  }
+
+  private drawWaystone(state: GameState): void {
+    const context = this.context;
+    const point = state.floor.waystone;
+
+    context.fillStyle = "rgba(24, 20, 30, 0.95)";
+    context.fillRect(point.x - 5, point.y - 3, 10, 7);
+    context.strokeStyle = "rgba(191, 233, 255, 0.35)";
+    context.lineWidth = 1;
+    context.strokeRect(point.x - 5, point.y - 3, 10, 7);
+
+    context.strokeStyle = SPIRIT_COLOR;
+    context.beginPath();
+    context.moveTo(point.x - 3, point.y);
+    context.lineTo(point.x - 6, point.y - 3);
+    context.moveTo(point.x - 3, point.y);
+    context.lineTo(point.x - 6, point.y + 3);
+    context.stroke();
+
+    context.strokeStyle = EMBER;
+    context.beginPath();
+    context.moveTo(point.x + 3, point.y);
+    context.lineTo(point.x + 6, point.y - 3);
+    context.moveTo(point.x + 3, point.y);
+    context.lineTo(point.x + 6, point.y + 3);
+    context.stroke();
+
+    this.drawWorldLabel("SHOP", point.x - 12, point.y - 10, SPIRIT_COLOR, 8);
+    this.drawWorldLabel("WARDEN", point.x + 13, point.y - 10, EMBER, 8);
+  }
+
+  private drawGate(state: GameState): void {
+    const context = this.context;
+    const gate = state.floor.gate;
+    const open = state.run.floorPurified;
+    const rested = state.enemies.filter(
+      (enemy) => enemy.kind !== "boss" && enemy.rested,
+    ).length;
+    const total = state.enemies.filter((enemy) => enemy.kind !== "boss").length;
+    const opening = !open
+      ? 0
+      : this.reducedMotion || state.run.gateOpenedAt === null
+        ? 1
+        : clamp(
+            (state.time - state.run.gateOpenedAt) / GATE.openTime,
+            0,
+            1,
+          );
+
+    if (open) {
+      context.fillStyle = `rgba(191, 233, 255, ${0.1 * opening})`;
+      context.fillRect(gate.x, gate.y, gate.width, gate.height);
+      context.strokeStyle = `rgba(191, 233, 255, ${opening})`;
+      context.lineWidth = 1.5;
+      context.beginPath();
+      context.moveTo(gate.x, gate.y);
+      context.lineTo(gate.x, gate.y + 5);
+      context.moveTo(gate.x + gate.width, gate.y);
+      context.lineTo(gate.x + gate.width, gate.y + 5);
+      context.moveTo(gate.x, gate.y + gate.height);
+      context.lineTo(gate.x, gate.y + gate.height - 5);
+      context.moveTo(gate.x + gate.width, gate.y + gate.height);
+      context.lineTo(gate.x + gate.width, gate.y + gate.height - 5);
+      context.stroke();
+    }
+
+    if (opening < 1) {
+      // The bars sink into the floor as the arena opens.
+      const sink = opening * (gate.height + 2);
+      context.save();
+      context.beginPath();
+      context.rect(gate.x, gate.y, gate.width, gate.height);
+      context.clip();
+      context.fillStyle = GATE_IRON;
+      context.fillRect(gate.x, gate.y + sink, gate.width, gate.height);
+      context.strokeStyle = GATE_HIGHLIGHT;
+      context.lineWidth = 1;
+      for (let index = 0; index < 5; index += 1) {
+        const barX = gate.x + 3 + index * ((gate.width - 6) / 4);
+        context.beginPath();
+        context.moveTo(barX, gate.y + 2 + sink);
+        context.lineTo(barX, gate.y + gate.height - 2 + sink);
+        context.stroke();
+      }
+      context.fillStyle = EMBER;
+      context.beginPath();
+      context.arc(
+        gate.x + gate.width / 2,
+        gate.y + gate.height / 2 + sink,
+        2.5,
+        0,
+        Math.PI * 2,
+      );
+      context.fill();
+      context.restore();
+    }
+
+    this.drawWorldLabel(
+      open ? "Arena open" : `Arena sealed · ${rested}/${total} at rest`,
+      gate.x + gate.width / 2,
+      gate.y - 8,
+      open ? SPIRIT_COLOR : "rgba(255, 255, 255, 0.60)",
+      9,
+    );
+  }
+
+  private drawAltar(state: GameState): void {
+    const context = this.context;
+    const altar = state.floor.altar;
+    const centreX = altar.x + altar.width / 2;
+    const centreY = altar.y + altar.height / 2;
+    const unlocked = state.run.floorPurified;
+    const summoned = state.run.bossAwake || state.run.exitOpen;
+    const pulse = this.reducedMotion
+      ? 0.75
+      : 0.55 + 0.25 * (0.5 + 0.5 * Math.sin((state.time / 2) * Math.PI * 2));
+    const color = summoned
+      ? "rgba(255, 106, 77, 0.55)"
+      : unlocked
+        ? `rgba(191, 233, 255, ${pulse})`
+        : "rgba(130, 130, 145, 0.45)";
+
+    context.strokeStyle = color;
+    context.lineWidth = 1.5;
+    context.beginPath();
+    context.arc(centreX, centreY, 13, 0, Math.PI * 2);
+    context.stroke();
+    context.beginPath();
+    context.arc(centreX, centreY, 7, 0, Math.PI * 2);
+    context.stroke();
+
+    for (let index = 0; index < 3; index += 1) {
+      const angle = (Math.PI * 2 * index) / 3 - Math.PI / 2;
+      const markX = centreX + Math.cos(angle) * 10;
+      const markY = centreY + Math.sin(angle) * 10;
+      const lit = unlocked && !summoned;
+      context.fillStyle = lit ? SPIRIT_COLOR : "rgba(130, 130, 145, 0.45)";
+      context.beginPath();
+      context.arc(markX, markY, 1.8, 0, Math.PI * 2);
+      context.fill();
+    }
+
+    if (!unlocked) {
+      context.strokeStyle = "rgba(255, 106, 77, 0.45)";
+      context.beginPath();
+      context.moveTo(centreX - 5, centreY - 9);
+      context.lineTo(centreX + 2, centreY - 2);
+      context.lineTo(centreX - 2, centreY + 4);
+      context.stroke();
+    }
+
+    if (!unlocked || summoned) return;
+    const distance = Math.hypot(
+      state.player.x - centreX,
+      state.player.y - centreY,
+    );
+    if (distance > SHOP.altarPromptRange) return;
+
+    this.drawWorldLabel(
+      "[E] Summon the Warden",
+      centreX,
+      centreY - 22,
+      SPIRIT_COLOR,
+      9,
+    );
+    this.drawWorldLabel(
+      "Closes the shop for this floor",
+      centreX,
+      centreY - 11,
+      "rgba(255, 106, 77, 0.85)",
+      8,
+    );
   }
 
   private drawStairs(state: GameState): void {
@@ -621,17 +970,93 @@ export class Renderer {
       context.stroke();
     }
 
+    const reduced = this.reducedMotion;
     for (const ring of this.effects.rings) {
       const age = state.time - ring.born;
-      if (age < 0 || age >= ring.life) continue;
-      const progress = age / ring.life;
-      const radius = ring.radius * (0.2 + 0.8 * progress);
-      context.strokeStyle = `rgba(${ring.color}, ${1 - progress})`;
+      const life = reduced ? Math.min(ring.life, 0.2) : ring.life;
+      if (age < 0 || age >= life) continue;
+      const progress = reduced ? 1 : age / ring.life;
+      const radius = reduced
+        ? ring.radius * 0.5
+        : ring.radius * (0.2 + 0.8 * progress);
+      context.strokeStyle = reduced
+        ? `rgba(${ring.color}, 0.6)`
+        : `rgba(${ring.color}, ${1 - progress})`;
       context.lineWidth = 3;
       context.beginPath();
       context.arc(ring.x, ring.y, radius, 0, Math.PI * 2);
       context.stroke();
     }
+  }
+
+  private drawFloatingTexts(state: GameState): void {
+    const context = this.context;
+    const reduced = this.reducedMotion;
+
+    for (const text of this.effects.floatingTexts) {
+      const age = state.time - text.born;
+      if (age < 0 || age >= FLOATING_TEXT_LIFE) continue;
+      const progress = age / FLOATING_TEXT_LIFE;
+      const y = reduced ? text.y : text.y - 16 * progress;
+      const alpha = reduced
+        ? age < 1
+          ? 1
+          : Math.max(0, 1 - (age - 1) / 0.2)
+        : age < 0.8
+          ? 1
+          : Math.max(0, 1 - (age - 0.8) / 0.4);
+
+      context.font = "13px system-ui, sans-serif";
+      context.textAlign = "center";
+      context.textBaseline = "middle";
+      const width = context.measureText(text.text).width;
+      const color = toneColor(text.tone);
+      context.globalAlpha = alpha;
+      context.fillStyle = "rgba(11, 10, 15, 0.80)";
+      context.fillRect(text.x - width / 2 - 4, y - 9, width + 8, 18);
+      context.strokeStyle = color;
+      context.lineWidth = 0.6;
+      context.strokeRect(text.x - width / 2 - 4, y - 9, width + 8, 18);
+      context.fillStyle = color;
+      context.fillText(text.text, text.x, y);
+      context.globalAlpha = 1;
+    }
+
+    context.textAlign = "left";
+    context.textBaseline = "alphabetic";
+  }
+
+  private drawBanners(
+    state: GameState,
+    cssWidth: number,
+    cssHeight: number,
+  ): void {
+    const context = this.context;
+    const reduced = this.reducedMotion;
+
+    for (const banner of this.effects.banners) {
+      const age = state.time - banner.born;
+      if (age < 0 || age >= banner.life) continue;
+      const fade = reduced
+        ? Math.min(1, Math.max(0, (banner.life - age) / 0.2))
+        : Math.min(1, Math.max(0, (banner.life - age) / 0.35));
+      const color = toneColor(banner.tone);
+      const y = cssHeight * 0.28;
+
+      context.textAlign = "center";
+      context.textBaseline = "middle";
+      context.font = displayFont(26, 600);
+      const width = context.measureText(banner.text).width;
+      context.globalAlpha = fade;
+      context.fillStyle = "rgba(11, 10, 15, 0.72)";
+      context.fillRect(cssWidth / 2 - width / 2 - 12, y - 20, width + 24, 40);
+      context.fillStyle = color;
+      context.fillText(banner.text, cssWidth / 2, y);
+      context.globalAlpha = 1;
+    }
+
+    context.textAlign = "left";
+    context.textBaseline = "alphabetic";
   }
 
   private drawSword(state: GameState): void {
@@ -818,7 +1243,7 @@ export class Renderer {
   }
 
   private drawAim(state: GameState): void {
-    if (state.status === "dead") return;
+    if (state.status === "dead" || state.shop.open) return;
     const context = this.context;
     const player = state.player;
     const pointer = state.pointer;
@@ -850,14 +1275,14 @@ export class Renderer {
     muted: boolean,
   ): void {
     const context = this.context;
-    const full = Math.floor(state.player.hp / 2);
-    const half = state.player.hp % 2;
+    const heartCount = Math.ceil(state.player.maxHp / 2);
 
-    for (let index = 0; index < 3; index += 1) {
+    for (let index = 0; index < heartCount; index += 1) {
+      const filled = state.player.hp - index * 2;
       const file =
-        index < full
+        filled >= 2
           ? SPRITES.heartFull
-          : index === full && half === 1
+          : filled === 1
             ? SPRITES.heartHalf
             : SPRITES.heartEmpty;
       context.drawImage(
@@ -869,7 +1294,7 @@ export class Renderer {
       );
     }
 
-    this.drawHealPulse(state);
+    this.drawHealPulse(state, heartCount);
 
     context.textAlign = "right";
     context.textBaseline = "top";
@@ -883,7 +1308,7 @@ export class Renderer {
     context.font = "13px system-ui, sans-serif";
     context.fillStyle = state.run.bossAwake
       ? EMBER
-      : state.run.exitOpen
+      : state.run.exitOpen || state.run.floorPurified
         ? SPIRIT_COLOR
         : "rgba(255, 255, 255, 0.55)";
     context.fillText(
@@ -891,7 +1316,9 @@ export class Renderer {
         ? "Boss awakened"
         : state.run.exitOpen
           ? "Stairs open"
-          : "Stairs sealed",
+          : state.run.floorPurified
+            ? "Arena open"
+            : "Arena sealed",
       cssWidth - HUD_INSET,
       HUD_INSET + 23,
     );
@@ -947,18 +1374,26 @@ export class Renderer {
       );
     }
 
+    this.drawSkillPoints(state);
+    this.drawDraught(state);
+
     if (state.run.bossAwake) {
       this.drawBossBar(state, cssWidth);
     }
 
     context.textBaseline = "bottom";
-    context.fillStyle = "rgba(255, 255, 255, 0.7)";
-    context.font = "13px system-ui, sans-serif";
+    context.fillStyle = SECONDARY_TEXT;
+    context.font = "12px system-ui, sans-serif";
     context.textAlign = "left";
     context.fillText(
-      "WASD move · Mouse aim · LMB combo · Space dodge · Esc pause · M mute · R restart",
+      "WASD move · Mouse aim · LMB combo · Space dodge",
       HUD_INSET,
-      cssHeight - HUD_INSET,
+      cssHeight - 44,
+    );
+    context.fillText(
+      "E interact · Q draught · Esc pause · M mute · R restart",
+      HUD_INSET,
+      cssHeight - 26,
     );
 
     if (muted) {
@@ -967,7 +1402,7 @@ export class Renderer {
       context.fillText(
         "Muted (M)",
         cssWidth - HUD_INSET,
-        cssHeight - HUD_INSET,
+        cssHeight - 26,
       );
     }
 
@@ -975,11 +1410,104 @@ export class Renderer {
     context.textBaseline = "alphabetic";
   }
 
-  /** A soft spirit-cyan pulse across the hearts when descent restores HP. */
-  private drawHealPulse(state: GameState): void {
+  private drawSkillPoints(state: GameState): void {
+    const context = this.context;
+    const points = state.run.skillPoints;
+    const highlight =
+      this.effects.skillPointHighlightAt !== null &&
+      state.time - this.effects.skillPointHighlightAt < 0.35;
+    const color = highlight
+      ? this.reducedMotion
+        ? "#e6f7ff"
+        : SPIRIT_COLOR
+      : points > 0
+        ? SPIRIT_COLOR
+        : "rgba(255, 255, 255, 0.45)";
+    const centreX = HUD_INSET + 5;
+    const centreY = SKILL_POINTS_TOP + 7;
+
+    context.fillStyle = points > 0 || highlight ? color : "transparent";
+    context.strokeStyle = color;
+    context.lineWidth = 1.2;
+    context.beginPath();
+    context.moveTo(centreX, centreY - 5);
+    context.lineTo(centreX + 5, centreY);
+    context.lineTo(centreX, centreY + 5);
+    context.lineTo(centreX - 5, centreY);
+    context.closePath();
+    if (points > 0 || highlight) context.fill();
+    context.stroke();
+
+    context.font = "13px system-ui, sans-serif";
+    context.fillStyle = "rgba(255, 255, 255, 0.55)";
+    context.textAlign = "left";
+    context.textBaseline = "middle";
+    context.fillText("Skill points", HUD_INSET + 16, SKILL_POINTS_TOP + 7);
+
+    context.font = "16px system-ui, sans-serif";
+    context.fillStyle = color;
+    context.textAlign = "right";
+    context.fillText(`${points}`, HUD_INSET + 130, SKILL_POINTS_TOP + 7);
+
+    context.textAlign = "left";
+    context.textBaseline = "alphabetic";
+  }
+
+  private drawDraught(state: GameState): void {
+    const context = this.context;
+    const carried = state.run.draughtCarried;
+    const color = carried ? SPIRIT_COLOR : "rgba(255, 255, 255, 0.40)";
+    const x = HUD_INSET;
+    const y = DRAUGHT_TOP;
+
+    // Flask icon.
+    context.strokeStyle = color;
+    context.lineWidth = 1.2;
+    context.beginPath();
+    context.moveTo(x + 5, y + 1);
+    context.lineTo(x + 9, y + 1);
+    context.lineTo(x + 9, y + 4);
+    context.lineTo(x + 12, y + 8);
+    context.lineTo(x + 12, y + 15);
+    context.lineTo(x + 2, y + 15);
+    context.lineTo(x + 2, y + 8);
+    context.lineTo(x + 5, y + 4);
+    context.closePath();
+    if (carried) {
+      context.fillStyle = "rgba(191, 233, 255, 0.25)";
+      context.fill();
+    }
+    context.stroke();
+
+    context.font = "13px system-ui, sans-serif";
+    context.fillStyle = carried ? TITLE_TEXT : "rgba(255, 255, 255, 0.55)";
+    context.textAlign = "left";
+    context.textBaseline = "middle";
+    context.fillText("Draught", x + 20, y + 8);
+
+    // Q keycap.
+    const keyX = x + 78;
+    context.strokeStyle = carried ? SPIRIT_COLOR : "rgba(255, 255, 255, 0.30)";
+    context.lineWidth = 1;
+    context.strokeRect(keyX, y + 1, 14, 14);
+    context.fillStyle = carried ? SPIRIT_COLOR : "rgba(255, 255, 255, 0.45)";
+    context.font = "11px system-ui, sans-serif";
+    context.textAlign = "center";
+    context.fillText("Q", keyX + 7, y + 9);
+
+    context.font = "13px system-ui, sans-serif";
+    context.textAlign = "left";
+    context.fillStyle = carried ? SPIRIT_COLOR : "rgba(255, 255, 255, 0.45)";
+    context.fillText(carried ? "Carried" : "Empty", x + 100, y + 8);
+
+    context.textBaseline = "alphabetic";
+  }
+
+  /** A soft spirit-cyan pulse across the hearts when HP is restored. */
+  private drawHealPulse(state: GameState, heartCount: number): void {
     const context = this.context;
     const width =
-      3 * (HEART_SIZE.width + HEART_GAP) - HEART_GAP;
+      heartCount * (HEART_SIZE.width + HEART_GAP) - HEART_GAP;
     for (const pulse of this.effects.healPulses) {
       const age = state.time - pulse.born;
       if (age < 0 || age >= HEAL_PULSE_LIFE) continue;
@@ -1004,7 +1532,13 @@ export class Renderer {
     const x = (cssWidth - width) / 2;
     const y = HUD_INSET + 8;
     const ratio = boss.maxHp > 0 ? clamp(boss.hp / boss.maxHp, 0, 1) : 0;
+    // The bar fades in over the first 0.3 s of the Warden's emergence.
+    const fade =
+      boss.emerging > 0
+        ? clamp((BOSS.emergence - boss.emerging) / 0.3, 0, 1)
+        : 1;
 
+    context.globalAlpha = fade;
     context.textAlign = "center";
     context.textBaseline = "bottom";
     context.font = displayFont(16, 600);
@@ -1026,6 +1560,186 @@ export class Renderer {
 
     context.textAlign = "left";
     context.textBaseline = "alphabetic";
+    context.globalAlpha = 1;
+  }
+
+  private drawShopPanel(
+    state: GameState,
+    cssWidth: number,
+    cssHeight: number,
+  ): void {
+    const context = this.context;
+    const panelWidth = Math.min(560, cssWidth - 64);
+    const panelHeight = 300;
+    const x = (cssWidth - panelWidth) / 2;
+    const y = (cssHeight - panelHeight) / 2;
+
+    context.fillStyle = "rgba(11, 10, 15, 0.62)";
+    context.fillRect(0, 0, cssWidth, cssHeight);
+
+    context.fillStyle = PANEL_BG;
+    context.fillRect(x, y, panelWidth, panelHeight);
+    context.strokeStyle = PANEL_BORDER;
+    context.lineWidth = 1;
+    context.strokeRect(x + 0.5, y + 0.5, panelWidth - 1, panelHeight - 1);
+
+    context.textAlign = "left";
+    context.textBaseline = "alphabetic";
+    context.fillStyle = TITLE_TEXT;
+    context.font = displayFont(30, 600);
+    context.fillText("Safe-room wares", x + 28, y + 42);
+
+    context.fillStyle = SPIRIT_COLOR;
+    context.fillRect(x + 28, y + 50, 120, 2);
+
+    context.textAlign = "right";
+    context.font = "14px system-ui, sans-serif";
+    context.fillStyle =
+      state.run.skillPoints > 0 ? SPIRIT_COLOR : MUTED_TEXT;
+    context.fillText(
+      `Skill points: ${state.run.skillPoints}`,
+      x + panelWidth - 28,
+      y + 34,
+    );
+    context.font = "13px system-ui, sans-serif";
+    context.fillStyle = MUTED_TEXT;
+    context.fillText(
+      `HP ${state.player.hp}/${state.player.maxHp}`,
+      x + panelWidth - 28,
+      y + 52,
+    );
+    context.textAlign = "left";
+
+    const rows = shopRows(state.run);
+    const selection = clamp(state.shop.selection, 0, Math.max(0, rows.length - 1));
+    rows.forEach((row, index) => {
+      const rowTop = y + 76 + index * 72;
+      const selected = index === selection;
+
+      if (selected) {
+        context.fillStyle = PANEL_SELECTED;
+        context.fillRect(x + 14, rowTop, panelWidth - 28, 72);
+        context.fillStyle = SPIRIT_COLOR;
+        context.fillRect(x + 14, rowTop, 3, 72);
+        context.strokeStyle = "rgba(191, 233, 255, 0.55)";
+        context.lineWidth = 1;
+        context.strokeRect(x + 14.5, rowTop + 0.5, panelWidth - 29, 71);
+        context.fillStyle = SPIRIT_COLOR;
+        context.font = "16px system-ui, sans-serif";
+        context.fillText(">", x + 24, rowTop + 42);
+      }
+
+      if (row.id === "draught") {
+        this.drawFlaskIcon(x + 50, rowTop + 36, row.affordable || row.state === "carried");
+      } else {
+        this.drawVigorIcon(x + 50, rowTop + 36);
+      }
+
+      context.textAlign = "left";
+      context.textBaseline = "alphabetic";
+      context.fillStyle = TITLE_TEXT;
+      context.font = "16px system-ui, sans-serif";
+      context.fillText(row.name, x + 78, rowTop + 28);
+
+      context.fillStyle = SECONDARY_TEXT;
+      context.font = "13px system-ui, sans-serif";
+      context.fillText(row.effect, x + 78, rowTop + 48);
+
+      context.textAlign = "right";
+      context.font = "14px system-ui, sans-serif";
+      context.fillStyle = row.affordable ? SPIRIT_COLOR : MUTED_TEXT;
+      context.fillText(
+        `${row.cost} point${row.cost === 1 ? "" : "s"}`,
+        x + panelWidth - 28,
+        rowTop + 28,
+      );
+
+      context.font = "13px system-ui, sans-serif";
+      context.fillStyle =
+        row.state === "buy"
+          ? SPIRIT_COLOR
+          : row.state === "carried"
+            ? SPIRIT_COLOR
+            : EMBER;
+      context.fillText(row.stateLabel, x + panelWidth - 28, rowTop + 48);
+
+      context.strokeStyle = PANEL_DIVIDER;
+      context.lineWidth = 1;
+      context.beginPath();
+      context.moveTo(x + 28, rowTop + 72);
+      context.lineTo(x + panelWidth - 28, rowTop + 72);
+      context.stroke();
+    });
+
+    context.strokeStyle = PANEL_DIVIDER;
+    context.lineWidth = 1;
+    context.beginPath();
+    context.moveTo(x + 28, y + 236);
+    context.lineTo(x + panelWidth - 28, y + 236);
+    context.stroke();
+
+    context.textAlign = "left";
+    context.fillStyle = HINT_TEXT;
+    context.font = "12px system-ui, sans-serif";
+    context.fillText(
+      "↑/↓ select · Enter buy · Esc close",
+      x + 28,
+      y + 258,
+    );
+
+    if (state.shop.message !== null) {
+      context.textAlign = "right";
+      context.font = "13px system-ui, sans-serif";
+      context.fillStyle =
+        state.shop.tone === "success" ? SPIRIT_COLOR : EMBER;
+      context.fillText(
+        state.shop.message,
+        x + panelWidth - 28,
+        y + 258,
+      );
+    }
+
+    context.textAlign = "left";
+    context.textBaseline = "alphabetic";
+  }
+
+  private drawFlaskIcon(x: number, y: number, filled: boolean): void {
+    const context = this.context;
+    context.strokeStyle = filled ? SPIRIT_COLOR : MUTED_TEXT;
+    context.lineWidth = 1.3;
+    context.beginPath();
+    context.moveTo(x - 4, y - 11);
+    context.lineTo(x + 4, y - 11);
+    context.lineTo(x + 4, y - 7);
+    context.lineTo(x + 9, y - 1);
+    context.lineTo(x + 9, y + 10);
+    context.lineTo(x - 9, y + 10);
+    context.lineTo(x - 9, y - 1);
+    context.lineTo(x - 4, y - 7);
+    context.closePath();
+    if (filled) {
+      context.fillStyle = "rgba(191, 233, 255, 0.22)";
+      context.fill();
+    }
+    context.stroke();
+  }
+
+  private drawVigorIcon(x: number, y: number): void {
+    const context = this.context;
+    context.strokeStyle = SPIRIT_COLOR;
+    context.lineWidth = 1.3;
+    context.beginPath();
+    context.moveTo(x, y + 10);
+    context.bezierCurveTo(x - 13, y, x - 9, y - 9, x, y - 3);
+    context.bezierCurveTo(x + 9, y - 9, x + 13, y, x, y + 10);
+    context.stroke();
+    context.beginPath();
+    context.moveTo(x, y - 9);
+    context.lineTo(x, y - 15);
+    context.moveTo(x - 3, y - 12);
+    context.lineTo(x, y - 15);
+    context.lineTo(x + 3, y - 12);
+    context.stroke();
   }
 
   private drawFloorEntryFlash(
@@ -1064,10 +1778,12 @@ export class Renderer {
     cssHeight: number,
   ): void {
     const context = this.context;
+    const reduced = this.reducedMotion;
     for (const flash of this.effects.flashes) {
       const age = state.time - flash.born;
-      if (age < 0 || age >= flash.life) continue;
-      const alpha = (1 - age / flash.life) * 0.35;
+      const life = reduced ? 0.2 : flash.life;
+      if (age < 0 || age >= life) continue;
+      const alpha = reduced ? 0.35 : (1 - age / flash.life) * 0.35;
       context.strokeStyle = `rgba(255, 92, 82, ${alpha})`;
       context.lineWidth = 28;
       context.strokeRect(0, 0, cssWidth, cssHeight);
@@ -1097,7 +1813,7 @@ export class Renderer {
 
     context.font = "14px system-ui, sans-serif";
     context.fillText(
-      "WASD move · Mouse aim · LMB combo · Space dodge · Esc pause · M mute",
+      "WASD move · Mouse aim · LMB combo · Space dodge · E interact · Q draught · Esc pause · M mute",
       centreX,
       titleY + 94,
     );

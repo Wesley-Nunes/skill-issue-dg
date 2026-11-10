@@ -1,5 +1,5 @@
 import { isCircleWalkable } from "../data/floor";
-import type { Floor, Vec2 } from "../types";
+import type { Floor, Rect, Vec2 } from "../types";
 
 /**
  * Moves a circle by a delta, resolving each axis separately so the body slides
@@ -13,6 +13,7 @@ export function moveCircle(
   dx: number,
   dy: number,
   radius: number,
+  blocked: readonly Rect[] = [],
 ): Vec2 {
   const distance = Math.hypot(dx, dy);
   const steps = Math.max(
@@ -25,10 +26,10 @@ export function moveCircle(
   let nextX = x;
   let nextY = y;
   for (let step = 0; step < steps; step += 1) {
-    if (isCircleWalkable(floor, nextX + stepX, nextY, radius)) {
+    if (isCircleWalkable(floor, nextX + stepX, nextY, radius, blocked)) {
       nextX += stepX;
     }
-    if (isCircleWalkable(floor, nextX, nextY + stepY, radius)) {
+    if (isCircleWalkable(floor, nextX, nextY + stepY, radius, blocked)) {
       nextY += stepY;
     }
   }

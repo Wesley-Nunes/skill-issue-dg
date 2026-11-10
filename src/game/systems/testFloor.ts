@@ -14,6 +14,13 @@ export function openFloor(): Floor {
     return column >= 1 && column <= 38 && row >= 2 && row <= 22;
   });
 
+  const room = {
+    x: TILE,
+    y: TILE * 2,
+    width: TILE * 38,
+    height: TILE * 21,
+  };
+
   return {
     seed: 1,
     depth: 1,
@@ -22,17 +29,21 @@ export function openFloor(): Floor {
     width: cols * TILE,
     height: rows * TILE,
     walkable,
-    rooms: [
-      {
-        x: TILE,
-        y: TILE * 2,
-        width: TILE * 38,
-        height: TILE * 21,
-      },
-    ],
+    rooms: [{ ...room, role: "start" }],
+    junction: { ...room },
     spawn: { x: 320, y: 320 },
     stairs: { x: 320, y: 320, width: 32, height: 32 },
     bossSpawn: { x: 320, y: 320 },
     enemySpawns: [],
+    gate: { x: 0, y: 0, width: 0, height: 0 },
+    altar: { x: 0, y: 0, width: 0, height: 0 },
+    shop: {
+      room: { ...room },
+      stall: { x: 0, y: 0, width: 0, height: 0 },
+      interaction: { x: 0, y: 0, width: 0, height: 0 },
+      safe: { x: 0, y: 0, width: 0, height: 0 },
+      threshold: { x: 0, y: 0, width: 0, height: 0 },
+    },
+    waystone: { x: 0, y: 0 },
   };
 }

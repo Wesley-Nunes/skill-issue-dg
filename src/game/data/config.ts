@@ -4,20 +4,30 @@ export const TILE = 16;
 export const ZOOM = 3;
 
 /**
- * First dungeon slice: a four-room chain joined by two-tile-high corridors.
- * Room sizes and gaps vary by seed; the chain keeps every floor traversable
- * without a pathfinding or graph generator.
+ * The fixed six-room branch: start, three mob rooms, a shop dead end, and the
+ * boss arena. Room anchors and roles are fixed; sizes vary by one tile and
+ * decoration varies by seed. There is no graph generator or pathfinding.
  */
 export const FLOOR = {
   cols: 96,
   rows: 30,
-  roomCount: 4,
-  roomWidth: { min: 12, max: 17 },
-  roomHeight: { min: 10, max: 14 },
-  roomGap: { min: 4, max: 6 },
+  roomCount: 6,
+  roomVariation: 1,
   corridorRows: 2,
   corridorRow: 15,
+  shopCorridorRow: 5,
+  northCorridorColumn: 47,
   margin: 2,
+} as const;
+
+/** Skill-point economy and safe-room shop tuning. */
+export const ECONOMY = {
+  pointsPerMob: 1,
+  pointsPerWarden: 3,
+  draughtCost: 1,
+  draughtHeal: 2,
+  vigorCost: 3,
+  vigorMaxHpGain: 1,
 } as const;
 
 export const PLAYER = {
@@ -107,8 +117,22 @@ export const BOSS = {
   damage: 2,
   bombCooldown: 2.6,
   bombWindup: 0.7,
+  /** Harmless emergence window after the explicit summon. */
+  emergence: 0.8,
   /** Fraction of a finisher's stagger that actually affects the boss. */
   staggerScale: 0.35,
+} as const;
+
+/** Presentation timing for the arena gate and the shop panel message. */
+export const GATE = {
+  openTime: 0.4,
+} as const;
+
+export const SHOP = {
+  /** How long a purchase message stays in the panel footer. */
+  messageTime: 2.5,
+  /** Interaction range around the altar and stall zones. */
+  altarPromptRange: 48,
 } as const;
 
 /** A thrown boss bomb: arc to the target, fuse, then a radial blast. */

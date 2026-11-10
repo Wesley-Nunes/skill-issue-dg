@@ -11,6 +11,11 @@ export class Input {
   private pauseQueued = false;
   private muteQueued = false;
   private gestureQueued = false;
+  private interactQueued = false;
+  private useDraughtQueued = false;
+  private menuUpQueued = false;
+  private menuDownQueued = false;
+  private confirmQueued = false;
 
   constructor(private readonly canvas: HTMLCanvasElement) {
     document.addEventListener("keydown", this.onKeyDown);
@@ -45,6 +50,11 @@ export class Input {
     const pause = this.pauseQueued;
     const mute = this.muteQueued;
     const gesture = this.gestureQueued;
+    const interact = this.interactQueued;
+    const useDraught = this.useDraughtQueued;
+    const menuUp = this.menuUpQueued;
+    const menuDown = this.menuDownQueued;
+    const confirm = this.confirmQueued;
     this.attackQueued = false;
     this.dodgeQueued = false;
     this.restartQueued = false;
@@ -52,6 +62,11 @@ export class Input {
     this.pauseQueued = false;
     this.muteQueued = false;
     this.gestureQueued = false;
+    this.interactQueued = false;
+    this.useDraughtQueued = false;
+    this.menuUpQueued = false;
+    this.menuDownQueued = false;
+    this.confirmQueued = false;
 
     return {
       move,
@@ -62,6 +77,11 @@ export class Input {
       start,
       pause,
       mute,
+      interact,
+      useDraught,
+      menuUp,
+      menuDown,
+      confirm,
       gesture,
       pointer,
     };
@@ -80,6 +100,7 @@ export class Input {
     }
     if (key === "enter") {
       this.startQueued = true;
+      this.confirmQueued = true;
     }
     if (key === "escape") {
       this.pauseQueued = true;
@@ -90,6 +111,20 @@ export class Input {
     }
     if (key === "r") {
       this.restartQueued = true;
+    }
+    if (key === "e") {
+      this.interactQueued = true;
+    }
+    if (key === "q") {
+      this.useDraughtQueued = true;
+    }
+    if (key === "w" || key === "arrowup") {
+      this.menuUpQueued = true;
+      if (key === "arrowup") event.preventDefault();
+    }
+    if (key === "s" || key === "arrowdown") {
+      this.menuDownQueued = true;
+      if (key === "arrowdown") event.preventDefault();
     }
   };
 

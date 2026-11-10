@@ -29,8 +29,28 @@ declare global {
       ): Chainable<DebugSnapshot>;
       /** Leaves the title screen and waits for the run to start. */
       startGame(): Chainable<void>;
+      /** Presses and releases one key on the document. */
+      pressKey(key: string): Chainable<void>;
       /** Test-only shortcut that rests the floor and summons the Warden. */
       summonBoss(): Chainable<DebugSnapshot>;
+      /** Test-only: leaves one enemy one hit from a successful rest. */
+      prepareRest(id: string): Chainable<void>;
+      /** Test-only: rests every mob and awards the normal points. */
+      restMobs(): Chainable<void>;
+      /** Test-only: grants skill points. */
+      giveSkillPoints(amount: number): Chainable<void>;
+      /** Test-only: moves the player without walking. */
+      teleport(x: number, y: number): Chainable<void>;
+      /** Test-only: unlocks the arena without summoning. */
+      prepareRite(): Chainable<void>;
+      /** Test-only: leaves the Warden one hit from defeat. */
+      weakenBoss(hp?: number): Chainable<void>;
+      /** Test-only: sets the player's current HP. */
+      setPlayerHp(hp: number): Chainable<void>;
+      /** Test-only: ends the run. */
+      killPlayer(): Chainable<void>;
+      /** Test-only: descends immediately. */
+      descend(): Chainable<void>;
       /** Waits until the player dies. */
       waitForDeath(timeout?: number): Chainable<DebugSnapshot>;
       /** Walks the player toward a fixed world position. */

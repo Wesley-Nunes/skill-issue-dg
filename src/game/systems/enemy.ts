@@ -1,5 +1,5 @@
 import { BOSS, MELEE, RANGED } from "../data/config";
-import type { Enemy, Floor, Vec2 } from "../types";
+import type { Enemy, Floor, Rect, Vec2 } from "../types";
 import { moveCircle } from "./collision";
 import { hasLineOfSight } from "./vision";
 
@@ -45,6 +45,7 @@ export function updateEnemy(
   target: Vec2,
   floor: Floor,
   dt: number,
+  blocked: readonly Rect[] = [],
 ): EnemyUpdate {
   if (enemy.status === "dead") {
     return {
@@ -82,14 +83,19 @@ export function updateEnemy(
     bombCooldown: Math.max(0, enemy.bombCooldown - dt),
   };
 
+  // The Warden is harmless while it emerges: no movement, attack, or damage.
+  if (next.kind === "boss" && next.emerging > 0) {
+    return idle({ ...next, emerging: Math.max(0, next.emerging - dt) });
+  }
+
   if (enemy.stagger > 0) {
     return idle(next);
   }
 
-  if (next.kind === "boss") return updateBoss(next, target, floor, dt);
+  if (next.kind === "boss") return updateBoss(next, target, floor, dt, blocked);
   return next.kind === "ranged"
-    ? updateRanged(next, target, floor, dt)
-    : updateMelee(next, target, floor, dt);
+    ? updateRanged(next, target, floor, dt, blocked)
+    : updateMelee(next, target, floor, dt, blocked);
 }
 
 function updateMelee(
@@ -97,6 +103,7 @@ function updateMelee(
   target: Vec2,
   floor: Floor,
   dt: number,
+  blocked: readonly Rect[],
 ): EnemyUpdate {
   let next = enemy;
   const distance = Math.hypot(target.x - next.x, target.y - next.y);
@@ -177,6 +184,7 @@ function updateMelee(
       direction.x * MELEE.speed * dt,
       direction.y * MELEE.speed * dt,
       next.radius,
+      blocked,
     );
     return {
       enemy: { ...next, x: position.x, y: position.y, moving: true },
@@ -205,6 +213,7 @@ function updateRanged(
   target: Vec2,
   floor: Floor,
   dt: number,
+  blocked: readonly Rect[],
 ): EnemyUpdate {
   let next = enemy;
   const distance = Math.hypot(target.x - next.x, target.y - next.y);
@@ -261,6 +270,7 @@ function updateRanged(
       direction.x * RANGED.speed * dt,
       direction.y * RANGED.speed * dt,
       next.radius,
+      blocked,
     );
 
     return {
@@ -298,6 +308,7 @@ function updateBoss(
   target: Vec2,
   floor: Floor,
   dt: number,
+  blocked: readonly Rect[],
 ): EnemyUpdate {
   let next = enemy;
   const distance = Math.hypot(target.x - next.x, target.y - next.y);
@@ -427,6 +438,7 @@ function updateBoss(
       direction.x * BOSS.speed * dt,
       direction.y * BOSS.speed * dt,
       next.radius,
+      blocked,
     );
     return {
       enemy: { ...next, x: position.x, y: position.y, moving: true },
