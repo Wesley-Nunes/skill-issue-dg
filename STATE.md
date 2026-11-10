@@ -10,14 +10,14 @@ This file is the canonical workflow state for the repository. It is maintained b
 | Goal | `0.7.0` reward loop: skill points, safe-room shop, branching floor, and a player-summoned Warden |
 | Current SemVer ID | `0.7.0` |
 | Current task ID | `001` |
-| Active phase | `Implementation` — design decisions complete; implementation next |
-| Active agent | `programmer` |
+| Active phase | `QA verification` — implementation delivered; independent verification next |
+| Active agent | `qa` |
 | Git branch | `feature/0.7.0-001-reward-loop` |
 | Last accepted commit | `60318be` (merged `0.6.0` on `dev` via PR #9) |
-| Pushed HEAD | `dev` at `60318be`; feature branch created locally |
+| Pushed HEAD | `dev` at `60318be`; feature branch local at `17510eb` |
 | Pull request | Not created; PR target is `dev` |
 | Blocking questions remaining | `0` |
-| Overall status | `0.7.0 design decisions complete` — skill-point-only economy, one carried healing draught, one-time Vigor, fixed six-room branch with a safe-room shop dead end, and an explicit Warden summon approved; design contract now covers layout, shop modal, summon, HUD, feedback, controls, and accessibility; implementation next |
+| Overall status | `0.7.0 implementation complete` — skill points, fixed six-room branch, safe-room shop, draught, Vigor, arena gate, explicit Warden summon, HUD/feedback, unit and e2e coverage delivered at `17510eb`; typecheck, 189 unit tests, build, and 32 Chrome e2e tests pass; QA verification next |
 
 Update this snapshot whenever a value changes. Do not leave stale status after a handoff.
 
@@ -43,7 +43,8 @@ Populate these links when the version and task have been approved:
 - Task package: `docs/tasks/0.7.0/001-design.md`,
   `001-programmer.md`, `001-qa.md` (ready)
 - Design decisions: [design/0.7.0/design-decisions.md](design/0.7.0/design-decisions.md) (complete)
-- Implementation decision log: `programmer/0.7.0/CoT.md` (pending)
+- Implementation decision log:
+  [programmer/0.7.0/CoT.md](programmer/0.7.0/CoT.md) (complete)
 - QA report: `qa/0.7.0/001-report.md` (pending)
 - Docs handoff: the three task files define the fixed six-room branch,
   safe-room shop, skill-point economy, explicit Warden summon, HUD, feedback,
@@ -226,6 +227,7 @@ Append one entry for each meaningful phase transition:
 | 2026-11-09 | 0.7.0/001 | Complete → Docs discovery | Operator approved the reward-loop scope after six discovery decisions; branch created; task package next | this state commit |
 | 2026-11-09 | 0.7.0/001 | Docs discovery → Design decisions | Reward-loop task package written; product overview updated for the fixed six-room branch, safe-room shop, explicit Warden summon, skill-point economy, MVP status, open questions, and priority 6; design owns layout, shop, summon, HUD, feedback, and accessibility decisions | this docs commit |
 | 2026-11-10 | 0.7.0/001 | Design decisions → Implementation | Design contract covers the fixed six-room branch and junction hub, canvas shop modal with every purchase state, explicit altar summon, HUD skill-point/draught/heart-row treatment, feedback, controls, accessibility, and no new art/audio; programmer next | this design commit |
+| 2026-11-10 | 0.7.0/001 | Implementation → QA verification | Skill points, fixed six-room branch, safe-room shop, draught, one-time Vigor, arena gate, explicit Warden summon, HUD/feedback, and the safe-room rule delivered; 189 unit + 32 Chrome e2e tests pass, typecheck/build pass, production bundle has no debug hooks; QA verification next | `17510eb` |
 
 ## Status vocabulary
 
