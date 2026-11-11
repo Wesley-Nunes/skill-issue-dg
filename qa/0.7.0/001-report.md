@@ -7,9 +7,10 @@
 | Version | `0.7.0` |
 | Task ID | `001` |
 | Owning agent | `qa` |
-| Status | `Passed after fix` |
-| Tested implementation (final) | `6e377d3` (`fix(ui): clear transient effects on descent`) |
-| Tested implementation (initial) | `17510eb` (`feat(game): add 0.7.0 reward loop`) |
+| Status | `Passed after fixes` |
+| Tested implementation (final) | `99787aa` (`fix(ui): remove junction waystone`) |
+| Earlier tested implementation | `6e377d3` (`fix(ui): clear transient effects on descent`) |
+| Initial implementation | `17510eb` (`feat(game): add 0.7.0 reward loop`) |
 | Implementation log | `programmer/0.7.0/CoT.md` |
 | Branch | `feature/0.7.0-001-reward-loop` |
 | Date | 2026-11-11 |
@@ -21,9 +22,9 @@
 The independent QA subagent could not start: the provider refused the child
 session at its free-usage limit. To avoid stalling the version, the
 **orchestrator performed the verification and authored this report**. The same
-orchestrator also authored the one application fix (`6e377d3`) after
-reproducing finding F1, because no programmer subagent could be started
-either.
+orchestrator also authored the two application fixes (`6e377d3`, `99787aa`)
+after reproducing finding F1 and after the operator requested the junction
+change, because no programmer subagent could be started either.
 
 This is a real reduction in independence and is not equivalent to a
 separate-agent QA pass:
@@ -111,7 +112,7 @@ Unit breakdown:
 
 | ID | Scenario | Verdict | Evidence |
 |---|---|---|---|
-| S1 | Fixed branch topology | Pass | `floor.test.ts` asserts six stable roles, fixed junction/shop/gate/altar/stairs/waystone anchors, spawn→stairs reachability on seeds 1–60, one shop entrance on seeds 1–60, no start/shop enemies, and the arena-contained boss spawn; `playable-slice.cy.ts` asserts six rooms and the role order in the live game |
+| S1 | Fixed branch topology | Pass | `floor.test.ts` asserts six stable roles, fixed junction/shop/gate/altar/stairs anchors, spawn→stairs reachability on seeds 1–60, one shop entrance on seeds 1–60, no start/shop enemies, and the arena-contained boss spawn; `playable-slice.cy.ts` asserts six rooms and the role order in the live game |
 | S2 | Arena locked | Pass | `reward-loop.cy.ts` walks to the gate before resting; `game.test.ts` "blocks the player at the arena gate until the floor is purified"; screenshots `03-gate-locked` show the barred gate and `Arena sealed · 0/3 at rest` |
 | S3 | Arena unlocked | Pass | `game.test.ts` "rests the last mob, awards a point, and unlocks the arena without summoning"; `reward-loop.cy.ts` asserts `gateOpen` with no boss; screenshots `10-gate-open` |
 | S4 | Skill points earned | Pass | Real killing blow in `reward-loop.cy.ts`; `game.test.ts` awards one point for a rest and none for a conventional kill; `enemy-rested` + `skill-points-earned` events drive the floating text and HUD highlight |
@@ -175,7 +176,7 @@ Unit breakdown:
 |---|---|---|
 | §3 Palette, typography, shape rules | Pass | Canvas captures show the existing palette/display font with cyan/ember state colours and procedural glyphs |
 | §4.1 Counted rooms and junction hub | Pass | Six counted rooms; junction is a hub, not a seventh room; screenshot `01-branch-junction` |
-| §4.2 Branch reads as a choice | Pass | Waystone chevrons and labels at the junction; screenshot `01` |
+| §4.2 Branch reads as a choice | Pass | Junction is an unmarked crossroad; the gate state label and shop sign appear only at their destinations; screenshots `junction`, `gate-label`, `shop-sign` at both sizes |
 | §4.3 Shop dead end | Pass | Single east entrance; stall, counter, and threshold drawn; screenshots `02`, `04` |
 | §4.4 Gate, altar, stairs | Pass | Bars, lock glyph, `Arena sealed · N/3 at rest` → `Arena open`; altar sigil; screenshots `03`, `10`, `11` |
 | §5 Shop interaction | Pass | Canvas modal; `E` opens near stall; `W`/`S`/arrows select; `Enter` buys; `Escape` closes without pausing; `E`/mouse ignored; `M` global (temporary edge-case spec) |
@@ -206,6 +207,11 @@ and heart row were present with no clipping or overlap. They are gitignored and
 are wiped by the next Cypress run, so copies are retained at
 `/tmp/opencode/qa-0.7.0-evidence/` for this session. The capture spec was
 removed before handoff.
+
+The original junction capture (`01-branch-junction`) is superseded by the
+post-QA amendment below. The replacement captures (`junction-1024x640`,
+`junction-1440x810`, `gate-label-*`, `shop-sign-*`) show the unmarked junction
+and confirm the two remaining contextual labels.
 
 ## Findings
 
@@ -253,6 +259,40 @@ No blocker or high findings remain open.
 5. **Visual evidence is not committed.** `cypress/screenshots/` is gitignored
    and cleared at the start of each Cypress run, matching prior versions.
 
+## Post-QA amendment — junction waystone removed (2026-11-11)
+
+**Trigger:** operator playtest found the `SHOP` / `WARDEN` world labels at the
+junction overlapping each other and the player sprite, and noted that the
+chevrons pointed left/right even though the shop route turns north then west.
+
+**Decision:** remove the waystone entirely rather than re-space the labels.
+Navigation is now discovery: the junction is an unmarked crossroad, and the
+gate state label and the `SHOP · SAFE` stall sign appear only when the player
+reaches them. This keeps the immersive intent and removes the misleading
+directions.
+
+**Change:** `99787aa` removes the `drawWaystone` call and method, the
+`waystone` field from `Floor` and `DebugSnapshot.floor`, the floor generation
+and test-floor stubs, and the fixed-anchor assertions. The design contract was
+amended in §3, §4.1, §4.2, §11, and §13, with a dated amendment note.
+
+**Re-verification:** `npm run typecheck` passes; `npm test` 190/190 in 17
+files; `npm run build` passes (82.22 kB JS / 24.69 kB gzip, no debug hooks);
+`CYPRESS_BROWSER=chrome npm run e2e` 32/32 across 5 specs in 3 m 03 s. Fresh
+exact-size captures show a clean, unmarked junction at 1024 × 640 and
+1440 × 810, and confirm the gate label (`Arena sealed · 0/3 at rest`) and the
+shop sign (`SHOP · SAFE`) still render without overlap.
+
+**Criteria impact:** design §4.2 is amended; no other acceptance criterion is
+affected. S1 and the §4.2 traceability row were updated. The verdict remains
+`Passed after fixes`.
+
+**New residual risk:** without a sign, a player who never explores the west
+dead end can summon the Warden with unspent points and lose the shop for the
+floor. Accepted for this slice because the shop sits off the second-mob room
+the player must clear; a future level-design pass should improve the sightline
+or light spill from the stall rather than reintroduce text.
+
 ## Regressions checked
 
 - `playable-slice.cy.ts` 6/6: title start, floor/room assertions, camera,
@@ -271,9 +311,9 @@ No blocker or high findings remain open.
 
 ## Residual risks
 
-- **Independence:** the QA role and the F1 fix shared one author because the QA
+- **Independence:** the QA role and both fixes shared one author because the QA
   and programmer subagents were unavailable. A truly independent review of
-  `6e377d3` has not happened.
+  `6e377d3` and `99787aa` has not happened.
 - **Hosted CI:** pending on GitHub; the first hosted run must be confirmed
   after the branch is pushed or the PR is opened.
 - **Vercel:** staging/production deployment remains pending the operator.
@@ -289,9 +329,10 @@ No blocker or high findings remain open.
 
 ## Verdict
 
-**Passed after fix.** The implementation at `6e377d3` meets the approved
+**Passed after fixes.** The implementation at `99787aa` meets the approved
 `0.7.0/001` scope, all 18 QA acceptance criteria, the programmer criteria, and
-the approved design decisions, with every local check green from a clean
-dependency state. F1 is closed and its regression test is in place. Hosted CI
-and Vercel must still be confirmed by the operator, and the independence
-limitation above must be weighed before merge.
+the amended design decisions, with every local check green from a clean
+dependency state. F1 is closed with its regression test, and the post-QA
+junction amendment was re-verified with fresh captures. Hosted CI and Vercel
+must still be confirmed by the operator, and the independence limitation above
+must be weighed before merge.
