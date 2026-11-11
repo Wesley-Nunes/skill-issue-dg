@@ -10,14 +10,14 @@ This file is the canonical workflow state for the repository. It is maintained b
 | Goal | `0.7.0` reward loop: skill points, safe-room shop, branching floor, and a player-summoned Warden |
 | Current SemVer ID | `0.7.0` |
 | Current task ID | `001` |
-| Active phase | `Ready for push and PR` — QA passed after fix and orchestrator final acceptance complete; branch local, PR draft prepared |
+| Active phase | `Ready for push and PR` — QA passed after fixes and orchestrator final acceptance complete; post-QA junction fix and combo note committed; branch local ahead of origin, PR draft prepared |
 | Active agent | `orchestrator` |
 | Git branch | `feature/0.7.0-001-reward-loop` |
 | Last accepted commit | `60318be` (merged `0.6.0` on `dev` via PR #9) |
-| Pushed HEAD | `dev` at `60318be`; feature branch local at `496e007` plus this state commit, not pushed |
+| Pushed HEAD | `origin/feature/0.7.0-001-reward-loop` at `f8b0a51`; local branch ahead at `020c178` plus this state commit, not pushed |
 | Pull request | Not created; PR target is `dev`; no `gh`/`hub` available, so the operator opens the PR |
 | Blocking questions remaining | `0` |
-| Overall status | `0.7.0 accepted, ready for PR` — implementation at `17510eb`, descent effect-leak fix at `6e377d3`, QA report at `3a91f26`, state commit follows `496e007`; clean install, typecheck, 190 unit tests, build, and 32/32 Chrome e2e pass; QA verdict `Passed after fix`; hosted CI and Vercel pending |
+| Overall status | `0.7.0 accepted, ready for PR` — implementation at `17510eb`, descent effect-leak fix at `6e377d3`, junction waystone removal at `99787aa`, combo-rework note at `b74da29`, QA report at `020c178`, state commit follows; clean install, typecheck, 190 unit tests, build, and 32/32 Chrome e2e pass; QA verdict `Passed after fixes`; hosted CI and Vercel pending |
 
 Update this snapshot whenever a value changes. Do not leave stale status after a handoff.
 
@@ -46,8 +46,9 @@ Populate these links when the version and task have been approved:
 - Implementation decision log:
   [programmer/0.7.0/CoT.md](programmer/0.7.0/CoT.md) (complete)
 - QA report: [qa/0.7.0/001-report.md](qa/0.7.0/001-report.md) (complete;
-  `Passed after fix`, F1 closed in `6e377d3`; verified by the orchestrator
-  because the QA subagent could not start)
+  `Passed after fixes`, F1 closed in `6e377d3`, junction waystone removed in
+  `99787aa`; verified by the orchestrator because the QA subagent could not
+  start)
 - Docs handoff: the three task files define the fixed six-room branch,
   safe-room shop, skill-point economy, explicit Warden summon, HUD, feedback,
   accessibility, and the independent QA plan; the product overview was
@@ -232,6 +233,7 @@ Append one entry for each meaningful phase transition:
 | 2026-11-10 | 0.7.0/001 | Implementation → QA verification | Skill points, fixed six-room branch, safe-room shop, draught, one-time Vigor, arena gate, explicit Warden summon, HUD/feedback, and the safe-room rule delivered; 189 unit + 32 Chrome e2e tests pass, typecheck/build pass, production bundle has no debug hooks; QA verification next | `17510eb` |
 | 2026-11-11 | 0.7.0/001 | QA verification → QA pass | Clean `npm ci`; typecheck, 190 unit tests, build, and 32/32 Chrome e2e (5 specs, 3 m 05 s) pass; 30 exact-size canvas captures plus a title capture inspected; F1 (old-floor effects reappearing after descent) reproduced and fixed in `6e377d3` with a regression test; verdict `Passed after fix`; QA was run by the orchestrator because the QA subagent was unavailable; hosted CI and Vercel pending | `3a91f26` (fix `6e377d3`) |
 | 2026-11-11 | 0.7.0/001 | QA pass → Ready for push and PR | Orchestrator reviewed the 37-file diff (approved scope, no asset/dependency/meta-progression changes), re-ran typecheck/unit/build/e2e, and accepted the version; branch is local at `496e007` plus this state commit; `gh`/`hub` are unavailable, so the operator pushes and opens the PR against `dev`; hosted CI and Vercel remain pending | this state commit |
+| 2026-11-11 | 0.7.0/001 | Post-QA operator fixes → Ready for push and PR | Operator playtest found the junction `SHOP`/`WARDEN` labels overlapping and the chevrons pointing the wrong way; the waystone was removed entirely (`99787aa`) and the combo rework was recorded as a known issue in the product overview (`b74da29`); QA amended and re-verified with fresh 1024 × 640 and 1440 × 810 captures (`020c178`); typecheck, 190 unit tests, build, and 32/32 Chrome e2e pass; verdict `Passed after fixes`; branch ahead of `origin` at `f8b0a51`; hosted CI and Vercel remain pending | `99787aa`, `b74da29`, `020c178`, plus this state commit |
 
 ## Status vocabulary
 
