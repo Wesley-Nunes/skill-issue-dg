@@ -351,25 +351,33 @@ export class VisualEffects {
             tone: "cyan",
           });
           break;
+        case "floor-descended":
         case "run-reset":
-          this.sparks = [];
-          this.afterimages = [];
-          this.swings = [];
-          this.chainBreaks = [];
-          this.explosions = [];
-          this.rings = [];
-          this.flashes = [];
-          this.healPulses = [];
-          this.floatingTexts = [];
-          this.banners = [];
-          this.skillPointHighlightAt = null;
-          this.lastCapture = 0;
-          this.dodgeCaptures = 0;
+          // The floor clock restarts from zero, so effects from the old floor
+          // must not survive: a future `born` time would otherwise make them
+          // reappear once the new clock catches up.
+          this.clearTransient();
           break;
         default:
           break;
       }
     }
+  }
+
+  private clearTransient(): void {
+    this.sparks = [];
+    this.afterimages = [];
+    this.swings = [];
+    this.chainBreaks = [];
+    this.explosions = [];
+    this.rings = [];
+    this.flashes = [];
+    this.healPulses = [];
+    this.floatingTexts = [];
+    this.banners = [];
+    this.skillPointHighlightAt = null;
+    this.lastCapture = 0;
+    this.dodgeCaptures = 0;
   }
 
   captureDodge(state: GameState): void {

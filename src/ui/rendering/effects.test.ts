@@ -66,6 +66,28 @@ describe("VisualEffects", () => {
     expect(effects.swings).toHaveLength(0);
   });
 
+  it("clears transient state on descent because the floor clock restarts", () => {
+    const effects = new VisualEffects();
+    const state = { ...createInitialState(), time: 12 };
+    effects.handle(
+      [
+        { type: "boss-defeated", x: 0, y: 0 },
+        { type: "skill-points-earned", amount: 3, total: 3 },
+        { type: "draught-used", x: 1, y: 2, healed: 2 },
+      ],
+      state,
+    );
+
+    effects.handle([{ type: "floor-descended", depth: 2, seed: 7 }], state);
+
+    expect(effects.sparks).toHaveLength(0);
+    expect(effects.rings).toHaveLength(0);
+    expect(effects.floatingTexts).toHaveLength(0);
+    expect(effects.banners).toHaveLength(0);
+    expect(effects.healPulses).toHaveLength(0);
+    expect(effects.skillPointHighlightAt).toBeNull();
+  });
+
   it("captures exactly two afterimages per dodge", () => {
     const effects = new VisualEffects();
     const state = createInitialState();
