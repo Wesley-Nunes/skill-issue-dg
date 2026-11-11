@@ -14,10 +14,10 @@ This file is the canonical workflow state for the repository. It is maintained b
 | Active agent | `orchestrator` |
 | Git branch | `feature/0.7.0-001-reward-loop` |
 | Last accepted commit | `60318be` (merged `0.6.0` on `dev` via PR #9) |
-| Pushed HEAD | `dev` at `60318be`; feature branch local at `496e007`, not pushed |
+| Pushed HEAD | `dev` at `60318be`; feature branch local at `496e007` plus this state commit, not pushed |
 | Pull request | Not created; PR target is `dev`; no `gh`/`hub` available, so the operator opens the PR |
 | Blocking questions remaining | `0` |
-| Overall status | `0.7.0 accepted, ready for PR` — implementation at `17510eb`, descent effect-leak fix at `6e377d3`, QA report at `3a91f26`, state at `496e007`; clean install, typecheck, 190 unit tests, build, and 32/32 Chrome e2e pass; QA verdict `Passed after fix`; hosted CI and Vercel pending |
+| Overall status | `0.7.0 accepted, ready for PR` — implementation at `17510eb`, descent effect-leak fix at `6e377d3`, QA report at `3a91f26`, state commit follows `496e007`; clean install, typecheck, 190 unit tests, build, and 32/32 Chrome e2e pass; QA verdict `Passed after fix`; hosted CI and Vercel pending |
 
 Update this snapshot whenever a value changes. Do not leave stale status after a handoff.
 
@@ -231,7 +231,7 @@ Append one entry for each meaningful phase transition:
 | 2026-11-10 | 0.7.0/001 | Design decisions → Implementation | Design contract covers the fixed six-room branch and junction hub, canvas shop modal with every purchase state, explicit altar summon, HUD skill-point/draught/heart-row treatment, feedback, controls, accessibility, and no new art/audio; programmer next | this design commit |
 | 2026-11-10 | 0.7.0/001 | Implementation → QA verification | Skill points, fixed six-room branch, safe-room shop, draught, one-time Vigor, arena gate, explicit Warden summon, HUD/feedback, and the safe-room rule delivered; 189 unit + 32 Chrome e2e tests pass, typecheck/build pass, production bundle has no debug hooks; QA verification next | `17510eb` |
 | 2026-11-11 | 0.7.0/001 | QA verification → QA pass | Clean `npm ci`; typecheck, 190 unit tests, build, and 32/32 Chrome e2e (5 specs, 3 m 05 s) pass; 30 exact-size canvas captures plus a title capture inspected; F1 (old-floor effects reappearing after descent) reproduced and fixed in `6e377d3` with a regression test; verdict `Passed after fix`; QA was run by the orchestrator because the QA subagent was unavailable; hosted CI and Vercel pending | `3a91f26` (fix `6e377d3`) |
-| 2026-11-11 | 0.7.0/001 | QA pass → Ready for push and PR | Orchestrator reviewed the 37-file diff (approved scope, no asset/dependency/meta-progression changes), re-ran typecheck/unit/build/e2e, and accepted the version; branch is local at `496e007`; `gh`/`hub` are unavailable, so the operator pushes and opens the PR against `dev`; hosted CI and Vercel remain pending | this state commit |
+| 2026-11-11 | 0.7.0/001 | QA pass → Ready for push and PR | Orchestrator reviewed the 37-file diff (approved scope, no asset/dependency/meta-progression changes), re-ran typecheck/unit/build/e2e, and accepted the version; branch is local at `496e007` plus this state commit; `gh`/`hub` are unavailable, so the operator pushes and opens the PR against `dev`; hosted CI and Vercel remain pending | this state commit |
 
 ## Status vocabulary
 
