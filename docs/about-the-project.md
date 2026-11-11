@@ -192,6 +192,12 @@ The player has basic attacks and a three-hit light combo
 -   Final timings, window lengths, and damage values live in the
     version's design decisions; ability cooldowns remain open.
 
+**Known issue (2026-11-11):** the current three-hit light combo does not
+yet feel good in play. Its timing windows, input feedback, and its role
+in the liberation loop — breaking spirit fragments so a mob can be
+rested and award skill points — need a rework. The current values are a
+baseline, not an approved long-term feel.
+
 ### 3.3 Spirit purification and liberation
 
 Enemies are bound to the floor by spirit fragments. A mob is not
@@ -703,6 +709,10 @@ playtesting.
 
 -   Further combo variants beyond the first three-hit chain specified in
     §3.2.
+-   Rework the three-hit light combo and its role in the liberation loop.
+    The current timing, input feedback, and fragment-breaking interaction
+    are not yet satisfying; define the target feel and revised values in a
+    future design pass before treating the combo as final.
 -   Basic and secondary attack behavior.
 -   Skill definitions, cooldowns, and resource costs (if any).
 -   Dodge distance, duration, and invulnerability behavior.
