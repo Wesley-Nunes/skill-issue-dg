@@ -132,7 +132,7 @@ describe("generateFloor", () => {
     }
   });
 
-  it("keeps the junction, shop, gate, altar, stairs, and waystone fixed", () => {
+  it("keeps the junction, shop, gate, altar, and stairs fixed", () => {
     for (let seed = 1; seed <= 20; seed += 1) {
       const floor = generateFloor(seed, 1);
       const junction = floor.junction;
@@ -153,8 +153,6 @@ describe("generateFloor", () => {
 
       expect(floor.stairs.x).toBe(91 * TILE);
       expect(floor.stairs.y).toBe(19 * TILE);
-      expect(floor.waystone.x).toBe(47.5 * TILE);
-      expect(floor.waystone.y).toBe(15.5 * TILE);
 
       expect(floor.shop.stall.x).toBe(15 * TILE);
       expect(floor.shop.stall.y).toBe(5 * TILE);

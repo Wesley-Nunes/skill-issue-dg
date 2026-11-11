@@ -72,8 +72,6 @@ export interface Floor {
   /** Altar sigil where the player explicitly summons the Warden. */
   altar: Rect;
   shop: ShopFloor;
-  /** Junction waystone marking the two branch choices. */
-  waystone: Vec2;
 }
 
 export interface Viewport {
@@ -376,7 +374,6 @@ export interface DebugSnapshot {
     gate: Rect;
     altar: Rect;
     shop: ShopFloor;
-    waystone: Vec2;
   };
   camera: Vec2;
   pointer: Vec2;

@@ -44,6 +44,5 @@ export function openFloor(): Floor {
       safe: { x: 0, y: 0, width: 0, height: 0 },
       threshold: { x: 0, y: 0, width: 0, height: 0 },
     },
-    waystone: { x: 0, y: 0 },
   };
 }

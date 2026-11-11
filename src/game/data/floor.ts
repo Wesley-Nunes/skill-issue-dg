@@ -293,7 +293,6 @@ export function generateFloor(seed: number, depth = 1): Floor {
     gate,
     altar,
     shop,
-    waystone: tileCenter(FLOOR.northCorridorColumn, FLOOR.corridorRow),
   };
 }
 

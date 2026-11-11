@@ -69,7 +69,7 @@ affordability. Every use of colour is paired with text or shape.
 | Panel row names | `system-ui` | 16 px, 600 |
 | Panel effects, prices, states, header values | `system-ui` | 13–14 px |
 | Panel footer, prompts, HUD values, legend | `system-ui` | 12–16 px |
-| World labels (waystone, gate, shop sign) | `system-ui` | 9–11 px at 3× zoom |
+| World labels (gate, shop sign) | `system-ui` | 9–11 px at 3× zoom |
 
 Small text stays in the system stack. Grenze Gotisch is reserved for headings
 and event banners. World labels are drawn at 3× zoom, so 9–11 px world text is
@@ -102,8 +102,8 @@ spaces. The junction is a **hub**, not a counted room. The six rooms are:
 6. boss arena.
 
 The hub is a widened two-tile-high corridor crossroad. It carries the choice
-and the waystone but does not add a seventh room. This preserves the approved
-topology without adding or removing a room.
+but does not add a seventh room. This preserves the approved topology without
+adding or removing a room.
 
 The floor remains a 96 × 30 tile world. Room anchors are fixed; room sizes and
 gaps may vary by ±1 tile by seed, and decoration varies. The main corridor is
@@ -115,7 +115,7 @@ at columns 74–75, rows 15–16.
 |---|---|---|---|
 | Start | 3, 12, 14, 9 | east, rows 15–16 | player spawn at tile centre (5, 16) |
 | First mob | 22, 12, 16, 9 | west and east, rows 15–16 | melee mob at room centre (29, 16) |
-| Junction hub | 43, 14, 9, 4 | west, north (x 47–48), east | waystone at (47, 15.5) |
+| Junction hub | 43, 14, 9, 4 | west, north (x 47–48), east | unmarked crossroad |
 | Second mob | 38, 2, 15, 8 | south (x 47–48), west rows 5–6 | melee mob at room centre (45, 5.5) |
 | Shop | 14, 2, 17, 8 | east, rows 5–6 only | stall x 15–17, y 5–7; threshold x 29–30, y 5–6; safe zone |
 | Third mob | 56, 12, 15, 9 | west and east, rows 15–16 | ranged mob at room centre (63, 16) |
@@ -137,27 +137,25 @@ at columns 74–75, rows 15–16.
 
 ### 4.2 How the branch reads as a choice
 
-- The junction hub is the first open, well-lit crossroad. A non-colliding
-  **waystone** sits at its centre: a dark stone plinth with two carved
-  chevrons.
-  - The shop chevron points up-left, in spirit cyan, with a small bottle glyph
-    and the word `SHOP`.
-  - The arena chevron points right, in ember, with a small gate glyph and the
-    word `WARDEN`.
-  - Labels are 9 px world text on a dark backing. The arrow direction, glyph,
-    and word carry the meaning without colour.
-- One pair of static floor chevrons marks each branch mouth: cyan pointing into
-  the north/shop branch, ember pointing into the east/arena branch. They do not
-  continue as a trail.
+- The junction hub is the first open, well-lit crossroad. It has no signpost,
+  chevrons, or direction text: the opening to the north and the corridor to the
+  east are the only cues, and the player discovers what each leads to.
 - The HUD state line and the gate label carry the current goal: `Arena sealed`,
-  `Arena open`, `Boss awakened`, or `Stairs open`.
-- There is no minimap or compass. The waystone, the gate label, the shop sign,
-  and the HUD state line are the navigation language.
+  `Arena open`, `Boss awakened`, or `Stairs open`. Both appear only when the
+  player reaches the thing they describe.
+- There is no minimap, compass, or waystone. The gate label, the shop sign, and
+  the HUD state line are contextual state, not directions.
 
 The branch is physically laid out with the shop branch turning north then west
 and the arena branch continuing east. “Left” and “right” in the product
 language refer to the two choices at the junction, not to a literal screen
-direction; the waystone labels remove any ambiguity.
+direction.
+
+**Amendment (2026-11-11):** the original waystone and its `SHOP`/`WARDEN`
+labels were removed by operator decision. The two 8 px labels shared a baseline
+and overlapped each other and the player sprite, and the chevrons pointed
+left/right even though the shop route turns north then west. Exploration, the
+gate state label, and the shop sign now carry navigation.
 
 ### 4.3 Shop dead end
 
@@ -544,9 +542,8 @@ one-line overflow risk. The title screen’s 14 px controls line adds
   - the existing Grenze Gotisch display face and the system UI stack;
   - the existing CC0/synthesized audio cues.
 - Procedural drawing supplies the shop stall, awning, sign, bottle/flask icons,
-  waystone, branch chevrons, gate bars, lock glyphs, altar rune, threshold
-  line, panel, row icons, keycaps, floating text, banners, HUD diamond, and
-  draught icon.
+  gate bars, lock glyphs, altar rune, threshold line, panel, row icons, keycaps,
+  floating text, banners, HUD diamond, and draught icon.
 - There is no shopkeeper sprite. The stall, sign, and wares are the non-hostile
   shop presentation; reusing an enemy frame would be ambiguous.
 - No new runtime dependency, UI framework, DOM overlay, external request, or
@@ -584,7 +581,7 @@ document:
   approved topology and the task’s own list of spaces.
 - **Branch orientation.** The shop branch turns north then west; the arena
   branch continues east. “Left” and “right” are the two junction choices, not
-  literal screen directions. The waystone labels both destinations.
+  literal screen directions. The junction is unmarked and the player explores.
 - **Mob order.** Melee, melee, ranged, preserving the existing composition.
   The ranged mob is in the arena branch.
 - **Room variation.** Room sizes vary by ±1 tile and decoration varies by seed;

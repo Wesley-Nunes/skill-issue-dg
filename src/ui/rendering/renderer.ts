@@ -156,7 +156,6 @@ export class Renderer {
 
     context.drawImage(this.ensureBackground(state.floor), 0, 0);
     this.drawShopDecor(state);
-    this.drawWaystone(state);
     this.drawGate(state);
     this.drawAltar(state);
     this.drawStairs(state);
@@ -411,36 +410,6 @@ export class Renderer {
         9,
       );
     }
-  }
-
-  private drawWaystone(state: GameState): void {
-    const context = this.context;
-    const point = state.floor.waystone;
-
-    context.fillStyle = "rgba(24, 20, 30, 0.95)";
-    context.fillRect(point.x - 5, point.y - 3, 10, 7);
-    context.strokeStyle = "rgba(191, 233, 255, 0.35)";
-    context.lineWidth = 1;
-    context.strokeRect(point.x - 5, point.y - 3, 10, 7);
-
-    context.strokeStyle = SPIRIT_COLOR;
-    context.beginPath();
-    context.moveTo(point.x - 3, point.y);
-    context.lineTo(point.x - 6, point.y - 3);
-    context.moveTo(point.x - 3, point.y);
-    context.lineTo(point.x - 6, point.y + 3);
-    context.stroke();
-
-    context.strokeStyle = EMBER;
-    context.beginPath();
-    context.moveTo(point.x + 3, point.y);
-    context.lineTo(point.x + 6, point.y - 3);
-    context.moveTo(point.x + 3, point.y);
-    context.lineTo(point.x + 6, point.y + 3);
-    context.stroke();
-
-    this.drawWorldLabel("SHOP", point.x - 12, point.y - 10, SPIRIT_COLOR, 8);
-    this.drawWorldLabel("WARDEN", point.x + 13, point.y - 10, EMBER, 8);
   }
 
   private drawGate(state: GameState): void {

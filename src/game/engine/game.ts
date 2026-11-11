@@ -1071,7 +1071,6 @@ export class Game {
           safe: { ...floor.shop.safe },
           threshold: { ...floor.shop.threshold },
         },
-        waystone: { ...floor.waystone },
       },
       camera: { x: camera.x, y: camera.y },
       pointer,
