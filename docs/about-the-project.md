@@ -42,12 +42,13 @@ The game's identity should emphasize mastery rather than relying only on
 character statistics. Players should be rewarded for playing well,
 avoiding damage, and executing combos.
 
-The current `0.5.0` slice completes the dark-fantasy liberation frame: a
+The current `0.7.0` slice completes the dark-fantasy liberation frame: a
 mob is not simply killed. Its spirit fragments must be broken without
 taking a hit, and only then can it be put to rest. Conventional kills
 return the mob, while a completed rite grants spirit toward the floor's
-boss. Purifying every mob fills the spirit meter and summons the Floor
-Warden; defeating it opens the stairs.
+boss. Purifying every mob fills the spirit meter and unlocks the boss
+arena, where the player explicitly summons the Floor Warden; defeating it
+opens the stairs.
 
 ### Design principles
 
@@ -191,6 +192,12 @@ The player has basic attacks and a three-hit light combo
 -   Final timings, window lengths, and damage values live in the
     version's design decisions; ability cooldowns remain open.
 
+**Known issue (2026-11-11):** the current three-hit light combo does not
+yet feel good in play. Its timing windows, input feedback, and its role
+in the liberation loop — breaking spirit fragments so a mob can be
+rested and award skill points — need a rework. The current values are a
+baseline, not an approved long-term feel.
+
 ### 3.3 Spirit purification and liberation
 
 Enemies are bound to the floor by spirit fragments. A mob is not
@@ -217,16 +224,20 @@ values recorded in the version's design decisions. Ordered breaks,
 moving fragments, and per-mob fragment variation are future difficulty
 levers, not part of `0.2.0`.
 
-The `0.5.0` slice gives the spirit meter its payoff (operator-approved
-2026-11-07). When every mob on the floor is at rest and the meter is full,
-the **Floor Warden** appears in the final room. The Warden does not carry
+The `0.5.0` slice gave the spirit meter its payoff (operator-approved
+2026-11-07): when every mob on the floor was at rest and the meter was full,
+the **Floor Warden** appeared in the final room. The Warden does not carry
 spirit fragments and does not rest or respawn; it fights with a telegraphed
 melee attack and fused bombs. Defeating it opens the stairs, and the run
 continues downward. The boss bar, telegraphs, and bomb landing marker are
 defined in the version's design decisions.
 
-Skill points and the combo challenge from the first `0.2.0` pass are
-removed. Skill-point spending, drops, and shops remain future work.
+The `0.7.0` slice keeps the spirit meter as the boss-readiness indicator but
+replaces the automatic appearance with an explicit summon (operator-approved
+2026-11-09). Resting every mob fills the meter and unlocks the boss arena;
+the player chooses when to enter the arena and summon the Warden. Skill
+points return as the run currency, earned by resting mobs and spent in the
+safe-room shop. Random drops remain future work.
 
 ### 3.4 Health and survivability
 
@@ -256,34 +267,45 @@ Difficulty should increase as the player descends. Floors may introduce
 different enemy pools and combinations. The exact generation algorithm,
 room and corridor rules, floor themes, and difficulty scaling are open.
 
-#### Current slice: `0.5.0`
+#### Current slice: `0.7.0`
 
-The first dungeon slice uses a simple seeded generator. A floor has four
-rooms joined by walkable corridors, with the player starting in the first
-room and the stairs in the last. The three non-start rooms contain the
-existing melee and ranged enemies. Every mob must be put to rest to fill the
-spirit meter; that summons the Floor Warden in the final room. Defeating the
-Warden opens the stairs, and walking onto them descends to a newly generated
-floor.
+The current dungeon slice uses a fixed six-room branch, generated from a seed;
+room sizes, gaps, and decoration may vary. The player starts in the first
+room and follows a single corridor to the first mob room, then reaches a
+junction. The left branch leads to the second mob room and a shop dead end.
+The right branch leads to the third mob room and a boss arena whose gate stays
+locked until all three mobs are at rest. This is a fixed branch, not a general
+graph or pathfinding generator.
 
-The spirit meter and boss state are per floor and reset on descent. The
-player's HP persists and is restored by 2 HP on descent, capped at the
-maximum. There is no difficulty scaling, safe room, shop, consumable, loot,
-artifact, or final floor in this slice. These are deferred to later versions,
-not removed from the product direction.
+Resting every mob fills the spirit meter and unlocks the arena. The player may
+enter the arena and summon the Floor Warden immediately, or backtrack through
+the junction to the shop first. The shop sells a healing draught and a
+one-time Vigor upgrade; it closes for the floor once the Warden is summoned.
+Defeating the Warden opens the stairs inside the arena, and walking onto them
+descends to a newly generated floor with the same branch topology.
 
-The release also adds a title/start screen, Escape pause, a death summary,
+Skill points are the run currency. A rested mob grants 1 point and the Warden
+grants 3; the shop is the only place to spend them. Skill points, the carried
+draught, Vigor, and raised maximum HP persist across floors within a run and
+reset on death/restart. The spirit meter, floor purification, boss state, and
+shop closure are per floor and reset on descent. The player's HP persists and
+is restored by 2 HP on descent, capped at the maximum.
+
+There is no difficulty scaling, random drop, chest, loot table, inventory
+grid, shop refresh, post-death purchase, meta-progression, persistence, or
+final floor in this slice. These are deferred to later versions, not removed
+from the product direction.
+
+The `0.5.0` release added the title/start screen, Escape pause, death summary,
 restrained CC0/synthesized audio with a mute toggle, and a Vercel deployment
-(`dev` staging, `main` production).
-
-The `0.6.0` presentation pass adds a boot loading screen that reports progress
-while sprite images, audio, and the display font are prepared, then fades into
-the existing title screen. It does not add a second loading screen on restart
-or descent.
+(`dev` staging, `main` production). The `0.6.0` presentation pass added a boot
+loading screen that reports progress while sprite images, audio, and the
+display font are prepared, then fades into the existing title screen; it does
+not replay on restart or descent.
 
 ### 4.2 Safe rooms
 
-Each floor generates:
+The long-term design generates:
 
 -   At least **one** safe room.
 -   At most **three** safe rooms.
@@ -299,31 +321,47 @@ Safe rooms can serve different purposes:
 
 Safe-room types should not repeat on the same floor. The current
 interpretation of "never repeat" is **no duplicate safe-room types
-within a single floor**; 
+within a single floor**.
 
 Safe rooms are intended to be safe places between dangerous parts of the
 dungeon. The exact transition and encounter sequence is not yet fixed.
 
+#### Current `0.7.0` implementation
+
+The current slice has exactly one safe room per floor: the shop, placed at
+the end of the left branch. It is not randomized in count or placement, and
+there is no quest or rest room. The shop sells the healing draught and a
+one-time Vigor upgrade, and it closes for the floor when the Warden is
+summoned. The broader randomized safe-room vision above remains future work,
+not a change to this slice.
+
 ### 4.3 Proposed core loop
 
-The current high-level loop is:
+The current `0.7.0` loop is:
 
-1.  Enter and explore a generated dungeon floor.
-2.  Fight and purify enemies, liberating their spirits.
-3.  Collect loot and currency.
-4.  Visit a safe room when available.
-5.  Spend skill points, shop, accept quests, or rest.
-6.  Continue exploring and fighting.
-7.  Summon or face the floor boss once enough spirit is gathered.
-8.  Find the way down to the next floor.
-9.  Repeat until the player dies.
+1.  Enter a floor and follow the fixed branch from the start room.
+2.  Fight and purify mobs, liberating their spirits. Each rested mob grants
+    1 skill point.
+3.  Choose the left branch for the second mob and the shop dead end, or the
+    right branch for the third mob and the locked boss arena.
+4.  Before summoning, spend skill points in the safe-room shop on a healing
+    draught or the one-time Vigor upgrade; use the draught when needed.
+5.  Rest all three mobs to fill the spirit meter and unlock the arena.
+6.  Enter the arena and explicitly summon the Warden, or backtrack to the
+    shop first. The shop closes once the Warden is summoned.
+7.  Defeat the Warden, gaining 3 skill points, and take the opened stairs to
+    the next floor.
+8.  Repeat until the player dies; death/restart discards the run's skill
+    points, draught, and Vigor.
 
-The player's stated example was:
+Rewards in this slice are shop-only: there are no random drops, chests, or
+loot tables. The broader vision still includes loot, quests, and rest rooms.
+The player's stated example remains a guiding direction:
 
-**Dungeon fight → liberation → loot → dungeon fight → liberation → shop/quest → boss → continue downward.**
+**Dungeon fight → liberation → skill points → dungeon fight → liberation → shop → boss → continue downward.**
 
-This is a guiding loop, not a strict requirement that every floor
-contain exactly this sequence.
+It is not a strict requirement that every floor contain every future
+safe-room type.
 
 ------------------------------------------------------------------------
 
@@ -369,19 +407,24 @@ design.
 The number of bosses, boss frequency, encounter structure, and whether
 bosses appear at fixed floor intervals remain open.
 
-The `0.5.0` slice implements the first floor boss, the **Floor Warden**
-(operator-approved 2026-11-07). One Warden appears on every floor when the
-spirit meter fills. It uses the `big_demon` frames, chases the player, and
-alternates a telegraphed melee attack with a thrown, fused bomb. It carries no
-spirit fragments and is not a source of artifacts. Its defeat opens the
-stairs rather than ending the run. Boss variety, phases, and artifact drops
+The `0.5.0` slice introduced the first floor boss, the **Floor Warden**
+(operator-approved 2026-11-07): one Warden per floor, using the `big_demon`
+frames, chasing the player, and alternating a telegraphed melee attack with a
+thrown, fused bomb. It carries no spirit fragments and is not a source of
+artifacts. Its defeat opens the stairs rather than ending the run.
+
+The `0.7.0` slice replaces the automatic appearance with an explicit summon
+(operator-approved 2026-11-09). Resting every mob fills the spirit meter and
+unlocks the boss arena; the player enters the arena and summons the Warden
+when ready. The player may visit the shop before summoning, and the shop
+closes once the Warden is summoned. Boss variety, phases, and artifact drops
 remain future work.
 
 ------------------------------------------------------------------------
 
 ## 6. Loot, items, and progression
 
-The initial loot design has three categories:
+The long-term loot design has three categories:
 
   -----------------------------------------------------------------------
   Category                Source                  Purpose
@@ -400,33 +443,46 @@ The initial loot design has three categories:
 Equipment and a complex equipment system are not part of the current
 initial scope.
 
-### Run-based progression
+### Current `0.7.0` economy
 
-The long-term design has the player gain skill points by completing
-challenges and spend them on items and/or skills during a run. Shops
-are located in safe rooms rather than being freely accessible at any
-time. Skill points, spending, shops, and challenge rewards are **not**
-part of `0.2.0`; the current reward is spirit from purified enemies.
+Skill points are the only currency in the current slice. They are earned by
+putting mobs to rest (1 point per mob) and by defeating the Warden (3
+points). They are run-scoped: they persist across floors within a run and
+reset on death/restart. There is no separate gold, combo point, or score
+resource.
 
-The intended experience is to improve the current run through skillful
-play, discovery, and purchasing decisions.
+The safe-room shop is the only place to spend skill points. It offers a
+healing draught (2 HP for 1 point, one carried slot) and Vigor (+1 maximum
+HP for the run for 3 points, one-time purchase per run; it disappears from
+later shops after purchase). The player carries at most one draught, uses it
+with a dedicated key, and healing is capped at maximum HP. The shop closes
+once the Warden is summoned.
+
+Rewards are shop-only in this slice: there are no random drops, chests, loot
+tables, inventory grids, shop refreshes, post-death purchases, artifacts, or
+meta-progression. The broader loot categories above remain future direction,
+not current scope.
+
+The intended experience is to improve the current run through skillful play
+and purchasing decisions, not through permanent progression.
 
 ### Death and starting over
 
 There is an important distinction between dying and manually abandoning
 a run:
 
--   **On death:** The player can use accumulated skill points to buy
-    things. The exact post-death purchase flow and what can be bought
-    still need to be specified.
+-   **On death:** In the current `0.7.0` slice, the run ends and there are
+    no post-death purchases. Skill points, the carried draught, and Vigor
+    are discarded on restart. A post-death purchase flow remains future
+    work and is not part of this slice.
 -   **Manual "Start Over" action:** The player starts a completely fresh
     run with nothing carried over.
 -   The game must clearly warn the player before a manual reset that
     current run progress and resources will be lost.
 
-The exact relationship between death, post-death purchases, and the next
-run must be clarified during detailed progression design. Do not
-silently assume that all death rewards persist permanently.
+The exact relationship between death, any future post-death purchases, and
+the next run must be clarified before that feature is added. Do not silently
+assume that death rewards persist permanently.
 
 ### Persistence
 
@@ -603,15 +659,23 @@ The MVP should validate:
 7.  The player can complete the floor's progression and understand the
     run-ending flow.
 
-**Status after `0.5.0` (2026-11-07):** items 1–4, 6, and 7 are implemented
-and validated in the current slice. Item 5 remains open: there are no
-consumables, currency, loot, skill points, or safe room/shop. The post-death
-purchase flow and meta-progression also remain undefined. The MVP is therefore
-not complete, even though the vertical slice is portfolio-ready.
+**Status after `0.5.0` (2026-11-07):** items 1–4, 6, and 7 were implemented
+and validated in that slice. Item 5 remained open: there were no
+consumables, currency, loot, skill points, or safe room/shop.
 
-The `0.6.0` presentation pass adds a boot loading screen, complete
-asset/audio preload, and display typography. It improves the first
-impression but does not close item 5; the MVP remains incomplete.
+The `0.6.0` presentation pass added a boot loading screen, complete
+asset/audio preload, and display typography. It improved the first
+impression but did not close item 5.
+
+**Status after `0.7.0` (pending implementation and QA):** item 5 is addressed
+by the skill-point economy, the safe-room shop, the healing draught, and
+Vigor. Items 1–4, 6, and 7 remain implemented from earlier slices. On a
+passing QA, every item in the MVP scope list above will have an
+implementation in the current slice. MVP completion still requires the
+documented end-to-end loop to pass acceptance, QA sign-off, orchestrator
+review, and operator confirmation. The post-death purchase flow,
+meta-progression, persistence, difficulty scaling, and a general procedural
+generator remain deferred and are not part of `0.7.0`.
 
 ### Not required for the first MVP
 
@@ -645,6 +709,10 @@ playtesting.
 
 -   Further combo variants beyond the first three-hit chain specified in
     §3.2.
+-   Rework the three-hit light combo and its role in the liberation loop.
+    The current timing, input feedback, and fragment-breaking interaction
+    are not yet satisfying; define the target feel and revised values in a
+    future design pass before treating the combo as final.
 -   Basic and secondary attack behavior.
 -   Skill definitions, cooldowns, and resource costs (if any).
 -   Dodge distance, duration, and invulnerability behavior.
@@ -655,32 +723,47 @@ playtesting.
 ### Dungeon generation and progression
 
 -   ~~How rooms and corridors are generated and connected.~~ Resolved for
-    the current slice: a seeded four-room left-to-right chain (`0.4.0`).
+    the current slice: a fixed six-room branch; seeded room sizes, gaps, and
+    decoration may vary (`0.7.0`). A general graph/pathfinding generator
+    remains future work.
 -   ~~How the player finds the exit to the next floor.~~ Resolved for the
-    current slice: stairs in the final room, opened by defeating the boss
-    (`0.4.0`/`0.5.0`).
+    current slice: stairs in the boss arena, opened by defeating the Warden
+    (`0.4.0`/`0.5.0`/`0.7.0`).
 -   ~~Whether every floor has a boss or bosses appear at intervals.~~
     Resolved for the current slice: one Floor Warden per floor (`0.5.0`).
     Whether that remains the long-term pacing is still open.
 -   Floor difficulty scaling and enemy selection.
--   Safe-room placement and how players reach them.
+-   ~~Safe-room placement and how players reach them.~~ Resolved for the
+    current slice: one shop at the end of the left branch (`0.7.0`).
+    Randomized safe-room count and placement remain future work.
 -   Whether safe-room types are unique per floor (the current
-    assumption) or across a whole run.
+    assumption) or across a whole run. The current slice has only the shop.
 
 ### Rewards and economy
 
--   Currency types and sources.
+-   ~~Currency types and sources.~~ Resolved for the current slice: skill
+    points only, earned from rested mobs and the Warden (`0.7.0`). Other
+    currency types remain future work.
 -   Additional skill challenges, difficulty tiers, and reward scaling
     beyond the liberation loop specified in §3.3.
--   Shop inventory, prices, and refresh behavior.
+-   ~~Shop inventory, prices, and refresh behavior.~~ Resolved for the
+    current slice: a healing draught for 1 point and a one-time Vigor for 3
+    points, with no refresh (`0.7.0`). A broader catalog remains future
+    work.
 -   What can be purchased after death and how that purchase flow works.
--   Consumable inventory limits and usage rules.
+    Deferred; `0.7.0` has no post-death purchases.
+-   ~~Consumable inventory limits and usage rules.~~ Resolved for the
+    current slice: one carried healing draught, a dedicated use key, 2 HP
+    healing capped at maximum HP (`0.7.0`). A broader inventory remains
+    future work.
 -   Artifact effects, rarity, and build interactions.
 
 ### Presentation and user experience
 
 -   Resolution and scaling strategy.
--   HUD layout and required information.
+-   HUD layout and required information. Current slice: hearts, depth,
+    stairs state, spirit, boss bar, skill points, and carried draught
+    (`0.7.0`); the broader layout remains open.
 -   Sprite animation requirements.
 -   Lighting, shadows, particles, and combat feedback.
 -   Audio direction and accessibility options beyond the approved mute,
@@ -719,9 +802,12 @@ A pragmatic implementation order is:
     enemy archetypes, spirit fragments, and a spirit meter. — **Done**
     (`0.2.0`).
 5.  **Dungeon slice:** Generate one traversable floor with an exit and a
-    small encounter sequence. — **Done** (`0.4.0`).
+    small encounter sequence. — **Done** (`0.4.0`); the `0.7.0` branch is
+    a fixed six-room slice of the same priority.
 6.  **Rewards and safe room:** Add consumables, currency, skill points,
-    and one shop room. — **Not started.**
+    and one shop room. — **In progress** (`0.7.0`): skill points, the
+    healing draught, one-time Vigor, and the safe-room shop are scoped;
+    delivered pending implementation and QA.
 7.  **Boss encounter:** Add one boss with a readable attack pattern. —
     **Done** (`0.5.0`, Floor Warden).
 8.  **Run lifecycle:** Add death, game-over, post-death purchase
@@ -731,9 +817,13 @@ A pragmatic implementation order is:
 9.  **Playtesting and refinement:** Tune responsiveness, difficulty,
     feedback, and the overall fight--loot--prepare loop. — **Ongoing.**
 
-The `0.6.0` presentation pass adds the boot loading screen, complete
+The `0.6.0` presentation pass added the boot loading screen, complete
 asset/audio preload, and approved display typography without changing this
 priority order or the gameplay loop.
+
+The `0.7.0` reward-loop slice advances priority 6 and keeps priority 8
+unchanged: it adds the shop and consumables but deliberately leaves
+post-death purchases, meta-progression, and persistence for later work.
 
 The order can change when implementation discoveries justify it. Keep
 the first playable slice small and testable.

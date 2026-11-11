@@ -15,8 +15,12 @@ Built with TypeScript, the Canvas 2D API, and Vite. No runtime dependencies.
 | Mouse | Aim |
 | Left mouse button | Light attack combo (three timed steps) |
 | `Space` | Dodge (brief invulnerability) |
+| `E` | Interact: browse the shop, summon the Warden |
+| `Q` | Use the carried healing draught |
+| `W` / `S` or `↑` / `↓` | Move the shop selection |
+| `Enter` | Confirm a shop purchase |
 | `Enter` / `Space` / click | Start from the title screen |
-| `Esc` | Pause / resume |
+| `Esc` | Pause / resume; close the shop |
 | `M` | Mute / unmute |
 | `R` | Restart after death |
 
@@ -46,17 +50,25 @@ on some desktops.
 
 ## Gameplay loop
 
-1. A floor has four connected rooms. Three mobs guard the rooms between the
-   spawn and the stairs.
+1. A floor is a fixed six-room branch: start, first mob, a junction, a shop
+   dead end and second mob on the left, and a third mob plus the gated Warden
+   arena on the right. Room sizes and decoration vary by seed; the layout does
+   not.
 2. Each mob carries spirit fragments. Break every fragment with a light
    attack without taking damage, then land the killing blow to put the mob to
    rest. A conventional kill returns the mob.
-3. Resting every mob fills the spirit meter and summons the Floor Warden in
-   the final room. The stairs stay sealed.
-4. The Warden chases, swipes at close range, and throws fused bombs at range.
-   Bombs mark their landing point, then explode after a short fuse.
-5. Defeating the Warden opens the stairs. Descending generates a new floor,
-   restores 2 HP (capped at 6), and resets spirit and boss state.
+3. Resting a mob earns 1 skill point. Resting all three fills the spirit meter
+   and opens the arena gate, but no longer summons the Warden automatically.
+4. The shop is a safe dead end off the junction. Browse it with `E` to buy a
+   healing draught for 1 point (one slot, heals 2 HP, use with `Q`) or Vigor
+   for 3 points (+1 maximum and current HP, once per run). The shop closes
+   permanently for the floor when the Warden is summoned.
+5. Inside the open arena, press `E` at the altar to summon the Floor Warden.
+   It chases, swipes at close range, and throws fused bombs at range. Defeating
+   it awards 3 skill points and opens the stairs.
+6. Descending generates a new floor, restores 2 HP, and resets spirit, gate,
+   boss, and shop state. Skill points, a carried draught, Vigor, and the raised
+   maximum HP persist for the run and reset on death.
 
 ## Project structure
 
@@ -127,9 +139,9 @@ The e2e bundle is built with `VITE_E2E=1`.
 
 ## Scope
 
-`0.6.0` adds a polished boot experience and display typography to the
-portfolio-ready `0.5.0` vertical slice; it is not the complete MVP. The reward
-loop (consumables, currency, loot, safe room/shop, meta-progression,
-difficulty scaling, multiple bosses) is deferred. See
+`0.7.0` adds the run-scoped reward loop: skill points, the safe-room shop,
+the healing draught, one-time Vigor, the arena gate, and the explicit Warden
+summon. Random drops, loot tables, gold, score, artifacts, meta-progression,
+difficulty scaling, and multiple bosses remain deferred. See
 [`docs/about-the-project.md`](docs/about-the-project.md) for the product
 direction and [`STATE.md`](STATE.md) for the current workflow state.

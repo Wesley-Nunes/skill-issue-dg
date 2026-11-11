@@ -1,5 +1,12 @@
 import { FLOOR, TILE } from "./config";
-import type { EnemySpawn, Floor, Rect, Vec2 } from "../types";
+import type {
+  EnemySpawn,
+  Floor,
+  FloorRoom,
+  Rect,
+  RoomRole,
+  Vec2,
+} from "../types";
 
 export interface WallTile {
   file: string;
@@ -7,7 +14,7 @@ export interface WallTile {
   y: number;
 }
 
-interface TileRoom {
+interface TileRect {
   x: number;
   y: number;
   width: number;
@@ -16,14 +23,28 @@ interface TileRoom {
 
 const FLOOR_VARIANTS = 8;
 
+/**
+ * Fixed anchors for the six-room branch. The junction is a hub, not a counted
+ * room. Room sizes may vary by one tile; the anchors, roles, entrances, gate,
+ * altar, stall, and stairs stay put.
+ */
+const ANCHORS = {
+  start: { x: 3, y: 12, width: 14, height: 9 },
+  firstMob: { x: 22, y: 12, width: 16, height: 9 },
+  junction: { x: 43, y: 14, width: 9, height: 4 },
+  secondMob: { x: 38, y: 2, width: 15, height: 8 },
+  shop: { x: 14, y: 2, width: 17, height: 8 },
+  thirdMob: { x: 56, y: 12, width: 15, height: 9 },
+  arena: { x: 77, y: 6, width: 18, height: 19 },
+} as const;
+
 /** Deterministic PRNG used for floor layout. */
 function createRandom(seed: number): () => number {
   let state = seed >>> 0;
   return () => {
     state = (state + 0x6d2b79f5) >>> 0;
     let value = Math.imul(state ^ (state >>> 15), 1 | state);
-    value ^=
-      value + Math.imul(value ^ (value >>> 7), 61 | value);
+    value += Math.imul(value ^ (value >>> 7), 61 | value) ^ value;
     return ((value ^ (value >>> 14)) >>> 0) / 4294967296;
   };
 }
@@ -56,48 +77,51 @@ function tileCenter(column: number, row: number): Vec2 {
   };
 }
 
-/** Generates one deterministic four-room floor for a seed and depth. */
+function toPixels(rect: TileRect): Rect {
+  return {
+    x: rect.x * TILE,
+    y: rect.y * TILE,
+    width: rect.width * TILE,
+    height: rect.height * TILE,
+  };
+}
+
+function vary(
+  random: () => number,
+  base: TileRect,
+): TileRect {
+  return {
+    x: base.x,
+    y: base.y,
+    width: Math.max(
+      1,
+      base.width + randomInt(random, -FLOOR.roomVariation, FLOOR.roomVariation),
+    ),
+    height: Math.max(
+      1,
+      base.height + randomInt(random, -FLOOR.roomVariation, FLOOR.roomVariation),
+    ),
+  };
+}
+
+function roomCentreTile(room: TileRect): { column: number; row: number } {
+  return {
+    column: room.x + Math.floor(room.width / 2),
+    row: room.y + Math.floor(room.height / 2),
+  };
+}
+
+/** Generates one deterministic six-room branch floor for a seed and depth. */
 export function generateFloor(seed: number, depth = 1): Floor {
   const random = createRandom(seed ^ Math.imul(depth, 0x9e3779b9));
-  const widths = Array.from({ length: FLOOR.roomCount }, () =>
-    randomInt(random, FLOOR.roomWidth.min, FLOOR.roomWidth.max),
-  );
-  const heights = Array.from({ length: FLOOR.roomCount }, () =>
-    randomInt(random, FLOOR.roomHeight.min, FLOOR.roomHeight.max),
-  );
-  const gaps = Array.from(
-    { length: FLOOR.roomCount - 1 },
-    () => randomInt(random, FLOOR.roomGap.min, FLOOR.roomGap.max),
-  );
 
-  const totalWidth =
-    widths.reduce((sum, width) => sum + width, 0) +
-    gaps.reduce((sum, gap) => sum + gap, 0);
-  const startX = Math.max(
-    FLOOR.margin,
-    Math.floor((FLOOR.cols - totalWidth) / 2),
-  );
-  const corridorCenter = FLOOR.corridorRow + FLOOR.corridorRows / 2;
-
-  const rooms: TileRoom[] = [];
-  let column = startX;
-  for (let index = 0; index < FLOOR.roomCount; index += 1) {
-    const height = heights[index]!;
-    const row = Math.min(
-      Math.max(
-        Math.round(corridorCenter - height / 2),
-        FLOOR.margin,
-      ),
-      FLOOR.rows - height - FLOOR.margin,
-    );
-    rooms.push({
-      x: column,
-      y: row,
-      width: widths[index]!,
-      height,
-    });
-    column += widths[index]! + (gaps[index] ?? 0);
-  }
+  const start = vary(random, ANCHORS.start);
+  const firstMob = vary(random, ANCHORS.firstMob);
+  const junction = { ...ANCHORS.junction };
+  const secondMob = vary(random, ANCHORS.secondMob);
+  const shopRoom = vary(random, ANCHORS.shop);
+  const thirdMob = vary(random, ANCHORS.thirdMob);
+  const arena = { ...ANCHORS.arena };
 
   const walkable = Array.from(
     { length: FLOOR.cols * FLOOR.rows },
@@ -114,58 +138,143 @@ export function generateFloor(seed: number, depth = 1): Floor {
     }
     walkable[rowIndex * FLOOR.cols + columnIndex] = true;
   };
-
-  for (const room of rooms) {
-    for (let row = room.y; row < room.y + room.height; row += 1) {
-      for (let col = room.x; col < room.x + room.width; col += 1) {
-        carve(col, row);
+  const carveRect = (rect: TileRect): void => {
+    for (let row = rect.y; row < rect.y + rect.height; row += 1) {
+      for (let column = rect.x; column < rect.x + rect.width; column += 1) {
+        carve(column, row);
       }
     }
-  }
-
-  for (let index = 0; index < rooms.length - 1; index += 1) {
-    const room = rooms[index]!;
-    const next = rooms[index + 1]!;
-    const top = FLOOR.corridorRow;
-    for (let row = top; row < top + FLOOR.corridorRows; row += 1) {
-      for (let col = room.x + room.width; col < next.x; col += 1) {
-        carve(col, row);
+  };
+  const carveHorizontal = (
+    fromColumn: number,
+    toColumn: number,
+    topRow: number,
+  ): void => {
+    for (let row = topRow; row < topRow + FLOOR.corridorRows; row += 1) {
+      for (let column = fromColumn; column < toColumn; column += 1) {
+        carve(column, row);
       }
     }
+  };
+  const carveVertical = (
+    column: number,
+    fromRow: number,
+    toRow: number,
+  ): void => {
+    for (let row = fromRow; row < toRow; row += 1) {
+      for (let offset = 0; offset < FLOOR.corridorRows; offset += 1) {
+        carve(column + offset, row);
+      }
+    }
+  };
+
+  for (const room of [
+    start,
+    firstMob,
+    junction,
+    secondMob,
+    shopRoom,
+    thirdMob,
+    arena,
+  ]) {
+    carveRect(room);
   }
 
-  const first = rooms[0]!;
-  const last = rooms[rooms.length - 1]!;
-  const spawn = tileCenter(
-    first.x + Math.floor(first.width / 2),
-    FLOOR.corridorRow,
+  // Main east-west corridor: start -> first mob -> junction -> third mob ->
+  // arena. The gate sits inside the final span.
+  carveHorizontal(start.x + start.width, firstMob.x, FLOOR.corridorRow);
+  carveHorizontal(firstMob.x + firstMob.width, junction.x, FLOOR.corridorRow);
+  carveHorizontal(junction.x + junction.width, thirdMob.x, FLOOR.corridorRow);
+  carveHorizontal(thirdMob.x + thirdMob.width, arena.x, FLOOR.corridorRow);
+
+  // North branch from the junction to the second mob room.
+  carveVertical(
+    FLOOR.northCorridorColumn,
+    secondMob.y + secondMob.height,
+    junction.y,
   );
-  const stairsColumn = last.x + last.width - 3;
+
+  // West branch from the second mob room to the shop dead end.
+  carveHorizontal(
+    shopRoom.x + shopRoom.width,
+    secondMob.x,
+    FLOOR.shopCorridorRow,
+  );
+
+  const startCentre = tileCenter(5, 16);
+  const firstCentre = roomCentreTile(firstMob);
+  const secondCentre = roomCentreTile(secondMob);
+  const thirdCentre = roomCentreTile(thirdMob);
+
+  const spawn = startCentre;
   const stairs: Rect = {
-    x: stairsColumn * TILE,
+    x: 91 * TILE,
+    y: 19 * TILE,
+    width: 2 * TILE,
+    height: 2 * TILE,
+  };
+  const bossSpawn = tileCenter(88, 11);
+  const gate: Rect = {
+    x: 74 * TILE,
     y: FLOOR.corridorRow * TILE,
     width: 2 * TILE,
     height: FLOOR.corridorRows * TILE,
   };
-  const bossSpawn = tileCenter(
-    last.x + Math.floor(last.width / 2),
-    last.y + Math.floor(last.height / 2),
-  );
+  const altar: Rect = {
+    x: 81 * TILE,
+    y: 15 * TILE,
+    width: 3 * TILE,
+    height: 3 * TILE,
+  };
+  const shop: Floor["shop"] = {
+    room: toPixels(shopRoom),
+    stall: {
+      x: 15 * TILE,
+      y: 5 * TILE,
+      width: 3 * TILE,
+      height: 3 * TILE,
+    },
+    interaction: {
+      x: 18 * TILE,
+      y: 5 * TILE,
+      width: 3 * TILE,
+      height: 3 * TILE,
+    },
+    safe: toPixels(shopRoom),
+    threshold: {
+      x: (shopRoom.x + shopRoom.width - 2) * TILE,
+      y: FLOOR.shopCorridorRow * TILE,
+      width: 2 * TILE,
+      height: FLOOR.corridorRows * TILE,
+    },
+  };
 
-  const kinds = ["melee", "melee", "ranged"] as const;
-  const enemySpawns: EnemySpawn[] = rooms.slice(1).map((room, index) => {
-    const kind = kinds[index] ?? "melee";
-    const centre = tileCenter(
-      room.x + Math.floor(room.width / 2),
-      FLOOR.corridorRow,
-    );
-    return {
-      id: `${kind}-${index + 1}`,
-      kind,
-      x: centre.x,
-      y: centre.y,
-    };
-  });
+  const rooms: FloorRoom[] = [
+    { ...toPixels(start), role: "start" as RoomRole },
+    { ...toPixels(firstMob), role: "mob" as RoomRole },
+    { ...toPixels(secondMob), role: "mob" as RoomRole },
+    { ...toPixels(shopRoom), role: "shop" as RoomRole },
+    { ...toPixels(thirdMob), role: "mob" as RoomRole },
+    { ...toPixels(arena), role: "arena" as RoomRole },
+  ];
+
+  const enemySpawns: EnemySpawn[] = [
+    {
+      id: "melee-1",
+      kind: "melee",
+      ...tileCenter(firstCentre.column, firstCentre.row),
+    },
+    {
+      id: "melee-2",
+      kind: "melee",
+      ...tileCenter(secondCentre.column, secondCentre.row),
+    },
+    {
+      id: "ranged-3",
+      kind: "ranged",
+      ...tileCenter(thirdCentre.column, thirdCentre.row),
+    },
+  ];
 
   return {
     seed,
@@ -175,16 +284,15 @@ export function generateFloor(seed: number, depth = 1): Floor {
     width: FLOOR.cols * TILE,
     height: FLOOR.rows * TILE,
     walkable,
-    rooms: rooms.map((room) => ({
-      x: room.x * TILE,
-      y: room.y * TILE,
-      width: room.width * TILE,
-      height: room.height * TILE,
-    })),
+    rooms,
+    junction: toPixels(junction),
     spawn,
     stairs,
     bossSpawn,
     enemySpawns,
+    gate,
+    altar,
+    shop,
   };
 }
 
@@ -213,13 +321,40 @@ export function isWalkablePoint(floor: Floor, x: number, y: number): boolean {
   );
 }
 
+/** True when a circle overlaps a rectangle. */
+export function circleOverlapsRect(
+  x: number,
+  y: number,
+  radius: number,
+  rect: Rect,
+): boolean {
+  // A body whose centre is already inside the rectangle is blocked even when
+  // it does not touch an edge (e.g. a gate spanning the whole corridor).
+  if (
+    x >= rect.x &&
+    x <= rect.x + rect.width &&
+    y >= rect.y &&
+    y <= rect.y + rect.height
+  ) {
+    return true;
+  }
+  const closestX = Math.min(Math.max(x, rect.x), rect.x + rect.width);
+  const closestY = Math.min(Math.max(y, rect.y), rect.y + rect.height);
+  return Math.hypot(x - closestX, y - closestY) < radius;
+}
+
 /** True when a circle's whole body is inside walkable tiles. */
 export function isCircleWalkable(
   floor: Floor,
   x: number,
   y: number,
   radius: number,
+  blocked: readonly Rect[] = [],
 ): boolean {
+  for (const rect of blocked) {
+    if (circleOverlapsRect(x, y, radius, rect)) return false;
+  }
+
   const minColumn = Math.floor((x - radius) / TILE);
   const maxColumn = Math.floor((x + radius) / TILE);
   const minRow = Math.floor((y - radius) / TILE);
@@ -299,5 +434,15 @@ export function isOnStairs(floor: Floor, x: number, y: number, radius: number): 
     x - radius < floor.stairs.x + floor.stairs.width &&
     y + radius > floor.stairs.y &&
     y - radius < floor.stairs.y + floor.stairs.height
+  );
+}
+
+/** True when a world-space point is inside a rectangle. */
+export function isInsideRect(rect: Rect, x: number, y: number): boolean {
+  return (
+    x >= rect.x &&
+    x <= rect.x + rect.width &&
+    y >= rect.y &&
+    y <= rect.y + rect.height
   );
 }

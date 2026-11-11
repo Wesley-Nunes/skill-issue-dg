@@ -27,6 +27,11 @@ function idle(overrides: Partial<InputFrame> = {}): InputFrame {
     start: false,
     pause: false,
     mute: false,
+    interact: false,
+    useDraught: false,
+    menuUp: false,
+    menuDown: false,
+    confirm: false,
     gesture: false,
     pointer: { x: 0, y: 0 },
     ...overrides,
@@ -115,8 +120,14 @@ describe("Game", () => {
       floorPurified: false,
       bossAwake: false,
       exitOpen: false,
+      gateOpenedAt: null,
+      shopClosed: false,
+      skillPoints: 0,
+      draughtCarried: false,
+      vigorPurchased: false,
     });
-    expect(game.state.floor.rooms).toHaveLength(4);
+    expect(game.state.shop.open).toBe(false);
+    expect(game.state.floor.rooms).toHaveLength(6);
     expect(game.state.camera).toEqual({
       x: Math.min(
         Math.max(game.state.floor.spawn.x - VIEWPORT.width / 2, 0),
@@ -371,7 +382,7 @@ describe("Game", () => {
     ).toBe(false);
   });
 
-  it("summons the Warden when every mob rests and keeps the stairs sealed", () => {
+  it("rests the last mob, awards a point, and unlocks the arena without summoning", () => {
     const game = createGame();
     duel(game);
     game.state.enemies = game.state.enemies.map((enemy, index) =>
@@ -384,32 +395,75 @@ describe("Game", () => {
         : { ...enemy, status: "dead", hp: 0, rested: true },
     );
     game.state.run.spirit = PURIFICATION.spiritThreshold - 10;
+    const points = game.state.run.skillPoints;
 
     const events = stepFor(game, 0.15, pressOn([0]));
 
     expect(game.state.run.spirit).toBe(PURIFICATION.spiritThreshold);
     expect(game.state.run.floorPurified).toBe(true);
-    expect(game.state.run.bossAwake).toBe(true);
+    expect(game.state.run.bossAwake).toBe(false);
     expect(game.state.run.exitOpen).toBe(false);
+    expect(game.state.run.gateOpenedAt).not.toBeNull();
+    expect(game.state.run.skillPoints).toBe(points + 1);
     expect(game.state.status).toBe("playing");
     expect(events.some((event) => event.type === "floor-purified")).toBe(true);
-    expect(events.some((event) => event.type === "boss-summoned")).toBe(true);
-
-    const bosses = game.state.enemies.filter(
-      (enemy) => enemy.kind === "boss",
+    expect(events.some((event) => event.type === "boss-summoned")).toBe(false);
+    expect(events.some((event) => event.type === "skill-points-earned")).toBe(
+      true,
     );
+    expect(
+      game.state.enemies.filter((enemy) => enemy.kind === "boss"),
+    ).toHaveLength(0);
+  });
+
+  it("summons the Warden only through the explicit altar interaction", () => {
+    const game = createGame();
+    game.state.enemies = game.state.enemies.map((enemy) => ({
+      ...enemy,
+      status: "dead" as const,
+      hp: 0,
+      rested: true,
+    }));
+    game.state.run.floorPurified = true;
+    game.state.run.spirit = PURIFICATION.spiritThreshold;
+    const altar = game.state.floor.altar;
+    game.state.player = {
+      ...game.state.player,
+      x: altar.x + altar.width / 2,
+      y: altar.y + altar.height / 2,
+    };
+
+    const events = game.step(0.01, idle({ interact: true }));
+
+    expect(events.some((event) => event.type === "boss-summoned")).toBe(true);
+    expect(game.state.run.bossAwake).toBe(true);
+    expect(game.state.run.shopClosed).toBe(true);
+    expect(game.state.run.exitOpen).toBe(false);
+    const bosses = game.state.enemies.filter((enemy) => enemy.kind === "boss");
     expect(bosses).toHaveLength(1);
     expect([bosses[0]!.x, bosses[0]!.y]).toEqual([
       game.state.floor.bossSpawn.x,
       game.state.floor.bossSpawn.y,
     ]);
+    expect(bosses[0]!.emerging).toBeGreaterThan(0);
+  });
 
-    const time = game.state.time;
-    const x = game.state.player.x;
-    stepFor(game, 0.4, { move: { x: 1, y: 0 } });
+  it("blocks a summon before the arena is purified", () => {
+    const game = createGame();
+    const altar = game.state.floor.altar;
+    game.state.player = {
+      ...game.state.player,
+      x: altar.x + altar.width / 2,
+      y: altar.y + altar.height / 2,
+    };
 
-    expect(game.state.time).toBeGreaterThan(time);
-    expect(game.state.player.x).toBeGreaterThan(x);
+    const events = game.step(0.01, idle({ interact: true }));
+
+    expect(events.some((event) => event.type === "summon-blocked")).toBe(true);
+    expect(game.state.run.bossAwake).toBe(false);
+    expect(
+      game.state.enemies.filter((enemy) => enemy.kind === "boss"),
+    ).toHaveLength(0);
   });
 
   it("keeps the stairs locked until every enemy is rested", () => {
@@ -708,6 +762,11 @@ describe("Game", () => {
       floorPurified: false,
       bossAwake: false,
       exitOpen: false,
+      gateOpenedAt: null,
+      shopClosed: false,
+      skillPoints: 4,
+      draughtCarried: true,
+      vigorPurchased: true,
     };
     game.state.enemies[0] = {
       ...game.state.enemies[0]!,
@@ -740,6 +799,11 @@ describe("Game", () => {
       floorPurified: false,
       bossAwake: false,
       exitOpen: false,
+      gateOpenedAt: null,
+      shopClosed: false,
+      skillPoints: 0,
+      draughtCarried: false,
+      vigorPurchased: false,
     });
     expect(game.state.projectiles).toHaveLength(0);
     expect(game.state.player.comboStep).toBe(0);
@@ -973,5 +1037,255 @@ describe("Game", () => {
     expect(fullEvents.some((event) => event.type === "player-healed")).toBe(
       false,
     );
+  });
+
+  it("awards one skill point for a rest and none for a conventional kill", () => {
+    const rested = createGame();
+    duel(rested);
+    rested.state.enemies[0] = {
+      ...rested.state.enemies[0]!,
+      hp: COMBO.steps[0].damage,
+      fragments: [false, false],
+    };
+
+    stepFor(rested, 0.15, pressOn([0]));
+
+    expect(rested.state.enemies[0]?.rested).toBe(true);
+    expect(rested.state.run.skillPoints).toBe(1);
+
+    const killed = createGame();
+    duel(killed);
+    killed.state.enemies[0] = {
+      ...killed.state.enemies[0]!,
+      hp: COMBO.steps[0].damage,
+      fragments: [true, true],
+    };
+
+    stepFor(killed, 0.15, pressOn([0]));
+
+    expect(killed.state.enemies[0]?.rested).toBe(false);
+    expect(killed.state.run.skillPoints).toBe(0);
+    expect(killed.state.run.spirit).toBe(0);
+  });
+
+  it("blocks the player at the arena gate until the floor is purified", () => {
+    const game = createGame();
+    const gate = game.state.floor.gate;
+    game.state.player = {
+      ...game.state.player,
+      x: gate.x - 24,
+      y: gate.y + gate.height / 2,
+    };
+
+    stepFor(game, 1.5, { move: { x: 1, y: 0 } });
+
+    expect(game.state.player.x).toBeLessThan(gate.x - game.state.player.radius);
+  });
+
+  it("does not let enemies enter the shop or damage the player inside", () => {
+    const game = createGame();
+    const safe = game.state.floor.shop.safe;
+    game.state.player = {
+      ...game.state.player,
+      x: safe.x + safe.width / 2,
+      y: safe.y + safe.height / 2,
+    };
+    const enemy = game.state.enemies[0]!;
+    game.state.enemies = [
+      {
+        ...enemy,
+        x: safe.x + safe.width + 20,
+        y: safe.y + safe.height / 2,
+        aggro: true,
+      },
+      ...game.state.enemies.slice(1),
+    ];
+
+    stepFor(game, 1.5, {});
+
+    const moved = game.state.enemies[0]!;
+    const inside =
+      moved.x >= safe.x &&
+      moved.x <= safe.x + safe.width &&
+      moved.y >= safe.y &&
+      moved.y <= safe.y + safe.height;
+    expect(inside).toBe(false);
+    expect(game.state.player.hp).toBe(6);
+  });
+
+  it("opens the shop in the stall zone, buys Vigor, and closes with Escape", () => {
+    const game = createGame();
+    const shop = game.state.floor.shop;
+    game.state.player = {
+      ...game.state.player,
+      x: shop.interaction.x + shop.interaction.width / 2,
+      y: shop.interaction.y + shop.interaction.height / 2,
+    };
+    game.state.run.skillPoints = 3;
+
+    const opened = game.step(0.01, idle({ interact: true }));
+    expect(opened.some((event) => event.type === "shop-opened")).toBe(true);
+    expect(game.state.shop.open).toBe(true);
+    expect(game.state.status).toBe("playing");
+
+    game.step(0.01, idle({ menuDown: true }));
+    expect(game.state.shop.selection).toBe(1);
+
+    const bought = game.step(0.01, idle({ confirm: true }));
+    expect(bought.some((event) => event.type === "shop-purchase")).toBe(true);
+    expect(game.state.run.vigorPurchased).toBe(true);
+    expect(game.state.run.skillPoints).toBe(0);
+    expect(game.state.player.maxHp).toBe(7);
+    expect(game.state.player.hp).toBe(7);
+    expect(game.state.shop.selection).toBe(0);
+
+    const closed = game.step(0.01, idle({ pause: true }));
+    expect(closed.some((event) => event.type === "shop-closed")).toBe(true);
+    expect(game.state.shop.open).toBe(false);
+    expect(game.state.status).toBe("playing");
+  });
+
+  it("buys and uses a draught through the engine", () => {
+    const game = createGame();
+    const shop = game.state.floor.shop;
+    game.state.player = {
+      ...game.state.player,
+      x: shop.interaction.x + shop.interaction.width / 2,
+      y: shop.interaction.y + shop.interaction.height / 2,
+      hp: 4,
+    };
+    game.state.run.skillPoints = 1;
+
+    game.step(0.01, idle({ interact: true }));
+    game.step(0.01, idle({ confirm: true }));
+    expect(game.state.run.draughtCarried).toBe(true);
+    expect(game.state.run.skillPoints).toBe(0);
+
+    game.step(0.01, idle({ pause: true }));
+    const used = game.step(0.01, idle({ useDraught: true }));
+
+    expect(used.some((event) => event.type === "draught-used")).toBe(true);
+    expect(game.state.player.hp).toBe(6);
+    expect(game.state.run.draughtCarried).toBe(false);
+
+    const empty = game.step(0.01, idle({ useDraught: true }));
+    expect(empty.some((event) => event.type === "draught-blocked")).toBe(true);
+    expect(game.state.player.hp).toBe(6);
+  });
+
+  it("closes the shop for the floor when the Warden is summoned", () => {
+    const game = createGame();
+    const shop = game.state.floor.shop;
+    game.state.player = {
+      ...game.state.player,
+      x: shop.interaction.x + shop.interaction.width / 2,
+      y: shop.interaction.y + shop.interaction.height / 2,
+    };
+    game.state.run.skillPoints = 1;
+    game.step(0.01, idle({ interact: true }));
+    expect(game.state.shop.open).toBe(true);
+
+    game.debugSummonBoss();
+
+    expect(game.state.shop.open).toBe(false);
+    expect(game.state.run.shopClosed).toBe(true);
+    expect(game.state.run.bossAwake).toBe(true);
+
+    const blocked = game.step(0.01, idle({ interact: true }));
+    expect(blocked.some((event) => event.type === "shop-unavailable")).toBe(
+      true,
+    );
+    expect(game.state.shop.open).toBe(false);
+  });
+
+  it("does not summon a second Warden from a repeat altar interaction", () => {
+    const game = createGame();
+    game.debugSummonBoss();
+    const altar = game.state.floor.altar;
+    game.state.player = {
+      ...game.state.player,
+      x: altar.x + altar.width / 2,
+      y: altar.y + altar.height / 2,
+    };
+
+    game.step(0.01, idle({ interact: true }));
+
+    expect(
+      game.state.enemies.filter((enemy) => enemy.kind === "boss"),
+    ).toHaveLength(1);
+  });
+
+  it("preserves run-scoped rewards across descent and resets per-floor state", () => {
+    const game = createGame();
+    const stairs = game.state.floor.stairs;
+    game.state.run = {
+      ...game.state.run,
+      spirit: 80,
+      floorPurified: true,
+      bossAwake: true,
+      exitOpen: true,
+      gateOpenedAt: 1,
+      shopClosed: true,
+      skillPoints: 4,
+      draughtCarried: true,
+      vigorPurchased: true,
+    };
+    game.state.player = {
+      ...game.state.player,
+      hp: 6,
+      maxHp: 7,
+      x: stairs.x + stairs.width / 2,
+      y: stairs.y + stairs.height / 2,
+    };
+
+    stepFor(game, 0.02, {});
+
+    expect(game.state.run.depth).toBe(2);
+    expect(game.state.run.skillPoints).toBe(4);
+    expect(game.state.run.draughtCarried).toBe(true);
+    expect(game.state.run.vigorPurchased).toBe(true);
+    expect(game.state.player.maxHp).toBe(7);
+    expect(game.state.player.hp).toBe(7);
+    expect(game.state.run.spirit).toBe(0);
+    expect(game.state.run.floorPurified).toBe(false);
+    expect(game.state.run.bossAwake).toBe(false);
+    expect(game.state.run.exitOpen).toBe(false);
+    expect(game.state.run.gateOpenedAt).toBeNull();
+    expect(game.state.run.shopClosed).toBe(false);
+  });
+
+  it("clears run-scoped rewards on death and restart", () => {
+    const game = createGame();
+    game.state.run.skillPoints = 5;
+    game.state.run.draughtCarried = true;
+    game.state.run.vigorPurchased = true;
+    game.state.player = { ...game.state.player, maxHp: 7, hp: 0 };
+    game.state.status = "dead";
+
+    game.step(0.01, idle({ restart: true }));
+
+    expect(game.state.status).toBe("playing");
+    expect(game.state.run.skillPoints).toBe(0);
+    expect(game.state.run.draughtCarried).toBe(false);
+    expect(game.state.run.vigorPurchased).toBe(false);
+    expect(game.state.player.maxHp).toBe(6);
+    expect(game.state.player.hp).toBe(6);
+  });
+
+  it("reports shop, gate, and summon state in the debug snapshot", () => {
+    const game = createGame();
+    game.debugPrepareRite();
+    const snapshot = game.snapshot();
+
+    expect(snapshot.gateOpen).toBe(true);
+    expect(snapshot.summonAvailable).toBe(true);
+    expect(snapshot.shopOpen).toBe(false);
+    expect(snapshot.shopClosed).toBe(false);
+    expect(snapshot.shopRows.map((row) => row.id)).toEqual([
+      "draught",
+      "vigor",
+    ]);
+    expect(snapshot.floor.rooms).toHaveLength(6);
+    expect(snapshot.floor.shop.safe).toEqual(game.state.floor.shop.safe);
   });
 });

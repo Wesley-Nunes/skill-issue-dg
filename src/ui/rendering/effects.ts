@@ -53,10 +53,29 @@ interface HealPulse {
   born: number;
 }
 
+export type TextTone = "cyan" | "ember" | "muted";
+
+interface FloatingText {
+  text: string;
+  x: number;
+  y: number;
+  born: number;
+  tone: TextTone;
+}
+
+interface Banner {
+  text: string;
+  born: number;
+  life: number;
+  tone: TextTone;
+}
+
 export const EXPLOSION_LIFE = 0.25;
 export const HEAL_PULSE_LIFE = 0.7;
 export const SUMMON_RING_LIFE = 0.6;
 export const SUMMON_FLASH_LIFE = 0.6;
+export const FLOATING_TEXT_LIFE = 1.2;
+export const GATE_RING_LIFE = 0.5;
 
 const AFTERIMAGE_LIFE = 0.2;
 const AFTERIMAGE_INTERVAL = 0.04;
@@ -79,6 +98,9 @@ export class VisualEffects {
   rings: Ring[] = [];
   flashes: Flash[] = [];
   healPulses: HealPulse[] = [];
+  floatingTexts: FloatingText[] = [];
+  banners: Banner[] = [];
+  skillPointHighlightAt: number | null = null;
 
   private lastCapture = 0;
   private dodgeCaptures = 0;
@@ -171,6 +193,16 @@ export class VisualEffects {
             life: 0.35,
             color: RESTED_COLOR,
           });
+          this.floatingTexts.push({
+            text: "Rested · +1 skill point",
+            x: event.x,
+            y: event.y - 22,
+            born: state.time,
+            tone: "cyan",
+          });
+          break;
+        case "skill-points-earned":
+          this.skillPointHighlightAt = state.time;
           break;
         case "enemy-respawned":
           this.sparks.push({
@@ -192,6 +224,22 @@ export class VisualEffects {
             });
           }
           break;
+        case "floor-purified":
+          this.banners.push({
+            text: "The arena opens",
+            born: state.time,
+            life: 1.6,
+            tone: "cyan",
+          });
+          this.rings.push({
+            x: state.floor.gate.x + state.floor.gate.width / 2,
+            y: state.floor.gate.y + state.floor.gate.height / 2,
+            born: state.time,
+            radius: 60,
+            life: GATE_RING_LIFE,
+            color: "191, 233, 255",
+          });
+          break;
         case "boss-summoned":
           this.rings.push({
             x: event.x,
@@ -204,6 +252,12 @@ export class VisualEffects {
           this.flashes.push({
             born: state.time,
             life: SUMMON_FLASH_LIFE,
+          });
+          this.banners.push({
+            text: "The Warden rises · the shop closes",
+            born: state.time,
+            life: 1.8,
+            tone: "ember",
           });
           break;
         case "bomb-exploded":
@@ -241,26 +295,89 @@ export class VisualEffects {
             life: 0.35,
             color: "rgba(255, 150, 90, 1)",
           });
+          this.banners.push({
+            text: "Warden defeated · +3 skill points",
+            born: state.time,
+            life: 1.8,
+            tone: "ember",
+          });
           break;
         case "player-healed":
           this.healPulses.push({ born: state.time });
           break;
+        case "draught-used":
+          this.floatingTexts.push({
+            text: `+${event.healed} HP`,
+            x: event.x,
+            y: event.y - 22,
+            born: state.time,
+            tone: "cyan",
+          });
+          break;
+        case "draught-blocked":
+          this.floatingTexts.push({
+            text: event.message,
+            x: event.x,
+            y: event.y - 22,
+            born: state.time,
+            tone: "muted",
+          });
+          break;
+        case "summon-blocked":
+          this.floatingTexts.push({
+            text: event.message,
+            x: event.x,
+            y: event.y - 22,
+            born: state.time,
+            tone: "ember",
+          });
+          break;
+        case "shop-unavailable":
+          this.floatingTexts.push({
+            text: event.message,
+            x: event.x,
+            y: event.y - 22,
+            born: state.time,
+            tone: "muted",
+          });
+          break;
+        case "vigor-purchased":
+          this.healPulses.push({ born: state.time });
+          this.floatingTexts.push({
+            text: "Vigor · Max HP +1",
+            x: event.x,
+            y: event.y - 22,
+            born: state.time,
+            tone: "cyan",
+          });
+          break;
+        case "floor-descended":
         case "run-reset":
-          this.sparks = [];
-          this.afterimages = [];
-          this.swings = [];
-          this.chainBreaks = [];
-          this.explosions = [];
-          this.rings = [];
-          this.flashes = [];
-          this.healPulses = [];
-          this.lastCapture = 0;
-          this.dodgeCaptures = 0;
+          // The floor clock restarts from zero, so effects from the old floor
+          // must not survive: a future `born` time would otherwise make them
+          // reappear once the new clock catches up.
+          this.clearTransient();
           break;
         default:
           break;
       }
     }
+  }
+
+  private clearTransient(): void {
+    this.sparks = [];
+    this.afterimages = [];
+    this.swings = [];
+    this.chainBreaks = [];
+    this.explosions = [];
+    this.rings = [];
+    this.flashes = [];
+    this.healPulses = [];
+    this.floatingTexts = [];
+    this.banners = [];
+    this.skillPointHighlightAt = null;
+    this.lastCapture = 0;
+    this.dodgeCaptures = 0;
   }
 
   captureDodge(state: GameState): void {
@@ -299,6 +416,12 @@ export class VisualEffects {
     );
     this.healPulses = this.healPulses.filter(
       (pulse) => time - pulse.born < HEAL_PULSE_LIFE,
+    );
+    this.floatingTexts = this.floatingTexts.filter(
+      (text) => time - text.born < FLOATING_TEXT_LIFE,
+    );
+    this.banners = this.banners.filter(
+      (banner) => time - banner.born < banner.life,
     );
   }
 }

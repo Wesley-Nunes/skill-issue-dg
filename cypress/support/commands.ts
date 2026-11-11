@@ -4,6 +4,7 @@ import {
   cameraSettled,
   meleeTarget,
   movementKeys,
+  planRoute,
   type ClickWorldOptions,
   type WalkOptions,
 } from "./game";
@@ -32,6 +33,7 @@ function walkToTarget(
   const timeout = options.timeout ?? DEFAULT_WALK_TIMEOUT;
   const deadline = Date.now() + timeout;
   let held: string[] = [];
+  let startDepth: number | null = null;
 
   const release = (): void => {
     held.forEach((key) => cy.document().trigger("keyup", { key }));
@@ -46,6 +48,14 @@ function walkToTarget(
           `walkTo stopped because the run is ${snapshot.status} at player ` +
             `(${snapshot.player.x.toFixed(1)}, ${snapshot.player.y.toFixed(1)})`,
         );
+      }
+
+      // A walk belongs to one floor. Reaching the stairs mid-walk must not
+      // make the player chase the old target on the next floor.
+      if (startDepth === null) startDepth = snapshot.depth;
+      else if (snapshot.depth !== startDepth) {
+        release();
+        return;
       }
 
       const target = getTarget(snapshot);
@@ -93,6 +103,39 @@ function walkToTarget(
   };
 
   step();
+}
+
+/** Routes around the branch walls, then hands the final approach to walkToTarget. */
+function walkRouteToTarget(
+  getTarget: (snapshot: DebugSnapshot) => { x: number; y: number },
+  options: WalkOptions,
+): void {
+  const stop = options.stop ?? DEFAULT_STOP;
+  const timeout = options.timeout ?? DEFAULT_WALK_TIMEOUT;
+
+  cy.gameSnapshot().then((snapshot) => {
+    if (snapshot.status !== "playing") {
+      walkToTarget(getTarget, options);
+      return;
+    }
+
+    const startDepth = snapshot.depth;
+    const route = planRoute(snapshot, getTarget(snapshot), stop);
+    const step = (index: number): void => {
+      cy.gameSnapshot().then((current) => {
+        // Descending ends the walk; the route belongs to the old floor.
+        if (current.depth !== startDepth) return;
+        if (index >= route.length) {
+          walkToTarget(getTarget, options);
+          return;
+        }
+        const point = route[index]!;
+        walkToTarget(() => point, { stop: 8, timeout });
+        cy.then(() => step(index + 1));
+      });
+    };
+    step(0);
+  });
 }
 
 Cypress.Commands.add("gameSnapshot", () => {
@@ -164,6 +207,74 @@ Cypress.Commands.add("startGame", () => {
   });
 });
 
+Cypress.Commands.add("pressKey", (key: string) => {
+  cy.document().trigger("keydown", { key });
+  cy.document().trigger("keyup", { key });
+});
+
+Cypress.Commands.add("prepareRest", (id: string) => {
+  cy.window().then((win) => {
+    if (!win.__gameDebug) throw new Error("Game debug hook is unavailable.");
+    win.__gameDebug.prepareRest(id);
+  });
+});
+
+Cypress.Commands.add("restMobs", () => {
+  cy.window().then((win) => {
+    if (!win.__gameDebug) throw new Error("Game debug hook is unavailable.");
+    win.__gameDebug.restMobs();
+  });
+});
+
+Cypress.Commands.add("giveSkillPoints", (amount: number) => {
+  cy.window().then((win) => {
+    if (!win.__gameDebug) throw new Error("Game debug hook is unavailable.");
+    win.__gameDebug.giveSkillPoints(amount);
+  });
+});
+
+Cypress.Commands.add("teleport", (x: number, y: number) => {
+  cy.window().then((win) => {
+    if (!win.__gameDebug) throw new Error("Game debug hook is unavailable.");
+    win.__gameDebug.teleport(x, y);
+  });
+});
+
+Cypress.Commands.add("prepareRite", () => {
+  cy.window().then((win) => {
+    if (!win.__gameDebug) throw new Error("Game debug hook is unavailable.");
+    win.__gameDebug.prepareRite();
+  });
+});
+
+Cypress.Commands.add("weakenBoss", (hp = 1) => {
+  cy.window().then((win) => {
+    if (!win.__gameDebug) throw new Error("Game debug hook is unavailable.");
+    win.__gameDebug.weakenBoss(hp);
+  });
+});
+
+Cypress.Commands.add("setPlayerHp", (hp: number) => {
+  cy.window().then((win) => {
+    if (!win.__gameDebug) throw new Error("Game debug hook is unavailable.");
+    win.__gameDebug.setPlayerHp(hp);
+  });
+});
+
+Cypress.Commands.add("killPlayer", () => {
+  cy.window().then((win) => {
+    if (!win.__gameDebug) throw new Error("Game debug hook is unavailable.");
+    win.__gameDebug.killPlayer();
+  });
+});
+
+Cypress.Commands.add("descend", () => {
+  cy.window().then((win) => {
+    if (!win.__gameDebug) throw new Error("Game debug hook is unavailable.");
+    win.__gameDebug.descend();
+  });
+});
+
 Cypress.Commands.add("summonBoss", () => {
   cy.window().then((win) => {
     if (!win.__gameDebug) throw new Error("Game debug hook is unavailable.");
@@ -185,15 +296,15 @@ Cypress.Commands.add("waitForDeath", (timeout = DEFAULT_DEATH_TIMEOUT) => {
 });
 
 Cypress.Commands.add("walkTo", (worldX, worldY, options = {}) => {
-  walkToTarget(() => ({ x: worldX, y: worldY }), options);
+  walkRouteToTarget(() => ({ x: worldX, y: worldY }), options);
 });
 
 Cypress.Commands.add("approachMelee", (options = {}) => {
-  walkToTarget((snapshot) => meleeTarget(snapshot), options);
+  walkRouteToTarget((snapshot) => meleeTarget(snapshot), options);
 });
 
 Cypress.Commands.add("approachBoss", (options = {}) => {
-  walkToTarget((snapshot) => bossTarget(snapshot), options);
+  walkRouteToTarget((snapshot) => bossTarget(snapshot), options);
 });
 
 Cypress.Commands.add("clickWorld", (worldX, worldY, options = {}) => {

@@ -7,17 +7,17 @@ This file is the canonical workflow state for the repository. It is maintained b
 | Field | Value |
 |---|---|
 | Project | skill issue dg |
-| Goal | `0.6.0` boot loading screen, complete image/audio/font preload, and self-hosted display typography |
-| Current SemVer ID | `0.6.0` |
+| Goal | `0.7.0` reward loop: skill points, safe-room shop, branching floor, and a player-summoned Warden |
+| Current SemVer ID | `0.7.0` |
 | Current task ID | `001` |
-| Active phase | `QA passed` — branch pushed; pull request and merge pending |
+| Active phase | `Ready for push and PR` — QA passed after fixes and orchestrator final acceptance complete; post-QA junction fix and combo note committed; branch local ahead of origin, PR draft prepared |
 | Active agent | `orchestrator` |
-| Git branch | `feature/0.6.0-001-loading-screen` |
-| Last accepted commit | `3c2f62d` (merged `0.5.0` on `dev`) |
-| Pushed HEAD | Branch pushed; QA commit `e57c7eb` verified on `origin/feature/0.6.0-001-loading-screen`, followed by this state commit |
-| Pull request | Not created; `gh`/`hub` unavailable; PR target is `dev` |
+| Git branch | `feature/0.7.0-001-reward-loop` |
+| Last accepted commit | `60318be` (merged `0.6.0` on `dev` via PR #9) |
+| Pushed HEAD | `origin/feature/0.7.0-001-reward-loop` at `f8b0a51`; local branch ahead at `020c178` plus this state commit, not pushed |
+| Pull request | Not created; PR target is `dev`; no `gh`/`hub` available, so the operator opens the PR |
 | Blocking questions remaining | `0` |
-| Overall status | `QA passed locally` — boot loading screen, full image/audio/font preload, and Grenze Gotisch integration delivered at `a627259` (log `0094c17`); QA report at `e57c7eb`; clean `npm ci`, typecheck, 157 unit tests, build, and 27 Chrome e2e tests pass in two consecutive runs; hosted CI and merge pending |
+| Overall status | `0.7.0 accepted, ready for PR` — implementation at `17510eb`, descent effect-leak fix at `6e377d3`, junction waystone removal at `99787aa`, combo-rework note at `b74da29`, QA report at `020c178`, state commit follows; clean install, typecheck, 190 unit tests, build, and 32/32 Chrome e2e pass; QA verdict `Passed after fixes`; hosted CI and Vercel pending |
 
 Update this snapshot whenever a value changes. Do not leave stale status after a handoff.
 
@@ -40,16 +40,54 @@ The state manager must not invent decisions, change product scope, edit game cod
 Populate these links when the version and task have been approved:
 
 - Product overview: `docs/about-the-project.md`
-- Task package: `docs/tasks/0.6.0/001-design.md`,
-  `001-programmer.md`, `001-qa.md`
-- Design decisions: `design/0.6.0/design-decisions.md`
-- Implementation decision log: `programmer/0.6.0/CoT.md` (`0094c17`)
-- QA report: `qa/0.6.0/001-report.md` (`e57c7eb`, verdict Passed)
+- Task package: `docs/tasks/0.7.0/001-design.md`,
+  `001-programmer.md`, `001-qa.md` (ready)
+- Design decisions: [design/0.7.0/design-decisions.md](design/0.7.0/design-decisions.md) (complete)
+- Implementation decision log:
+  [programmer/0.7.0/CoT.md](programmer/0.7.0/CoT.md) (complete)
+- QA report: [qa/0.7.0/001-report.md](qa/0.7.0/001-report.md) (complete;
+  `Passed after fixes`, F1 closed in `6e377d3`, junction waystone removed in
+  `99787aa`; verified by the orchestrator because the QA subagent could not
+  start)
+- Docs handoff: the three task files define the fixed six-room branch,
+  safe-room shop, skill-point economy, explicit Warden summon, HUD, feedback,
+  accessibility, and the independent QA plan; the product overview was
+  updated for the current slice and future direction.
 - Deployment: Vercel — `dev` is staging, `main` is production; the operator
   connects the repository in Vercel.
-- Prior release: `0.5.0` is merged into `dev` via PR #5 (`3c2f62d`).
+- Prior release: `0.6.0` is merged into `dev` via PR #9 (`60318be`);
+  `0.5.0` is merged into `dev` via PR #5 (`3c2f62d`).
 
-### Version 0.6.0 scope (operator-approved 2026-11-08)
+### Version 0.7.0 scope (operator-approved 2026-11-09)
+
+- **Deliverable:** close the MVP reward loop with a skill-point economy, a
+  branching floor that contains one safe-room shop, and a player-controlled
+  Warden summon. No meta-progression or persistence.
+- **Included:** skill points as the only run currency, earned by putting mobs
+  to rest; a fixed branch layout (start → first mob → left: second mob →
+  shop dead end / right: third mob → locked boss arena); a safe-room shop;
+  healing draught (2 HP for 1 point, one carried slot); Vigor (+1 max HP for
+  the run for 3 points, one-time purchase per run); explicit Warden summon
+  after all mobs are at rest; spirit remains the readiness meter; HUD skill
+  points and carried-draught state; unit and Cypress coverage; version bump
+  to `0.7.0`.
+- **Operator decisions:** skill points are the only currency; no separate
+  combo resource; the shop is a dead end off the left branch; the player may
+  shop before summoning; the shop closes once the Warden is summoned; the
+  healing draught occupies one carried slot; rewards are shop-only.
+- **Defaults recorded as assumptions:** 1 skill point per rested mob and 3
+  for the Warden; `Q` uses the draught; skill points, Vigor, and the carried
+  draught persist across floors and reset on death/restart; the Warden is
+  summoned through an explicit interaction in the unlocked boss arena.
+- **Excluded:** separate gold currency, skill tree, artifacts, random drops,
+  chests, inventory grid, shop refresh, post-death purchases,
+  meta-progression, difficulty scaling, persistence, new enemies, and new art
+  unless design proves it necessary.
+- **Known consequence:** the floor generator changes from a linear four-room
+  chain to a fixed six-room branch, and the automatic full-spirit Warden
+  summon is replaced by an explicit player action.
+
+### Version 0.6.0 scope (operator-approved 2026-11-08) — delivered, merged via PR #9
 
 - **Deliverable:** a game-styled boot loading screen that reports real
   progress while all boot images, audio, and the display font are prepared,
@@ -188,6 +226,14 @@ Append one entry for each meaningful phase transition:
 | 2026-11-08 | 0.6.0/001 | Docs/design approved → Implementation | Static boot overlay, monotonic image/audio/font progress, offline audio decode of all 41 cues, delayed input attach, self-hosted Grenze Gotisch, boot error state, and Cypress coverage delivered; 157 unit + 25 Chrome e2e tests, typecheck/build pass; QA pending | `a627259`, `0094c17` |
 | 2026-11-09 | 0.6.0/001 | QA verification → QA pass | Clean `npm ci`; typecheck/unit/build pass; 27/27 Chrome e2e in two consecutive runs; audio-404 and missing-`AudioContext` degradation tests promoted into the permanent spec; restart boot assertion added; bundle has no debug hooks or external runtime font requests; boot/title/pause/boss/death visuals inspected; verdict Passed with 0 blocking findings | `e57c7eb` |
 | 2026-11-09 | 0.6.0/001 | QA pass → Pushed, PR pending | Branch pushed; `origin/feature/0.6.0-001-loading-screen` matches `e57c7eb`; PR creation blocked because `gh`/`hub` are unavailable, so the operator opens the PR against `dev`; hosted CI and Vercel remain pending | `e57c7eb`, plus this state commit |
+| 2026-11-09 | 0.6.0/001 | PR pending → Merged | PR #9 merged into `dev`; `dev` and `origin/dev` are at `60318be` | `60318be` |
+| 2026-11-09 | 0.7.0/001 | Complete → Docs discovery | Operator approved the reward-loop scope after six discovery decisions; branch created; task package next | this state commit |
+| 2026-11-09 | 0.7.0/001 | Docs discovery → Design decisions | Reward-loop task package written; product overview updated for the fixed six-room branch, safe-room shop, explicit Warden summon, skill-point economy, MVP status, open questions, and priority 6; design owns layout, shop, summon, HUD, feedback, and accessibility decisions | this docs commit |
+| 2026-11-10 | 0.7.0/001 | Design decisions → Implementation | Design contract covers the fixed six-room branch and junction hub, canvas shop modal with every purchase state, explicit altar summon, HUD skill-point/draught/heart-row treatment, feedback, controls, accessibility, and no new art/audio; programmer next | this design commit |
+| 2026-11-10 | 0.7.0/001 | Implementation → QA verification | Skill points, fixed six-room branch, safe-room shop, draught, one-time Vigor, arena gate, explicit Warden summon, HUD/feedback, and the safe-room rule delivered; 189 unit + 32 Chrome e2e tests pass, typecheck/build pass, production bundle has no debug hooks; QA verification next | `17510eb` |
+| 2026-11-11 | 0.7.0/001 | QA verification → QA pass | Clean `npm ci`; typecheck, 190 unit tests, build, and 32/32 Chrome e2e (5 specs, 3 m 05 s) pass; 30 exact-size canvas captures plus a title capture inspected; F1 (old-floor effects reappearing after descent) reproduced and fixed in `6e377d3` with a regression test; verdict `Passed after fix`; QA was run by the orchestrator because the QA subagent was unavailable; hosted CI and Vercel pending | `3a91f26` (fix `6e377d3`) |
+| 2026-11-11 | 0.7.0/001 | QA pass → Ready for push and PR | Orchestrator reviewed the 37-file diff (approved scope, no asset/dependency/meta-progression changes), re-ran typecheck/unit/build/e2e, and accepted the version; branch is local at `496e007` plus this state commit; `gh`/`hub` are unavailable, so the operator pushes and opens the PR against `dev`; hosted CI and Vercel remain pending | this state commit |
+| 2026-11-11 | 0.7.0/001 | Post-QA operator fixes → Ready for push and PR | Operator playtest found the junction `SHOP`/`WARDEN` labels overlapping and the chevrons pointing the wrong way; the waystone was removed entirely (`99787aa`) and the combo rework was recorded as a known issue in the product overview (`b74da29`); QA amended and re-verified with fresh 1024 × 640 and 1440 × 810 captures (`020c178`); typecheck, 190 unit tests, build, and 32/32 Chrome e2e pass; verdict `Passed after fixes`; branch ahead of `origin` at `f8b0a51`; hosted CI and Vercel remain pending | `99787aa`, `b74da29`, `020c178`, plus this state commit |
 
 ## Status vocabulary
 
