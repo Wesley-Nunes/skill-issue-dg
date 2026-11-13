@@ -11,8 +11,8 @@ This file is the canonical workflow state for the repository. It is maintained b
 | Current SemVer ID | `0.9.0` (in progress) |
 | Next target version | `—` — `0.9.0` is the MVP acceptance slice; no later version approved |
 | Current task ID | `001` |
-| Active phase | `Docs discovery → Design decisions` |
-| Active agent | `design` |
+| Active phase | `Design decisions → Implementation` |
+| Active agent | `programmer` |
 | Git branch | `feature/0.9.0-001-mvp-acceptance` |
 | Last accepted commit | `d04c66b` (PR #13 merge of `feature/0.8.0-001-combat-feel`) |
 | Pushed HEAD | `origin/dev` at `d04c66b`; the `0.9.0` branch is local only |
@@ -50,7 +50,9 @@ Populate these links when the version and task have been approved:
 - Task package: `docs/tasks/0.9.0/001-design.md`,
   `001-programmer.md`, `001-qa.md` (written by the orchestrator; no dedicated
   docs subagent is available)
-- Design decisions: `design/0.9.0/design-decisions.md` (pending)
+- Design decisions: [design/0.9.0/design-decisions.md](design/0.9.0/design-decisions.md)
+  (complete; predicate, one-way entry, conditional protection, interaction rule,
+  feedback, edge cases, verification hooks)
 - Implementation decision log: `programmer/0.9.0/CoT.md` (pending)
 - QA report: `qa/0.9.0/001-report.md` (pending)
 - Docs handoff: the task package defines the seal predicate, the entry and exit
@@ -338,6 +340,7 @@ Append one entry for each meaningful phase transition:
 | 2026-11-13 | — | Post-merge bug report | Operator found that safe rooms can be entered while enemies are hunting: luring a mob or the Warden to the shop threshold leaves the player untouchable inside while still able to attack out. Recorded in `docs/about-the-project.md` §4.2 with an `in_combat` entry gate as the suggested fix; alternatives are acceptable; deferred, not fixed in this commit | this state commit |
 | 2026-11-14 | 0.9.0/001 | Complete → Docs discovery | Operator approved the MVP acceptance plan: close the safe-room exploit, write the MVP contract, and run end-to-end acceptance. Branch `feature/0.9.0-001-mvp-acceptance` created from `dev` | this docs commit |
 | 2026-11-14 | 0.9.0/001 | Docs discovery → Design decisions | Operator confirmed the seeded fixed six-room topology as the MVP's procedural floor and shop-only rewards as the loot decision. `GOAL.md` now holds the testable MVP contract (SC1–SC10); the three `0.9.0` task files and the product-overview updates are written; design next | this docs commit |
+| 2026-11-14 | 0.9.0/001 | Design decisions → Implementation | Design contract approved: `isInCombat` = living enemy with aggro; one-way entry refusal by walking and dodging; damage applies inside while sealed; shop cannot open while sealed; cyan/ember threshold states, `WARD SEALED`, and `The ward holds — enemies are hunting.` throttled to 2 s. No new system, asset, or HUD element | this design commit |
 
 ## Status vocabulary
 
