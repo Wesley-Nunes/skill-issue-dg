@@ -7,17 +7,17 @@ This file is the canonical workflow state for the repository. It is maintained b
 | Field | Value |
 |---|---|
 | Project | skill issue dg |
-| Goal | `0.7.0` reward loop: skill points, safe-room shop, branching floor, and a player-summoned Warden |
-| Current SemVer ID | `0.7.0` |
+| Goal | `0.8.0` combat-feel pass: rework the three-hit light combo and its role in the liberation loop, plus a first balance baseline |
+| Current SemVer ID | `0.8.0` |
 | Current task ID | `001` |
-| Active phase | `Ready for push and PR` — QA passed after fixes and orchestrator final acceptance complete; post-QA junction fix and combo note committed; branch local ahead of origin, PR draft prepared |
-| Active agent | `orchestrator` |
-| Git branch | `feature/0.7.0-001-reward-loop` |
-| Last accepted commit | `60318be` (merged `0.6.0` on `dev` via PR #9) |
-| Pushed HEAD | `origin/feature/0.7.0-001-reward-loop` at `f8b0a51`; local branch ahead at `020c178` plus this state commit, not pushed |
+| Active phase | `Docs discovery` — operator approved the combat-feel direction on 2026-11-13; detailed scope, remaining blocking-question count, and the task package are owned by the docs agent |
+| Active agent | `docs` |
+| Git branch | `feature/0.8.0-001-combat-feel` (local only) |
+| Last accepted commit | `da17b57` (merged `0.7.0` on `dev` via PR #11) |
+| Pushed HEAD | `origin/dev` at `da17b57`; the `0.8.0` branch is local and not pushed |
 | Pull request | Not created; PR target is `dev`; no `gh`/`hub` available, so the operator opens the PR |
-| Blocking questions remaining | `0` |
-| Overall status | `0.7.0 accepted, ready for PR` — implementation at `17510eb`, descent effect-leak fix at `6e377d3`, junction waystone removal at `99787aa`, combo-rework note at `b74da29`, QA report at `020c178`, state commit follows; clean install, typecheck, 190 unit tests, build, and 32/32 Chrome e2e pass; QA verdict `Passed after fixes`; hosted CI and Vercel pending |
+| Blocking questions remaining | `TBD` — docs discovery has not started |
+| Overall status | `0.8.0 in discovery` — `0.7.0` delivered and merged via PR #11; the next version targets the recorded combo known issue and a first balance baseline; no task files, design decisions, or implementation exist yet |
 
 Update this snapshot whenever a value changes. Do not leave stale status after a handoff.
 
@@ -40,25 +40,49 @@ The state manager must not invent decisions, change product scope, edit game cod
 Populate these links when the version and task have been approved:
 
 - Product overview: `docs/about-the-project.md`
-- Task package: `docs/tasks/0.7.0/001-design.md`,
-  `001-programmer.md`, `001-qa.md` (ready)
-- Design decisions: [design/0.7.0/design-decisions.md](design/0.7.0/design-decisions.md) (complete)
-- Implementation decision log:
-  [programmer/0.7.0/CoT.md](programmer/0.7.0/CoT.md) (complete)
-- QA report: [qa/0.7.0/001-report.md](qa/0.7.0/001-report.md) (complete;
-  `Passed after fixes`, F1 closed in `6e377d3`, junction waystone removed in
-  `99787aa`; verified by the orchestrator because the QA subagent could not
-  start)
-- Docs handoff: the three task files define the fixed six-room branch,
-  safe-room shop, skill-point economy, explicit Warden summon, HUD, feedback,
-  accessibility, and the independent QA plan; the product overview was
-  updated for the current slice and future direction.
+- Task package: `docs/tasks/0.8.0/001-design.md`, `001-programmer.md`,
+  `001-qa.md` (not created — docs discovery)
+- Design decisions: `design/0.8.0/design-decisions.md` (not started)
+- Implementation decision log: `programmer/0.8.0/CoT.md` (not started)
+- QA report: `qa/0.8.0/001-report.md` (not started)
+- Docs handoff: pending. Discovery must convert the approved direction into
+  concrete combo, feedback, and balance scope, and update
+  `docs/about-the-project.md` §3.2/§10 where the known issue is resolved.
 - Deployment: Vercel — `dev` is staging, `main` is production; the operator
   connects the repository in Vercel.
-- Prior release: `0.6.0` is merged into `dev` via PR #9 (`60318be`);
-  `0.5.0` is merged into `dev` via PR #5 (`3c2f62d`).
+- Prior release: `0.7.0` is merged into `dev` via PR #11 (`da17b57`);
+  implementation `17510eb`, QA `Passed after fixes` (`020c178`).
+- Also merged into `dev`: `0.6.0` via PR #9 (`60318be`), `0.5.0` via PR #5
+  (`3c2f62d`).
 
-### Version 0.7.0 scope (operator-approved 2026-11-09)
+### Version 0.8.0 scope (direction approved 2026-11-13; details pending docs discovery)
+
+- **Deliverable (approved direction):** a combat-feel pass that reworks the
+  three-hit light combo and its role in the liberation loop, plus a first
+  balance baseline. No new systems, assets, or currencies are implied by the
+  direction.
+- **Why:** the product overview records the combo as a known issue
+  (2026-11-11) — timing windows, input feedback, and fragment-breaking feel
+  are not yet satisfying — and MVP validation item 2 ("combat is engaging and
+  rewards player skill") cannot be signed off while the only fragment-breaking
+  verb feels bad. `0.7.0`'s skill-point economy depends on that verb.
+- **Included (to be specified by docs discovery):** combo timing/input-window
+  rework; legible feedback for the open window, mistimed input, and
+  fragment-breaking; a first pass over player, enemy, boss, spirit, and
+  economy values so early floors escalate measurably; unit and Cypress
+  coverage for the revised rules.
+- **Not yet decided:** whether input becomes buffered or stays hard-timed, the
+  exact window/damage values, whether the finisher is the intended
+  fragment-breaker, and how far the balance pass reaches. These are blocking
+  discovery questions; do not treat any of them as settled.
+- **Excluded unless discovery approves it:** new enemy archetypes, artifacts
+  or drops, randomized safe rooms, a general floor generator, post-death
+  purchases, meta-progression, persistence, new art, and new audio.
+- **Known consequence:** revising combo timing and balance will invalidate
+  existing timing-sensitive unit and Cypress expectations, and the design and
+  QA tasks must define how the new feel is verified rather than asserted.
+
+### Version 0.7.0 scope (operator-approved 2026-11-09) — delivered, merged via PR #11
 
 - **Deliverable:** close the MVP reward loop with a skill-point economy, a
   branching floor that contains one safe-room shop, and a player-controlled
@@ -234,6 +258,8 @@ Append one entry for each meaningful phase transition:
 | 2026-11-11 | 0.7.0/001 | QA verification → QA pass | Clean `npm ci`; typecheck, 190 unit tests, build, and 32/32 Chrome e2e (5 specs, 3 m 05 s) pass; 30 exact-size canvas captures plus a title capture inspected; F1 (old-floor effects reappearing after descent) reproduced and fixed in `6e377d3` with a regression test; verdict `Passed after fix`; QA was run by the orchestrator because the QA subagent was unavailable; hosted CI and Vercel pending | `3a91f26` (fix `6e377d3`) |
 | 2026-11-11 | 0.7.0/001 | QA pass → Ready for push and PR | Orchestrator reviewed the 37-file diff (approved scope, no asset/dependency/meta-progression changes), re-ran typecheck/unit/build/e2e, and accepted the version; branch is local at `496e007` plus this state commit; `gh`/`hub` are unavailable, so the operator pushes and opens the PR against `dev`; hosted CI and Vercel remain pending | this state commit |
 | 2026-11-11 | 0.7.0/001 | Post-QA operator fixes → Ready for push and PR | Operator playtest found the junction `SHOP`/`WARDEN` labels overlapping and the chevrons pointing the wrong way; the waystone was removed entirely (`99787aa`) and the combo rework was recorded as a known issue in the product overview (`b74da29`); QA amended and re-verified with fresh 1024 × 640 and 1440 × 810 captures (`020c178`); typecheck, 190 unit tests, build, and 32/32 Chrome e2e pass; verdict `Passed after fixes`; branch ahead of `origin` at `f8b0a51`; hosted CI and Vercel remain pending | `99787aa`, `b74da29`, `020c178`, plus this state commit |
+| 2026-11-13 | 0.7.0/001 | Ready for PR → Merged | PR #11 merged `feature/0.7.0-001-reward-loop` into `dev`; `dev` and `origin/dev` are at `da17b57` | `da17b57` |
+| 2026-11-13 | 0.8.0/001 | Complete → Docs discovery | Operator approved the `0.8.0` combat-feel direction (combo rework and its liberation role, plus a first balance baseline) after reviewing next-feature options; branch `feature/0.8.0-001-combat-feel` created from `dev`; detailed scope, blocking questions, and the task package belong to the docs stage | this state commit |
 
 ## Status vocabulary
 
