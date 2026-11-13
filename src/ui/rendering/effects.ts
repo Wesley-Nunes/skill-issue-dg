@@ -310,6 +310,15 @@ export class VisualEffects {
             tone: "muted",
           });
           break;
+        case "safe-room-blocked":
+          this.floatingTexts.push({
+            text: event.message,
+            x: event.x,
+            y: event.y - 12,
+            born: state.time,
+            tone: "ember",
+          });
+          break;
         case "vigor-purchased":
           this.healPulses.push({ born: state.time });
           this.floatingTexts.push({

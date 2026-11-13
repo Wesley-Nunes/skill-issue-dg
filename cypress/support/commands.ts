@@ -240,6 +240,16 @@ Cypress.Commands.add("teleport", (x: number, y: number) => {
   });
 });
 
+Cypress.Commands.add(
+  "setEnemyAggro",
+  (id: string, aggro = true) => {
+    cy.window().then((win) => {
+      if (!win.__gameDebug) throw new Error("Game debug hook is unavailable.");
+      win.__gameDebug.setEnemyAggro(id, aggro);
+    });
+  },
+);
+
 Cypress.Commands.add("prepareRite", () => {
   cy.window().then((win) => {
     if (!win.__gameDebug) throw new Error("Game debug hook is unavailable.");

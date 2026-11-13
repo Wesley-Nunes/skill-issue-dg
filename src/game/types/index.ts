@@ -258,6 +258,7 @@ export type GameEvent =
     }
   | { type: "summon-blocked"; x: number; y: number; message: string }
   | { type: "shop-unavailable"; x: number; y: number; message: string }
+  | { type: "safe-room-blocked"; x: number; y: number; message: string }
   | { type: "vigor-purchased"; x: number; y: number; maxHp: number }
   | { type: "floor-descended"; depth: number; seed: number }
   | { type: "run-started" }
@@ -331,6 +332,8 @@ export interface DebugSnapshot {
   exitOpen: boolean;
   depth: number;
   gateOpen: boolean;
+  /** True while a living enemy is hunting the player; seals the shop ward. */
+  inCombat: boolean;
   summonAvailable: boolean;
   skillPoints: number;
   draughtCarried: boolean;

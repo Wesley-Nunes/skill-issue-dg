@@ -41,6 +41,8 @@ declare global {
       giveSkillPoints(amount: number): Chainable<void>;
       /** Test-only: moves the player without walking. */
       teleport(x: number, y: number): Chainable<void>;
+      /** Test-only: sets one enemy's hunting flag. */
+      setEnemyAggro(id: string, aggro?: boolean): Chainable<void>;
       /** Test-only: unlocks the arena without summoning. */
       prepareRite(): Chainable<void>;
       /** Test-only: leaves the Warden one hit from defeat. */

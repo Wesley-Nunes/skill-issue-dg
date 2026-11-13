@@ -23,6 +23,7 @@ import {
   hasAllFragmentsBroken,
 } from "../../game/systems/purification";
 import { shopAvailable, shopRows } from "../../game/systems/shop";
+import { isInCombat } from "../../game/systems/safeRoom";
 import type {
   Bomb,
   Enemy,
@@ -291,14 +292,17 @@ export class Renderer {
     const context = this.context;
     const shop = state.floor.shop;
     const closed = state.run.shopClosed;
+    const sealed = isInCombat(state.enemies);
     const player = state.player;
     const pulse = this.reducedMotion
       ? 0.7
       : 0.55 + 0.2 * (0.5 + 0.5 * Math.sin(state.time * 3));
 
-    // Safe threshold: a cyan line with rune ticks across the entrance.
+    // Safe threshold: cyan while open, ember while a hunter seals the ward.
     const threshold = shop.threshold;
-    context.strokeStyle = `rgba(191, 233, 255, ${0.45 + 0.15 * pulse})`;
+    context.strokeStyle = sealed
+      ? `rgba(255, 106, 77, ${0.1 + pulse})`
+      : `rgba(191, 233, 255, ${0.45 + 0.15 * pulse})`;
     context.lineWidth = 1;
     context.beginPath();
     context.moveTo(threshold.x, threshold.y + threshold.height / 2);
@@ -314,6 +318,15 @@ export class Renderer {
       context.lineTo(tickX, threshold.y + threshold.height / 2);
       context.lineTo(tickX + 2, threshold.y + threshold.height / 2 - 3);
       context.stroke();
+    }
+    if (sealed) {
+      this.drawWorldLabel(
+        "WARD SEALED",
+        threshold.x + threshold.width / 2,
+        threshold.y - 8,
+        "rgba(255, 106, 77, 0.90)",
+        9,
+      );
     }
 
     // Stall: a simple procedural counter against the west wall.

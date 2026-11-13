@@ -46,6 +46,7 @@ import {
   restoreFragments,
   tickRespawn,
 } from "../systems/purification";
+import { isInCombat, WARD_MESSAGE } from "../systems/safeRoom";
 import {
   clampSelection,
   purchase,
@@ -73,6 +74,8 @@ export interface ViewportSource {
 
 export class Game {
   state: GameState;
+  /** Last time a refused-entry message was shown; throttles held movement. */
+  private wardMessageAt = -Infinity;
 
   constructor(
     private readonly viewportSource: ViewportSource,
@@ -95,6 +98,7 @@ export class Game {
       1,
       "playing",
     );
+    this.wardMessageAt = -Infinity;
     this.snapCamera();
   }
 
@@ -182,6 +186,7 @@ export class Game {
       }
     }
 
+    const beforeMove = { x: player.x, y: player.y };
     player = movePlayer(
       player,
       input.move,
@@ -189,6 +194,17 @@ export class Game {
       state.floor,
       this.playerBlockers(),
     );
+    // The ward is one-way: it refuses entry while an enemy hunts but never
+    // blocks a player who is already inside from leaving.
+    const safe = state.floor.shop.safe;
+    if (
+      isInCombat(state.enemies) &&
+      !isInsideRect(safe, beforeMove.x, beforeMove.y) &&
+      isInsideRect(safe, player.x, player.y)
+    ) {
+      player = { ...player, x: beforeMove.x, y: beforeMove.y, moving: false };
+      this.emitWardBlocked(events);
+    }
     player = tickDodgeTimers(player, dt);
     player = {
       ...player,
@@ -312,6 +328,20 @@ export class Game {
     events.push({ type: "shop-closed" });
   }
 
+  /** Shows the refusal message at the threshold, throttled while pushing. */
+  private emitWardBlocked(events: GameEvent[]): void {
+    const state = this.state;
+    if (state.time - this.wardMessageAt < SHOP.wardMessageCooldown) return;
+    this.wardMessageAt = state.time;
+    const threshold = state.floor.shop.threshold;
+    events.push({
+      type: "safe-room-blocked",
+      x: threshold.x + threshold.width / 2,
+      y: threshold.y + threshold.height / 2,
+      message: WARD_MESSAGE,
+    });
+  }
+
   private buy(item: ShopItemId, events: GameEvent[]): void {
     const state = this.state;
     const outcome = purchase(state.run, item);
@@ -386,6 +416,15 @@ export class Game {
     const floor = state.floor;
 
     if (isInsideRect(floor.shop.interaction, player.x, player.y)) {
+      if (isInCombat(state.enemies)) {
+        events.push({
+          type: "shop-unavailable",
+          x: player.x,
+          y: player.y,
+          message: WARD_MESSAGE,
+        });
+        return;
+      }
       if (!shopAvailable(state.run)) {
         events.push({
           type: "shop-unavailable",
@@ -649,6 +688,13 @@ export class Game {
     this.snapCamera();
   }
 
+  /** Test-only: sets one enemy's hunting flag for the ward rule. */
+  debugSetEnemyAggro(id: string, aggro = true): void {
+    this.state.enemies = this.state.enemies.map((enemy) =>
+      enemy.id === id ? { ...enemy, aggro } : enemy,
+    );
+  }
+
   /** Test-only: unlocks the arena without summoning the Warden. */
   debugPrepareRite(): void {
     this.debugRestMobs();
@@ -885,6 +931,7 @@ export class Game {
     };
 
     this.state = next;
+    this.wardMessageAt = -Infinity;
     this.snapCamera();
     events.push({ type: "floor-descended", depth, seed });
     if (hp > current.player.hp) {
@@ -902,9 +949,12 @@ export class Game {
     const state = this.state;
     if (state.status === "dead") return;
 
-    // The safe-room threshold is absolute: enemies cannot hurt the player
-    // inside the shop, even with a bomb or a projectile that reaches it.
-    if (isInsideRect(state.floor.shop.safe, state.player.x, state.player.y)) {
+    // The safe zone protects only between encounters. While a living enemy
+    // hunts, damage applies inside it just like anywhere else.
+    if (
+      !isInCombat(state.enemies) &&
+      isInsideRect(state.floor.shop.safe, state.player.x, state.player.y)
+    ) {
       return;
     }
 
@@ -1005,6 +1055,7 @@ export class Game {
       exitOpen: run.exitOpen,
       depth: run.depth,
       gateOpen: run.floorPurified,
+      inCombat: isInCombat(enemies),
       summonAvailable:
         run.floorPurified && !run.bossAwake && !run.exitOpen,
       skillPoints: run.skillPoints,
