@@ -1,5 +1,3 @@
-import type { ComboStep } from "../types";
-
 export const TILE = 16;
 export const ZOOM = 3;
 
@@ -39,45 +37,35 @@ export const PLAYER = {
   hurtFlashWhite: 0.08,
 } as const;
 
-export const COMBO = {
-  steps: [
-    {
-      windup: 0.08,
-      active: 0.1,
-      recovery: 0.12,
-      reach: 34,
-      halfAngle: (55 * Math.PI) / 180,
-      damage: 2,
-    },
-    {
-      windup: 0.07,
-      active: 0.09,
-      recovery: 0.1,
-      reach: 36,
-      halfAngle: (55 * Math.PI) / 180,
-      damage: 2,
-    },
-    {
-      windup: 0.12,
-      active: 0.12,
-      recovery: 0.2,
-      reach: 40,
-      halfAngle: (80 * Math.PI) / 180,
-      damage: 4,
-    },
-  ] satisfies ComboStep[],
-  /**
-   * Short beat after a step's active window before the next input opens. It
-   * keeps the reply window away from the click rhythm of a mash.
-   */
-  windowDelay: 0.06,
-  /** How long the next step's input window stays open. */
-  window: 0.1,
-  /** How long the completed finisher stays on screen after it lands. */
-  finisherHold: 0.12,
-  hitstop: 0.06,
+/** One committed light swing. See design/0.8.0/design-decisions.md §2. */
+export const ATTACK = {
+  windup: 0.1,
+  active: 0.09,
+  recovery: 0.22,
+  reach: 36,
+  halfAngle: (60 * Math.PI) / 180,
+  damage: 2,
   knockback: 6,
-  stagger: 0.15,
+  hitstop: 0.05,
+} as const;
+
+/** Depth difficulty curve. Values are design-owned; see design/0.8.0 §5. */
+export const DEPTH = {
+  cap: 10,
+  hpBase: 0.8,
+  hpStep: 0.08,
+  hpMax: 1.52,
+  cadenceBase: 1.15,
+  cadenceStep: 0.03,
+  cadenceMin: 0.88,
+  /** Depth from which the melee mob hits for 2. */
+  meleeDamageDepth: 5,
+  /** Depth from which the projectile hits for 2. */
+  rangedDamageDepth: 6,
+  /** Depth from which the Warden's melee hits for 3. */
+  bossDamageDepth: 6,
+  /** Depth from which a bomb blast hits for 3. */
+  bombDamageDepth: 7,
 } as const;
 
 export const MELEE = {
@@ -119,8 +107,6 @@ export const BOSS = {
   bombWindup: 0.7,
   /** Harmless emergence window after the explicit summon. */
   emergence: 0.8,
-  /** Fraction of a finisher's stagger that actually affects the boss. */
-  staggerScale: 0.35,
 } as const;
 
 /** Presentation timing for the arena gate and the shop panel message. */

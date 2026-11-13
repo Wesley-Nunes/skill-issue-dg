@@ -1,5 +1,6 @@
 import { BOSS, MELEE, PLAYER, PURIFICATION, RANGED } from "../game/data/config";
 import { generateFloor } from "../game/data/floor";
+import { scalingForDepth, type DepthStats } from "../game/systems/depth";
 import type {
   Enemy,
   EnemySpawn,
@@ -24,18 +25,24 @@ export function createPlayer(spawn: Vec2 = { x: 0, y: 0 }): Player {
     dodgeTime: 0,
     dodgeCooldown: 0,
     dodgeDir: { x: 0, y: 0 },
-    comboStep: 0,
-    comboTime: 0,
-    comboHits: 0,
-    comboResolved: false,
-    comboHitThisStep: false,
+    attacking: false,
+    attackTime: 0,
+    attackResolved: false,
     moving: false,
   };
 }
 
-export function createEnemy(spawn: EnemySpawn): Enemy {
-  const ranged = spawn.kind === "ranged";
-  const stats = ranged ? RANGED : MELEE;
+/**
+ * Creates a mob from its spawn and the floor's depth scaling. The melee and
+ * ranged bases differ only in their chosen stats block.
+ */
+export function createEnemy(
+  spawn: EnemySpawn,
+  stats: DepthStats = scalingForDepth(1)[
+    spawn.kind === "ranged" ? "ranged" : "melee"
+  ],
+): Enemy {
+  const base = spawn.kind === "ranged" ? RANGED : MELEE;
 
   return {
     id: spawn.id,
@@ -44,7 +51,7 @@ export function createEnemy(spawn: EnemySpawn): Enemy {
     y: spawn.y,
     homeX: spawn.x,
     homeY: spawn.y,
-    radius: stats.radius,
+    radius: base.radius,
     hp: stats.maxHp,
     maxHp: stats.maxHp,
     status: "alive",
@@ -61,13 +68,21 @@ export function createEnemy(spawn: EnemySpawn): Enemy {
     rested: false,
     respawn: 0,
     attackKind: null,
+    damage: stats.damage,
+    attackInterval: stats.attackInterval,
+    bombDamage: stats.bombDamage,
+    bombInterval: stats.bombInterval,
     bombCooldown: 0,
     emerging: 0,
   };
 }
 
 /** Creates the Floor Warden at its floor spawn. */
-export function createBoss(floor: Floor, emerging = 0): Enemy {
+export function createBoss(
+  floor: Floor,
+  stats: DepthStats = scalingForDepth(floor.depth).boss,
+  emerging = 0,
+): Enemy {
   return {
     id: "floor-warden",
     kind: "boss",
@@ -76,8 +91,8 @@ export function createBoss(floor: Floor, emerging = 0): Enemy {
     homeX: floor.bossSpawn.x,
     homeY: floor.bossSpawn.y,
     radius: BOSS.radius,
-    hp: BOSS.maxHp,
-    maxHp: BOSS.maxHp,
+    hp: stats.maxHp,
+    maxHp: stats.maxHp,
     status: "alive",
     fade: 0,
     hurtFlash: 0,
@@ -92,13 +107,20 @@ export function createBoss(floor: Floor, emerging = 0): Enemy {
     rested: false,
     respawn: 0,
     attackKind: null,
-    bombCooldown: BOSS.bombCooldown,
+    damage: stats.damage,
+    attackInterval: stats.attackInterval,
+    bombDamage: stats.bombDamage,
+    bombInterval: stats.bombInterval,
+    bombCooldown: stats.bombInterval,
     emerging,
   };
 }
 
 export function createEnemies(floor: Floor): Enemy[] {
-  return floor.enemySpawns.map((spawn) => createEnemy(spawn));
+  const scaling = scalingForDepth(floor.depth);
+  return floor.enemySpawns.map((spawn) =>
+    createEnemy(spawn, spawn.kind === "ranged" ? scaling.ranged : scaling.melee),
+  );
 }
 
 export function createInitialState(

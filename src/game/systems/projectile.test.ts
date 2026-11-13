@@ -20,12 +20,13 @@ function projectileAt(x: number, y: number): Projectile {
     vy: 0,
     radius: PROJECTILE.radius,
     life: PROJECTILE.life,
+    damage: PROJECTILE.damage,
   };
 }
 
 describe("spawnProjectile", () => {
   it("starts offset from the shooter and travels toward the target", () => {
-    const projectile = spawnProjectile(3, { x: 100, y: 100 }, { x: 200, y: 100 });
+    const projectile = spawnProjectile(3, { x: 100, y: 100 }, { x: 200, y: 100 }, 1);
     expect(projectile.id).toBe(3);
     expect(projectile.x).toBeCloseTo(100 + PROJECTILE.spawnOffset);
     expect(projectile.y).toBeCloseTo(100);

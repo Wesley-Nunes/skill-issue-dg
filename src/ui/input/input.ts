@@ -140,7 +140,7 @@ export class Input {
 
   private readonly onMouseDown = (event: MouseEvent): void => {
     this.gestureQueued = true;
-    // One press advances one chain step; holding the button does not repeat.
+    // One press starts one swing; holding the button does not repeat.
     if (event.button === 0) {
       this.attackQueued = true;
       this.startQueued = true;

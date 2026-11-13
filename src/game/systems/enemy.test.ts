@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { BOSS, MELEE, RANGED } from "../data/config";
 import { createBoss, createEnemy } from "../../state/initialState";
-import { staggerEnemy, updateEnemy } from "./enemy";
+import { scalingForDepth } from "./depth";
+import { updateEnemy } from "./enemy";
 import { openFloor } from "./testFloor";
 
 const ROOM = openFloor();
@@ -90,7 +91,9 @@ describe("melee enemy", () => {
     };
     const result = updateEnemy(enemy, { x: 100, y: 120 }, ROOM, 0.02);
     expect(result.enemy.active).toBe(0);
-    expect(result.enemy.attackCooldown).toBeCloseTo(MELEE.attackCooldown);
+    expect(result.enemy.attackCooldown).toBeCloseTo(
+      scalingForDepth(1).melee.attackInterval,
+    );
   });
 
   it("cannot chase through a wall", () => {
@@ -183,7 +186,9 @@ describe("ranged enemy", () => {
     const result = updateEnemy(enemy, { x: 100, y: 250 }, ROOM, 0.02);
     expect(result.fired).toBe(true);
     expect(result.enemy.windup).toBe(0);
-    expect(result.enemy.attackCooldown).toBeCloseTo(RANGED.attackCooldown);
+    expect(result.enemy.attackCooldown).toBeCloseTo(
+      scalingForDepth(1).ranged.attackInterval,
+    );
   });
 
   it("stops moving during the telegraph", () => {
@@ -290,7 +295,9 @@ describe("Floor Warden", () => {
       0.02,
     );
     expect(released.bombTarget).toEqual({ x: 120, y: 180 });
-    expect(released.enemy.bombCooldown).toBeCloseTo(BOSS.bombCooldown);
+    expect(released.enemy.bombCooldown).toBeCloseTo(
+      scalingForDepth(1).boss.bombInterval,
+    );
   });
 
   it("deals melee damage once per active window", () => {
@@ -311,38 +318,4 @@ describe("Floor Warden", () => {
     expect(second.damageToPlayer).toBe(0);
   });
 
-  it("scales stagger instead of treating it like a mob's", () => {
-    const staggered = staggerEnemy(boss({ windup: 0.3 }), 1);
-    expect(staggered.windup).toBe(0);
-    expect(staggered.stagger).toBeCloseTo(BOSS.staggerScale);
-  });
-});
-
-describe("stagger", () => {
-  it("cancels a telegraphed attack and blocks movement", () => {
-    const enemy = staggerEnemy(
-      {
-        ...createEnemy(meleeSpawn),
-        x: 100,
-        y: 100,
-        windup: 0.3,
-      },
-      MELEE.windup,
-    );
-    expect(enemy.windup).toBe(0);
-    expect(enemy.stagger).toBeGreaterThan(0);
-
-    const result = updateEnemy(enemy, { x: 100, y: 150 }, ROOM, 0.05);
-    expect(result.enemy.moving).toBe(false);
-    expect(result.enemy.y).toBe(100);
-    expect(result.enemy.stagger).toBeLessThan(enemy.stagger);
-  });
-
-  it("cannot be staggered while dying", () => {
-    const dying = {
-      ...createEnemy(meleeSpawn),
-      status: "dying" as const,
-    };
-    expect(staggerEnemy(dying, 0.15)).toBe(dying);
-  });
 });

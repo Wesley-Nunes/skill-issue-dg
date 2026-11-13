@@ -235,10 +235,10 @@ describe("generateFloor", () => {
     const floor = generateFloor(7, 1);
 
     expect(floor.enemySpawns).toHaveLength(3);
-    expect(floor.enemySpawns.map((spawn) => spawn.kind)).toEqual([
-      "melee",
-      "melee",
-      "ranged",
+    expect(floor.enemySpawns.map((spawn) => spawn.id)).toEqual([
+      "melee-1",
+      "melee-2",
+      "mob-3",
     ]);
     for (const spawn of floor.enemySpawns) {
       expect(isWalkablePoint(floor, spawn.x, spawn.y)).toBe(true);
@@ -248,6 +248,25 @@ describe("generateFloor", () => {
     for (const spawn of floor.enemySpawns) {
       expect(mobRooms.some((room) => inside(spawn, room))).toBe(true);
     }
+  });
+
+  it("keeps depth 1 melee-only and adds the ranged mob from depth 2", () => {
+    const shallow = generateFloor(7, 1);
+    expect(shallow.enemySpawns.map((spawn) => spawn.kind)).toEqual([
+      "melee",
+      "melee",
+      "melee",
+    ]);
+
+    const deeper = generateFloor(7, 2);
+    expect(deeper.enemySpawns.map((spawn) => spawn.kind)).toEqual([
+      "melee",
+      "melee",
+      "ranged",
+    ]);
+    expect(deeper.enemySpawns.map((spawn) => spawn.id)).toEqual(
+      shallow.enemySpawns.map((spawn) => spawn.id),
+    );
   });
 
   it("keeps the start room and the shop free of enemies", () => {

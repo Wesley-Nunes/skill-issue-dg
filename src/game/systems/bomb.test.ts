@@ -14,7 +14,7 @@ const TARGET = { x: 160, y: 140 };
 
 describe("boss bombs", () => {
   it("starts in flight toward the captured target", () => {
-    const bomb = spawnBomb(1, ORIGIN, TARGET);
+    const bomb = spawnBomb(1, ORIGIN, TARGET, BOMB.damage);
     expect(bomb.landed).toBe(false);
     expect(bomb.flight).toBe(0);
     expect(bomb.fuse).toBe(BOMB.fuse);
@@ -23,7 +23,7 @@ describe("boss bombs", () => {
   });
 
   it("lands at the target after the flight time", () => {
-    const started = spawnBomb(1, ORIGIN, TARGET);
+    const started = spawnBomb(1, ORIGIN, TARGET, BOMB.damage);
     const landed = advanceBomb(started, BOMB.flightTime);
 
     expect(landed.landed).toBe(true);
@@ -34,7 +34,7 @@ describe("boss bombs", () => {
 
   it("explodes when the fuse runs out", () => {
     const landed = advanceBomb(
-      spawnBomb(1, ORIGIN, TARGET),
+      spawnBomb(1, ORIGIN, TARGET, BOMB.damage),
       BOMB.flightTime,
     ).bomb;
     const before = advanceBomb(landed, BOMB.fuse - 0.1);
@@ -46,7 +46,7 @@ describe("boss bombs", () => {
 
   it("arcs above the ground mid-flight", () => {
     const half = advanceBomb(
-      spawnBomb(1, ORIGIN, TARGET),
+      spawnBomb(1, ORIGIN, TARGET, BOMB.damage),
       BOMB.flightTime / 2,
     ).bomb;
     expect(bombArcHeight(half)).toBeGreaterThan(BOMB.arcHeight * 0.9);
@@ -55,7 +55,7 @@ describe("boss bombs", () => {
 
   it("hits only a player inside the blast radius", () => {
     const bomb = {
-      ...spawnBomb(1, ORIGIN, TARGET),
+      ...spawnBomb(1, ORIGIN, TARGET, BOMB.damage),
       landed: true,
       x: TARGET.x,
       y: TARGET.y,

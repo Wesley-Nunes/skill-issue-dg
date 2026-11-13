@@ -7,17 +7,17 @@ This file is the canonical workflow state for the repository. It is maintained b
 | Field | Value |
 |---|---|
 | Project | skill issue dg |
-| Goal | `0.7.0` reward loop: skill points, safe-room shop, branching floor, and a player-summoned Warden |
-| Current SemVer ID | `0.7.0` |
+| Goal | `0.8.0` combat baseline: replace the three-hit light chain with a single light attack, add depth-scaled difficulty, and make floor 1 the teaching floor |
+| Current SemVer ID | `0.8.0` |
 | Current task ID | `001` |
-| Active phase | `Ready for push and PR` — QA passed after fixes and orchestrator final acceptance complete; post-QA junction fix and combo note committed; branch local ahead of origin, PR draft prepared |
-| Active agent | `orchestrator` |
-| Git branch | `feature/0.7.0-001-reward-loop` |
-| Last accepted commit | `60318be` (merged `0.6.0` on `dev` via PR #9) |
-| Pushed HEAD | `origin/feature/0.7.0-001-reward-loop` at `f8b0a51`; local branch ahead at `020c178` plus this state commit, not pushed |
+| Active phase | `QA complete — ready for integration` — implementation, local checks, and QA evidence are done; the branch awaits operator push and PR |
+| Active agent | `qa` (executed by the orchestrator; no QA subagent is available) |
+| Git branch | `feature/0.8.0-001-combat-feel` (local only) |
+| Last accepted commit | `ae1b1fe` (`feat(game): replace light chain with committed swing and depth curve`) |
+| Pushed HEAD | `origin/dev` at `da17b57`; the `0.8.0` branch is local and not pushed |
 | Pull request | Not created; PR target is `dev`; no `gh`/`hub` available, so the operator opens the PR |
-| Blocking questions remaining | `0` |
-| Overall status | `0.7.0 accepted, ready for PR` — implementation at `17510eb`, descent effect-leak fix at `6e377d3`, junction waystone removal at `99787aa`, combo-rework note at `b74da29`, QA report at `020c178`, state commit follows; clean install, typecheck, 190 unit tests, build, and 32/32 Chrome e2e pass; QA verdict `Passed after fixes`; hosted CI and Vercel pending |
+| Blocking questions remaining | `0` — all discovery questions answered |
+| Overall status | `0.8.0 QA passed` — docs, design, implementation, and QA are complete; local typecheck, 187 unit tests, build, and 32/32 Chrome e2e (three consecutive passes) are green; hosted CI is pending |
 
 Update this snapshot whenever a value changes. Do not leave stale status after a handoff.
 
@@ -40,25 +40,72 @@ The state manager must not invent decisions, change product scope, edit game cod
 Populate these links when the version and task have been approved:
 
 - Product overview: `docs/about-the-project.md`
-- Task package: `docs/tasks/0.7.0/001-design.md`,
-  `001-programmer.md`, `001-qa.md` (ready)
-- Design decisions: [design/0.7.0/design-decisions.md](design/0.7.0/design-decisions.md) (complete)
-- Implementation decision log:
-  [programmer/0.7.0/CoT.md](programmer/0.7.0/CoT.md) (complete)
-- QA report: [qa/0.7.0/001-report.md](qa/0.7.0/001-report.md) (complete;
-  `Passed after fixes`, F1 closed in `6e377d3`, junction waystone removed in
-  `99787aa`; verified by the orchestrator because the QA subagent could not
-  start)
-- Docs handoff: the three task files define the fixed six-room branch,
-  safe-room shop, skill-point economy, explicit Warden summon, HUD, feedback,
-  accessibility, and the independent QA plan; the product overview was
-  updated for the current slice and future direction.
+- Task package: `docs/tasks/0.8.0/001-design.md`,
+  `001-programmer.md`, `001-qa.md` (written and accepted by the orchestrator;
+  the docs stage was executed by the orchestrator because no docs subagent is
+  available)
+- Design decisions: [design/0.8.0/design-decisions.md](design/0.8.0/design-decisions.md)
+  (complete; attack contract, chain-feedback removal, depth curve, depth-1
+  teaching targets, verification hooks)
+- Implementation decision log: [programmer/0.8.0/CoT.md](programmer/0.8.0/CoT.md)
+  (complete; attack rule, depth module, composition, verification, assumptions)
+- QA report: [qa/0.8.0/001-report.md](qa/0.8.0/001-report.md) (complete;
+  verdict `Passed`, two closed low findings, one evidence limitation and four
+  non-blocking observations; orchestrator-verified independence caveat)
+- Docs handoff: the three task files define chain removal, the single light
+  attack, chain-feedback removal, the depth-scaling table, the melee-only
+  depth-1 teaching floor, the flat economy, boss uninterruptibility, and the
+  independent QA plan. `docs/about-the-project.md` §1, §3.2, §4.1, §5, §6, §9,
+  §10, §11 and §12 now describe the post-chain slice and record the deferred
+  challenge direction; `GOAL.md` progress was refreshed.
 - Deployment: Vercel — `dev` is staging, `main` is production; the operator
   connects the repository in Vercel.
-- Prior release: `0.6.0` is merged into `dev` via PR #9 (`60318be`);
-  `0.5.0` is merged into `dev` via PR #5 (`3c2f62d`).
+- Prior release: `0.7.0` is merged into `dev` via PR #11 (`da17b57`);
+  implementation `17510eb`, QA `Passed after fixes` (`020c178`).
+- Also merged into `dev`: `0.6.0` via PR #9 (`60318be`), `0.5.0` via PR #5
+  (`3c2f62d`).
 
-### Version 0.7.0 scope (operator-approved 2026-11-09)
+### Version 0.8.0 scope (re-baselined 2026-11-13; details pending docs discovery)
+
+- **Deliverable:** replace the three-hit light chain with a single, clearly
+  defined light attack, and add a depth-scaled difficulty curve whose first
+  step makes floor 1 the teaching floor. No new systems, assets, or currencies.
+- **Why:** two design passes over the chain's timing windows did not make it
+  feel good, and it is the only verb that breaks spirit fragments. The
+  recorded known issue (2026-11-11) is resolved by removal rather than another
+  tuning pass. The fixed six-room branch currently plays identically at every
+  depth, so the endless descent has no stakes.
+- **Operator decisions (2026-11-13):**
+  - remove the three-hit light chain entirely;
+  - difficulty scales enemy and boss **numbers only**, plus one composition
+    rule: depth 1 spawns melee enemies only;
+  - the enemy archetype roster, enemy count, and the fixed six-room branch do
+    not change;
+  - the combo-challenge system discussed on 2026-11-13 (per-floor challenge
+    card, challenge progression, combo rewards) is **deferred to a future
+    version**, not deleted from the product direction.
+- **Included:** removal of chain state, systems, rendering, feedback, and
+  tests; a single-attack definition owning windup/active/recovery/reach/arc/
+  damage; a pure depth-scaling function applied to mobs and the Warden;
+  depth-1 teaching values; a balance baseline for the first few depths; unit
+  and Cypress coverage for the revised rules.
+- **Resolved discovery items (2026-11-13):**
+  - the single attack keeps **knockback only**: no stagger, no enemy interruption,
+    and the Warden is never interruptible;
+  - the economy stays flat (1 point per rested mob, 3 for the Warden, draught 1,
+    Vigor 3); shop relevance at depth is recorded as a future balance question;
+  - the curve is tested to a cap of depth 10; depth 11 and beyond reuse the
+    depth-10 row.
+- **Excluded:** the challenge system, buff/status effects, new enemy
+  archetypes, artifacts or drops, randomized safe rooms, a general floor
+  generator, post-death purchases, meta-progression, persistence, tutorial
+  prompts or overlays, new art, and new audio.
+- **Known consequence:** a net deletion across `src/`, and
+  `cypress/support/commands.ts` retry heuristics keyed on `comboStep`/
+  `comboResolved` must be reworked rather than deleted; the product overview
+  §3.2 and §10 must record the chain's removal and the deferred challenge.
+
+### Version 0.7.0 scope (operator-approved 2026-11-09) — delivered, merged via PR #11
 
 - **Deliverable:** close the MVP reward loop with a skill-point economy, a
   branching floor that contains one safe-room shop, and a player-controlled
@@ -234,6 +281,14 @@ Append one entry for each meaningful phase transition:
 | 2026-11-11 | 0.7.0/001 | QA verification → QA pass | Clean `npm ci`; typecheck, 190 unit tests, build, and 32/32 Chrome e2e (5 specs, 3 m 05 s) pass; 30 exact-size canvas captures plus a title capture inspected; F1 (old-floor effects reappearing after descent) reproduced and fixed in `6e377d3` with a regression test; verdict `Passed after fix`; QA was run by the orchestrator because the QA subagent was unavailable; hosted CI and Vercel pending | `3a91f26` (fix `6e377d3`) |
 | 2026-11-11 | 0.7.0/001 | QA pass → Ready for push and PR | Orchestrator reviewed the 37-file diff (approved scope, no asset/dependency/meta-progression changes), re-ran typecheck/unit/build/e2e, and accepted the version; branch is local at `496e007` plus this state commit; `gh`/`hub` are unavailable, so the operator pushes and opens the PR against `dev`; hosted CI and Vercel remain pending | this state commit |
 | 2026-11-11 | 0.7.0/001 | Post-QA operator fixes → Ready for push and PR | Operator playtest found the junction `SHOP`/`WARDEN` labels overlapping and the chevrons pointing the wrong way; the waystone was removed entirely (`99787aa`) and the combo rework was recorded as a known issue in the product overview (`b74da29`); QA amended and re-verified with fresh 1024 × 640 and 1440 × 810 captures (`020c178`); typecheck, 190 unit tests, build, and 32/32 Chrome e2e pass; verdict `Passed after fixes`; branch ahead of `origin` at `f8b0a51`; hosted CI and Vercel remain pending | `99787aa`, `b74da29`, `020c178`, plus this state commit |
+| 2026-11-13 | 0.7.0/001 | Ready for PR → Merged | PR #11 merged `feature/0.7.0-001-reward-loop` into `dev`; `dev` and `origin/dev` are at `da17b57` | `da17b57` |
+| 2026-11-13 | 0.8.0/001 | Complete → Docs discovery | Operator approved the `0.8.0` combat-feel direction (combo rework and its liberation role, plus a first balance baseline) after reviewing next-feature options; branch `feature/0.8.0-001-combat-feel` created from `dev`; detailed scope, blocking questions, and the task package belong to the docs stage | `ef205ab` |
+| 2026-11-13 | 0.8.0/001 | Scope re-baseline | Operator revised the direction: remove the three-hit light chain instead of retuning it, scale enemy/boss numbers by depth with a melee-only depth 1, keep the fixed branch and archetype roster, and defer the combo-challenge system to a future version; two blocking questions remain | `e0271a4` |
+| 2026-11-13 | 0.8.0/001 | Docs discovery → Design decisions | Operator answered the remaining questions: the single attack keeps knockback only (no stagger, boss uninterruptible) and the economy stays flat. Task package written by the orchestrator (no docs subagent available); product overview and `GOAL.md` updated; handoff accepted | `2a763d2` |
+| 2026-11-13 | 0.8.0/001 | Design decisions → Implementation | Operator approved the committed-swing contract, the integer rounding rule, and the depth 1–10 curve (HP +8% of base per depth, cadence −3% per depth, damage thresholds at depths 5–7, cap at 10); design contract written by the orchestrator and accepted; deferred heavy-attack and challenge directions recorded | `6bf19de` |
+| 2026-11-13 | 0.8.0/001 | Implementation → QA verification | Three-hit chain removed (systems, state, config, events, rendering, effects, audio cue, `BOSS.staggerScale`, tests); one committed 0.41 s swing with 36 px/120° reach, 2 damage, 6 px knockback, 0.05 s hitstop; pure depth curve applied on creation and descent; depth 1 melee-only; Cypress helpers rekeyed to `attacking`; `depth.test.ts` added; 187 unit tests; typecheck/build pass; three Chrome e2e passes at 32/32 | `ae1b1fe` |
+| 2026-11-13 | 0.8.0/001 | QA verification → QA pass | Clean `npm ci`; typecheck, 187 unit tests in 17 files, build, and 32/32 Chrome e2e in three consecutive runs (2 m 53 s–2 m 55 s); curve independently recomputed at depths 1, 2, 5, 6, 10 and matched, cap verified; five canvas captures inspected; two low findings closed during implementation; one evidence-size limitation and four non-blocking observations recorded; verdict `Passed`; orchestrator-performed QA caveat recorded | this QA commit |
+| 2026-11-13 | 0.8.0/001 | QA pass → Ready for push and PR | Orchestrator reviewed the 31-file implementation diff (approved scope, no asset or dependency changes, no challenge/tutorial leftovers, production bundle free of debug hooks), accepted the version, and prepared the PR draft against `dev`; `gh`/`hub` are unavailable, so the operator pushes the branch and opens the PR; hosted CI and Vercel remain pending | this QA commit |
 
 ## Status vocabulary
 

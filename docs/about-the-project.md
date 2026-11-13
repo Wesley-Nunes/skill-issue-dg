@@ -40,15 +40,16 @@ The intended fun comes primarily from:
 
 The game's identity should emphasize mastery rather than relying only on
 character statistics. Players should be rewarded for playing well,
-avoiding damage, and executing combos.
+avoiding damage, and reading enemy attacks.
 
-The current `0.7.0` slice completes the dark-fantasy liberation frame: a
+The current `0.8.0` slice keeps the dark-fantasy liberation frame: a
 mob is not simply killed. Its spirit fragments must be broken without
 taking a hit, and only then can it be put to rest. Conventional kills
 return the mob, while a completed rite grants spirit toward the floor's
 boss. Purifying every mob fills the spirit meter and unlocks the boss
 arena, where the player explicitly summons the Floor Warden; defeating it
-opens the stairs.
+opens the stairs. The player now fights with a single light attack, and
+each floor below the first raises the enemies' numbers.
 
 ### Design principles
 
@@ -167,36 +168,36 @@ remapping is not required for the first MVP.
 Combat combines two sources of depth:
 
 1.  **Mechanical skill:** Timing, positioning, aiming, dodging, and
-    executing combos.
+    executing attacks.
 2.  **Build strategy:** Combining acquired skills and boss artifacts to
-    create useful synergies.
+    create useful synergies (future work; not in the current slice).
 
 Combat should reward deliberate execution. Automatic targeting is not
 the intended default; attacks should use the mouse aim direction or
 position as appropriate to the attack.
 
-The player has basic attacks and a three-hit light combo
-(operator-approved for `0.2.0` on 2026-11-02, revised 2026-11-03):
+The player has one light attack (operator-approved 2026-11-13 for
+`0.8.0`):
 
--   Pressing attack inside the chain window advances to the next step.
-    Input is not buffered: a press before or after the window breaks
-    the chain, so a steady mash cannot complete it.
--   The chain window opens shortly after the current swing lands and
-    stays open only briefly; a press that misses it costs the chain.
--   Damage escalates across the chain, and the third hit (the finisher)
-    has a wider arc and briefly staggers its target.
--   A whiff, an expired window, a mistimed press, or taking damage
-    returns the chain to its first step.
--   Three pips above the player show the chain progress and briefly
-    pulse when the next input window is open.
--   Final timings, window lengths, and damage values live in the
-    version's design decisions; ability cooldowns remain open.
+-   One mouse click performs a single swing with a fixed windup, active
+    arc, and recovery. Nothing is buffered and no reply window exists;
+    repeated clicks are limited only by the swing's recovery.
+-   The swing breaks any intact spirit fragment that falls inside its
+    arc. A single swing can break more than one fragment.
+-   A landed hit applies a short knockback for hit-weight feedback.
+-   The attack does **not** stagger enemies or the Floor Warden.
+-   Final timings, reach, arc, damage, and knockback values live in the
+    version's design decisions.
 
-**Known issue (2026-11-11):** the current three-hit light combo does not
-yet feel good in play. Its timing windows, input feedback, and its role
-in the liberation loop — breaking spirit fragments so a mob can be
-rested and award skill points — need a rework. The current values are a
-baseline, not an approved long-term feel.
+**Approved history:** a three-hit hard-timed light chain with in-world
+chain pips shipped in `0.2.0` (approved 2026-11-02, revised 2026-11-03).
+A known issue recorded on 2026-11-11 held that its timing windows, input
+feedback, and fragment-breaking interaction did not feel good in play.
+After a further design pass, `0.8.0` removes the chain entirely rather
+than retuning it. This supersedes the `0.2.0` combo decision. The
+finisher's stagger went with it, so the Warden can no longer be
+interrupted. A skill-based combo or per-floor challenge system remains
+future direction (§10) — deferred, not deleted.
 
 ### 3.3 Spirit purification and liberation
 
@@ -291,10 +292,32 @@ reset on death/restart. The spirit meter, floor purification, boss state, and
 shop closure are per floor and reset on descent. The player's HP persists and
 is restored by 2 HP on descent, capped at the maximum.
 
-There is no difficulty scaling, random drop, chest, loot table, inventory
-grid, shop refresh, post-death purchase, meta-progression, persistence, or
-final floor in this slice. These are deferred to later versions, not removed
-from the product direction.
+#### Depth difficulty (`0.8.0`, operator-approved 2026-11-13)
+
+Difficulty now rises with depth, using numbers only. The first floor is the
+teaching floor: it is deliberately the most forgiving point on the curve and
+spawns melee enemies only, so a new player does not meet the ranged imp's
+projectile before learning movement, attack, dodge, and the liberation rule.
+
+-   The curve scales enemy and boss **statistics**: enemy HP, enemy attack
+    damage, enemy attack cadence, Warden HP, and the Warden's bomb cadence.
+-   Movement speed does not scale, so a floor never becomes an unfair chase.
+-   The floor remains the fixed six-room branch with exactly three mobs and one
+    Warden. Enemy count, the archetype roster, and the branch topology do not
+    change with depth.
+-   "Teaching floor" means forgiving values and composition only. There are no
+    tutorial prompts, overlays, hints, or tutorial state.
+-   The exact first-pass values and the depth cap live in the version's design
+    decisions; they are a starting baseline subject to playtest tuning.
+
+The depth curve does not change the economy: skill-point income and shop prices
+stay flat (see §6), so the shop's relative value declines as floors get harder.
+That decay is accepted for this slice and recorded as a known balance question.
+
+There is no random drop, chest, loot table, inventory grid, shop refresh,
+post-death purchase, meta-progression, persistence, or final floor in this
+slice. These are deferred to later versions, not removed from the product
+direction.
 
 The `0.5.0` release added the title/start screen, Escape pause, death summary,
 restrained CC0/synthesized audio with a mute toggle, and a Vercel deployment
@@ -391,6 +414,12 @@ and fast remain future archetypes.
 Both implemented archetypes carry spirit fragments and follow the
 same purification rules (`0.2.0`, operator-approved 2026-11-04).
 
+Floor composition is fixed (`0.7.0`, `0.8.0`): every floor holds two
+melee mobs and one ranged mob, except the depth-1 teaching floor, which
+spawns melee mobs only (operator-approved 2026-11-13). Depth raises the
+mobs' numbers rather than their number, and no new archetype is added in
+this slice.
+
 ### 5.2 Bosses
 
 Bosses can be substantially more complex than ordinary enemies. They may
@@ -419,6 +448,11 @@ unlocks the boss arena; the player enters the arena and summons the Warden
 when ready. The player may visit the shop before summoning, and the shop
 closes once the Warden is summoned. Boss variety, phases, and artifact drops
 remain future work.
+
+`0.8.0` removes the combo finisher, and with it the only source of stagger
+(operator-approved 2026-11-13). The Warden cannot be interrupted or stunlocked;
+its telegraphed melee and fused bombs must be avoided by movement and dodging.
+The Warden's numbers scale with depth; its attack pattern does not change.
 
 ------------------------------------------------------------------------
 
@@ -457,6 +491,13 @@ HP for the run for 3 points, one-time purchase per run; it disappears from
 later shops after purchase). The player carries at most one draught, uses it
 with a dedicated key, and healing is capped at maximum HP. The shop closes
 once the Warden is summoned.
+
+Income and prices stay flat as depth rises (`0.8.0`, operator-approved
+2026-11-13): 1 point per rested mob, 3 for the Warden, 1 for the draught, 3
+for Vigor. Deeper floors therefore make the shop progressively less valuable.
+That decay is accepted for this slice and recorded as the first economy
+question for a later balance pass; no income, price, or inventory scaling
+exists yet.
 
 Rewards are shop-only in this slice: there are no random drops, chests, loot
 tables, inventory grids, shop refreshes, post-death purchases, artifacts, or
@@ -639,7 +680,7 @@ complete gameplay loop and is already enjoyable to play.
 -   One procedurally generated dungeon floor.
 -   A few basic enemy archetypes.
 -   WASD movement and mouse aiming.
--   Basic attacks, combos, and dodge.
+-   Basic attacks and dodge.
 -   HP, damage, and healing.
 -   Basic consumables.
 -   At least one skill-based challenge or liberation objective.
@@ -667,15 +708,20 @@ The `0.6.0` presentation pass added a boot loading screen, complete
 asset/audio preload, and display typography. It improved the first
 impression but did not close item 5.
 
-**Status after `0.7.0` (pending implementation and QA):** item 5 is addressed
+**Status after `0.7.0` (delivered, merged via PR #11):** item 5 is addressed
 by the skill-point economy, the safe-room shop, the healing draught, and
-Vigor. Items 1–4, 6, and 7 remain implemented from earlier slices. On a
-passing QA, every item in the MVP scope list above will have an
-implementation in the current slice. MVP completion still requires the
-documented end-to-end loop to pass acceptance, QA sign-off, orchestrator
-review, and operator confirmation. The post-death purchase flow,
-meta-progression, persistence, difficulty scaling, and a general procedural
-generator remain deferred and are not part of `0.7.0`.
+Vigor. Items 1–4, 6, and 7 remain implemented from earlier slices, so every
+item in the MVP scope list above now has an implementation. MVP completion
+still requires the documented end-to-end loop to pass acceptance, QA sign-off,
+orchestrator review, and operator confirmation.
+
+**Status for `0.8.0` (in progress):** removes the three-hit chain, which
+resolves the known combo issue and targets validation item 2 ("combat is
+engaging and rewards player skill"), and adds the first depth difficulty
+curve, which gives validation item 7's descent real stakes and partially
+addresses the previously deferred difficulty scaling. The post-death purchase
+flow, meta-progression, persistence, income scaling, and a general procedural
+generator remain deferred and are not part of `0.8.0`.
 
 ### Not required for the first MVP
 
@@ -707,13 +753,18 @@ playtesting.
 
 ### Gameplay and combat
 
--   Further combo variants beyond the first three-hit chain specified in
-    §3.2.
--   Rework the three-hit light combo and its role in the liberation loop.
-    The current timing, input feedback, and fragment-breaking interaction
-    are not yet satisfying; define the target feel and revised values in a
-    future design pass before treating the combo as final.
--   Basic and secondary attack behavior.
+-   ~~Further combo variants beyond the first three-hit chain specified in
+    §3.2.~~ Resolved for the current slice: the chain was removed in
+    `0.8.0`. Combo variants belong to the deferred challenge direction below.
+-   ~~Rework the three-hit light combo and its role in the liberation loop.~~
+    Resolved for the current slice: the chain was removed rather than
+    retuned (`0.8.0`). A skill-based combo or per-floor challenge system
+    remains a future direction — a challenge card found in the safe room,
+    one active challenge per floor, progression that persists until the
+    challenge is completed, and combo rewards that feed skill points or
+    temporary effects. It was discussed on 2026-11-13 and deliberately
+    deferred; it is not scoped or approved.
+-   Basic and secondary attack behavior. No secondary attack exists.
 -   Skill definitions, cooldowns, and resource costs (if any).
 -   Dodge distance, duration, and invulnerability behavior.
 -   Damage, HP, healing, and difficulty values.
@@ -732,7 +783,10 @@ playtesting.
 -   ~~Whether every floor has a boss or bosses appear at intervals.~~
     Resolved for the current slice: one Floor Warden per floor (`0.5.0`).
     Whether that remains the long-term pacing is still open.
--   Floor difficulty scaling and enemy selection.
+-   ~~Floor difficulty scaling and enemy selection.~~ Partially resolved for
+    the current slice: numeric depth scaling over a fixed composition with no
+    speed scaling (`0.8.0`). Enemy selection, composition changes, and
+    difficulty tiers beyond a numeric curve remain open.
 -   ~~Safe-room placement and how players reach them.~~ Resolved for the
     current slice: one shop at the end of the left branch (`0.7.0`).
     Randomized safe-room count and placement remain future work.
@@ -746,6 +800,10 @@ playtesting.
     currency types remain future work.
 -   Additional skill challenges, difficulty tiers, and reward scaling
     beyond the liberation loop specified in §3.3.
+-   Whether skill-point income or shop prices scale with depth. `0.8.0`
+    deliberately leaves both flat and accepts the resulting decay in the
+    shop's relative value; this is the first economy question for a later
+    balance pass.
 -   ~~Shop inventory, prices, and refresh behavior.~~ Resolved for the
     current slice: a healing draught for 1 point and a one-time Vigor for 3
     points, with no refresh (`0.7.0`). A broader catalog remains future
@@ -800,7 +858,8 @@ A pragmatic implementation order is:
     enemy. — **Done** (`0.1.0`).
 4.  **Combat depth and liberation loop:** Add combos, additional basic
     enemy archetypes, spirit fragments, and a spirit meter. — **Done**
-    (`0.2.0`).
+    (`0.2.0`); the three-hit chain was removed in `0.8.0`, while spirit
+    fragments and the spirit meter remain.
 5.  **Dungeon slice:** Generate one traversable floor with an exit and a
     small encounter sequence. — **Done** (`0.4.0`); the `0.7.0` branch is
     a fixed six-room slice of the same priority.
@@ -825,6 +884,11 @@ The `0.7.0` reward-loop slice advances priority 6 and keeps priority 8
 unchanged: it adds the shop and consumables but deliberately leaves
 post-death purchases, meta-progression, and persistence for later work.
 
+The `0.8.0` slice advances priority 9 and partially addresses the
+difficulty-scaling gap: it replaces the three-hit chain with a single light
+attack and adds a numeric depth curve over the fixed branch, without changing
+the archetype roster, enemy count, or economy.
+
 The order can change when implementation discoveries justify it. Keep
 the first playable slice small and testable.
 
@@ -834,9 +898,9 @@ the first playable slice small and testable.
 
 **skill issue dg** is a single-player, offline-friendly, browser-based
 2D action roguelike in a dark-fantasy 3/4 perspective. Players freely
-move and aim with keyboard and mouse, master real-time combo-based
+move and aim with keyboard and mouse, master real-time, skill-based
 combat, dodge enemy attacks, and descend through procedurally generated
-dungeon floors. Enemies are bound by spirit fragments and must be
+dungeon floors that grow harder with every depth. Enemies are bound by spirit fragments and must be
 liberated rather than merely killed, filling a spirit meter that brings
 the floor's boss closer. Players collect consumables and currency,
 prepare in randomized safe rooms, and defeat bosses to obtain exclusive

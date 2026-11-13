@@ -150,23 +150,22 @@ describe("0.2.0 QA verification", () => {
 
       cy.waitForGame(
         (after) =>
-          (after.enemies.find((enemy) => enemy.id === target.id)?.hp ?? 10) <
-          10,
-        "the first combo hit",
+          (after.enemies.find((enemy) => enemy.id === target.id)?.hp ?? 8) < 8,
+        "the first light hit",
       ).then((after) => {
         const hp = after.enemies.find((enemy) => enemy.id === target.id)!.hp;
-        expect(hp, "hp after one press").to.equal(8);
+        expect(hp, "hp after one press").to.equal(6);
       });
 
-      // Let the chain reset so a second, unintended hit would be visible.
+      // Let the committed swing finish so a second, unintended hit would show.
       cy.waitForGame(
         (after) =>
-          after.player.comboStep === 0 && after.time > startTime + 0.5,
+          !after.player.attacking && after.time > startTime + 0.5,
         "the swing to finish",
         5000,
       ).then((after) => {
         const hp = after.enemies.find((enemy) => enemy.id === target.id)!.hp;
-        expect(hp, "hp after the swing settles").to.equal(8);
+        expect(hp, "hp after the swing settles").to.equal(6);
       });
     });
   });
@@ -188,12 +187,12 @@ describe("0.2.0 QA verification", () => {
       // attackWorld already proved a swing started; let it finish.
       cy.waitForGame(
         (after) =>
-          after.player.comboStep === 0 && after.time > startTime + 0.5,
+          !after.player.attacking && after.time > startTime + 0.5,
         "the swing to finish",
         5000,
       ).then((after) => {
         const hp = after.enemies.find((enemy) => enemy.id === target.id)!.hp;
-        expect(hp, "hp after aiming away").to.equal(10);
+        expect(hp, "hp after aiming away").to.equal(8);
       });
     });
   });
@@ -222,23 +221,42 @@ describe("0.2.0 QA verification", () => {
     });
   });
 
-  it("does not chain the combo while the attack is mashed", () => {
+  it("does not repeat the swing while the button is held", () => {
     cy.approachMelee();
-    for (let click = 0; click < 30; click += 1) {
-      cy.gameSnapshot().then((snapshot) => {
-        const target = meleeTarget(snapshot);
-        cy.clickWorld(target.x, target.y);
-      });
-      // Input cadence: mash faster than the combo reply window.
-      cy.wait(40);
-    }
-
     cy.gameSnapshot().then((snapshot) => {
-      expect(
-        snapshot.player.comboStep,
-        "mashing never reaches the finisher",
-      ).to.be.lessThan(3);
-      expect(snapshot.spirit).to.equal(0);
+      const target = meleeTarget(snapshot);
+      const clientX = (target.x - snapshot.camera.x) * snapshot.zoom;
+      const clientY = (target.y - snapshot.camera.y) * snapshot.zoom;
+
+      cy.get("canvas#game").trigger("mousemove", {
+        clientX,
+        clientY,
+        force: true,
+      });
+      cy.get("canvas#game").trigger("mousedown", {
+        button: 0,
+        clientX,
+        clientY,
+        force: true,
+      });
+      // Input duration: hold well past two full swing commitments.
+      cy.wait(900);
+      cy.get("canvas#game").trigger("mouseup", {
+        button: 0,
+        clientX,
+        clientY,
+        force: true,
+      });
+
+      cy.waitForGame(
+        (after) => !after.player.attacking,
+        "the single held swing to finish",
+        5000,
+      ).then((after) => {
+        const hit = after.enemies.find((enemy) => enemy.id === target.id)!;
+        expect(hit.hp, "exactly one swing landed").to.equal(6);
+        expect(after.spirit).to.equal(0);
+      });
     });
   });
 
@@ -280,14 +298,18 @@ describe("0.2.0 QA verification", () => {
   });
 
   it("fires projectiles that can hit the player", () => {
-    // Set up the ranged enemy's aggro band in the junction corridor. The mob
-    // room centre can shift by a tile, so stand on the fixed corridor row
-    // instead of copying the enemy's y and possibly landing in a wall.
+    // The ranged mob first appears on depth 2; descend so it exists.
+    cy.descend();
+    cy.waitForGame(
+      (snapshot) => snapshot.depth === 2,
+      "the second floor",
+      5000,
+    );
     cy.gameSnapshot().then((snapshot) => {
       const ranged = snapshot.enemies.find((enemy) => enemy.kind === "ranged");
-      const corridorY =
-        snapshot.floor.junction.y + snapshot.floor.junction.height / 2;
-      cy.teleport(ranged!.x - 180, corridorY);
+      expect(ranged, "ranged mob on depth 2").to.exist;
+      // Stand inside the mob room, well within its aggro and firing band.
+      cy.teleport(ranged!.x - 60, ranged!.y);
     });
 
     cy.waitForGame(
@@ -346,7 +368,7 @@ describe("0.2.0 QA verification", () => {
         expect(snapshot.depth).to.equal(1);
         expect(snapshot.exitOpen).to.equal(false);
         expect(snapshot.enemies.map((enemy) => enemy.hp)).to.deep.equal([
-          10, 10, 6,
+          8, 8, 8,
         ]);
         expect(snapshot.enemies.map((enemy) => enemy.status)).to.deep.equal([
           "alive",

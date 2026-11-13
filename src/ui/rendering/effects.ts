@@ -18,13 +18,6 @@ interface Afterimage {
 
 interface Swing {
   angle: number;
-  step: number;
-  born: number;
-}
-
-interface ChainBreak {
-  x: number;
-  y: number;
   born: number;
 }
 
@@ -81,7 +74,6 @@ const AFTERIMAGE_LIFE = 0.2;
 const AFTERIMAGE_INTERVAL = 0.04;
 const AFTERIMAGES_PER_DODGE = 2;
 const SWING_LIFE = 0.6;
-export const CHAIN_BREAK_LIFE = 0.18;
 const SPARK_COLOR = "rgba(255, 255, 255, 1)";
 const WALL_SPARK_COLOR = "rgba(220, 210, 255, 0.9)";
 const FRAGMENT_COLOR = "rgba(191, 233, 255, 1)";
@@ -93,7 +85,6 @@ export class VisualEffects {
   sparks: Spark[] = [];
   afterimages: Afterimage[] = [];
   swings: Swing[] = [];
-  chainBreaks: ChainBreak[] = [];
   explosions: Explosion[] = [];
   rings: Ring[] = [];
   flashes: Flash[] = [];
@@ -109,27 +100,15 @@ export class VisualEffects {
     for (const event of events) {
       switch (event.type) {
         case "enemy-hit":
-          this.sparks.push(
-            event.finisher
-              ? {
-                  x: event.x,
-                  y: event.y,
-                  born: state.time,
-                  count: 6,
-                  length: 12,
-                  life: 0.16,
-                  color: SPARK_COLOR,
-                }
-              : {
-                  x: event.x,
-                  y: event.y,
-                  born: state.time,
-                  count: 4,
-                  length: 8,
-                  life: 0.12,
-                  color: SPARK_COLOR,
-                },
-          );
+          this.sparks.push({
+            x: event.x,
+            y: event.y,
+            born: state.time,
+            count: 4,
+            length: 8,
+            life: 0.12,
+            color: SPARK_COLOR,
+          });
           break;
         case "player-hit":
         case "projectile-hit":
@@ -157,7 +136,6 @@ export class VisualEffects {
         case "attack-started":
           this.swings.push({
             angle: event.angle,
-            step: event.step,
             born: state.time,
           });
           break;
@@ -214,15 +192,6 @@ export class VisualEffects {
             life: 0.2,
             color: RESPAWN_COLOR,
           });
-          break;
-        case "combo-ended":
-          if (event.reason !== "complete") {
-            this.chainBreaks.push({
-              x: event.x,
-              y: event.y,
-              born: state.time,
-            });
-          }
           break;
         case "floor-purified":
           this.banners.push({
@@ -368,7 +337,6 @@ export class VisualEffects {
     this.sparks = [];
     this.afterimages = [];
     this.swings = [];
-    this.chainBreaks = [];
     this.explosions = [];
     this.rings = [];
     this.flashes = [];
@@ -404,9 +372,6 @@ export class VisualEffects {
       (image) => time - image.born < AFTERIMAGE_LIFE,
     );
     this.swings = this.swings.filter((swing) => time - swing.born < SWING_LIFE);
-    this.chainBreaks = this.chainBreaks.filter(
-      (burst) => time - burst.born < CHAIN_BREAK_LIFE,
-    );
     this.explosions = this.explosions.filter(
       (explosion) => time - explosion.born < EXPLOSION_LIFE,
     );

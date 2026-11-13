@@ -23,22 +23,6 @@ function idle(enemy: Enemy): EnemyUpdate {
   };
 }
 
-/** Ends any in-progress attack and blocks the enemy for the duration. */
-export function staggerEnemy(enemy: Enemy, duration: number): Enemy {
-  if (enemy.status !== "alive") return enemy;
-  const applied =
-    enemy.kind === "boss" ? duration * BOSS.staggerScale : duration;
-  return {
-    ...enemy,
-    stagger: Math.max(enemy.stagger, applied),
-    windup: 0,
-    active: 0,
-    attackKind: null,
-    attackHit: false,
-    moving: false,
-  };
-}
-
 /** Advances enemy state by dt. Pure: no side effects, no I/O. */
 export function updateEnemy(
   enemy: Enemy,
@@ -141,7 +125,7 @@ function updateMelee(
 
     if (!attackHit && distance <= MELEE.attackRange) {
       attackHit = true;
-      damageToPlayer = MELEE.damage;
+      damageToPlayer = enemy.damage;
     }
 
     return {
@@ -151,7 +135,7 @@ function updateMelee(
         attackHit,
         moving: false,
         attackCooldown:
-          active <= 0 ? MELEE.attackCooldown : next.attackCooldown,
+          active <= 0 ? next.attackInterval : next.attackCooldown,
       },
       damageToPlayer,
       attackStarted: false,
@@ -225,7 +209,7 @@ function updateRanged(
         enemy: {
           ...next,
           windup: 0,
-          attackCooldown: RANGED.attackCooldown,
+          attackCooldown: next.attackInterval,
           moving: false,
         },
         damageToPlayer: 0,
@@ -331,7 +315,7 @@ function updateBoss(
           ...next,
           windup: 0,
           attackKind: null,
-          bombCooldown: BOSS.bombCooldown,
+          bombCooldown: next.bombInterval,
           moving: false,
         },
         damageToPlayer: 0,
@@ -364,7 +348,7 @@ function updateBoss(
 
     if (!attackHit && distance <= BOSS.attackRange) {
       attackHit = true;
-      damageToPlayer = BOSS.damage;
+      damageToPlayer = enemy.damage;
     }
 
     return {
@@ -375,7 +359,7 @@ function updateBoss(
         moving: false,
         attackKind: active <= 0 ? null : next.attackKind,
         attackCooldown:
-          active <= 0 ? BOSS.attackCooldown : next.attackCooldown,
+          active <= 0 ? next.attackInterval : next.attackCooldown,
       },
       damageToPlayer,
       attackStarted: false,
