@@ -188,7 +188,7 @@ Damage is integer and steps only at these depths. No percentage scaling.
 
 Depth 1 generates three **melee** mobs. Depth 2 and later generate two melee
 mobs and one ranged mob. Spawn ids and positions are unchanged from `0.7.0`;
-only the second and third mobs' kinds differ at depth 1.
+only the third mob's kind differs at depth 1.
 
 ### 6.2 Intended experience
 

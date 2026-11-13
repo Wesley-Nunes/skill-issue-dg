@@ -5,14 +5,6 @@ export interface Vec2 {
 
 export type GameStatus = "title" | "playing" | "paused" | "dead";
 
-/** Why a combo chain stopped being available. */
-export type ComboEndReason =
-  | "mistime"
-  | "whiff"
-  | "timeout"
-  | "damage"
-  | "complete";
-
 export type EnemyStatus = "alive" | "dying" | "dead";
 
 export type EnemyKind = "melee" | "ranged" | "boss";
@@ -79,16 +71,6 @@ export interface Viewport {
   height: number;
 }
 
-/** One step of the three-hit light combo. */
-export interface ComboStep {
-  windup: number;
-  active: number;
-  recovery: number;
-  reach: number;
-  halfAngle: number;
-  damage: number;
-}
-
 export interface Player {
   x: number;
   y: number;
@@ -102,14 +84,12 @@ export interface Player {
   dodgeTime: number;
   dodgeCooldown: number;
   dodgeDir: Vec2;
-  /** 0 = idle, 1..3 = current chain step. */
-  comboStep: 0 | 1 | 2 | 3;
-  /** Seconds elapsed in the current step. */
-  comboTime: number;
-  /** Steps of the current chain that have connected, 0..3. */
-  comboHits: number;
-  comboResolved: boolean;
-  comboHitThisStep: boolean;
+  /** True while a single light swing is in progress. */
+  attacking: boolean;
+  /** Seconds elapsed in the current swing. */
+  attackTime: number;
+  /** True once the current swing has applied its damage. */
+  attackResolved: boolean;
   moving: boolean;
 }
 
@@ -127,6 +107,7 @@ export interface Enemy {
   status: EnemyStatus;
   fade: number;
   hurtFlash: number;
+  /** Internal freeze timer; no player action applies it. */
   stagger: number;
   aggro: boolean;
   windup: number;
@@ -142,6 +123,14 @@ export interface Enemy {
   respawn: number;
   /** Boss only: the windup currently in progress. */
   attackKind: "melee" | "bomb" | null;
+  /** Damage this enemy deals with its own attack. */
+  damage: number;
+  /** Seconds between this enemy's attacks, after depth scaling. */
+  attackInterval: number;
+  /** Boss only: damage of a bomb blast, after depth scaling. */
+  bombDamage: number;
+  /** Boss only: seconds between bombs, after depth scaling. */
+  bombInterval: number;
   /** Boss only: seconds until the next bomb throw. */
   bombCooldown: number;
   /** Boss only: seconds left in the harmless summon emergence. */
@@ -156,6 +145,8 @@ export interface Projectile {
   vy: number;
   radius: number;
   life: number;
+  /** Damage on hit, after depth scaling. */
+  damage: number;
 }
 
 /** A thrown boss bomb: it arcs to a landing point, fuses, then explodes. */
@@ -173,6 +164,8 @@ export interface Bomb {
   /** Seconds left on the fuse once landed. */
   fuse: number;
   radius: number;
+  /** Blast damage, after depth scaling. */
+  damage: number;
 }
 
 export interface RunState {
@@ -212,9 +205,8 @@ export interface ShopState {
 }
 
 export type GameEvent =
-  | { type: "attack-started"; angle: number; step: number }
-  | { type: "combo-ended"; reason: ComboEndReason; x: number; y: number }
-  | { type: "enemy-hit"; x: number; y: number; finisher: boolean }
+  | { type: "attack-started"; angle: number }
+  | { type: "enemy-hit"; x: number; y: number }
   | { type: "enemy-died"; x: number; y: number }
   | { type: "player-hit"; x: number; y: number }
   | { type: "player-died" }
@@ -304,11 +296,9 @@ export interface DebugSnapshot {
     aimY: number;
     dodging: boolean;
     invulnerable: number;
-    comboStep: number;
-    comboHits: number;
-    comboResolved: boolean;
-    comboHitThisStep: boolean;
-    comboWindowOpen: boolean;
+    attacking: boolean;
+    attackTime: number;
+    attackResolved: boolean;
   };
   enemies: Array<{
     id: string;

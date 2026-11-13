@@ -1,7 +1,7 @@
 import {
+  ATTACK,
   BOMB,
   BOSS,
-  COMBO,
   ENEMY_FADE,
   GATE,
   MELEE,
@@ -18,7 +18,6 @@ import {
 } from "../../game/data/floor";
 import { SPRITES } from "../../game/data/sprites";
 import { bombArcHeight } from "../../game/systems/bomb";
-import { comboWindowOpen } from "../../game/systems/combo";
 import {
   fragmentPosition,
   hasAllFragmentsBroken,
@@ -34,7 +33,6 @@ import type {
 } from "../../game/types";
 import type { AssetMap } from "./assets";
 import {
-  CHAIN_BREAK_LIFE,
   EXPLOSION_LIFE,
   FLOATING_TEXT_LIFE,
   HEAL_PULSE_LIFE,
@@ -56,13 +54,6 @@ const SPIRIT_TRACK = "rgba(191, 233, 255, 0.16)";
 const SPIRIT_BORDER = "rgba(191, 233, 255, 0.45)";
 const PROJECTILE_BODY = "rgba(200, 166, 255, 0.85)";
 const PROJECTILE_CORE = "rgba(255, 255, 255, 0.95)";
-const COMBO_PIP_RADIUS = 2.2;
-const COMBO_PIP_SPACING = 7.6;
-const COMBO_GAUGE_OFFSET = 34;
-const COMBO_PIP_COLOR = "#f2d38a";
-const COMBO_PIP_ACTIVE = "rgba(255, 255, 255, 0.92)";
-const COMBO_PIP_IDLE = "rgba(255, 255, 255, 0.28)";
-const COMBO_BREAK_COLOR = "255, 92, 82";
 const EMBER = "#ff6a4d";
 const EMBER_TRACK = "rgba(255, 106, 77, 0.16)";
 const EMBER_BORDER = "rgba(255, 106, 77, 0.55)";
@@ -91,10 +82,6 @@ function toneColor(tone: TextTone): string {
   if (tone === "cyan") return SPIRIT_COLOR;
   if (tone === "ember") return EMBER;
   return SECONDARY_TEXT;
-}
-
-function stepDefinition(step: number) {
-  return COMBO.steps[step - 1] ?? COMBO.steps[0];
 }
 
 export class Renderer {
@@ -172,7 +159,6 @@ export class Renderer {
     this.drawSparks(state);
     this.drawExplosions(state);
     this.drawFloatingTexts(state);
-    this.drawComboGauge(state);
     this.drawAim(state);
 
     context.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
@@ -1035,12 +1021,11 @@ export class Renderer {
     const aimAngle = Math.atan2(player.aim.y, player.aim.x);
     let swordAngle = aimAngle;
 
-    if (player.comboStep > 0) {
-      const definition = stepDefinition(player.comboStep);
-      const sweep = definition.windup + definition.active;
-      if (player.comboTime < sweep) {
-        const progress = player.comboTime / sweep;
-        const range = player.comboStep === 3 ? 90 : 70;
+    if (player.attacking) {
+      const sweep = ATTACK.windup + ATTACK.active;
+      if (player.attackTime < sweep) {
+        const progress = player.attackTime / sweep;
+        const range = 70;
         swordAngle = aimAngle + (-range + 2 * range * progress) * (Math.PI / 180);
       }
     }
@@ -1059,33 +1044,24 @@ export class Renderer {
     const context = this.context;
 
     for (const swing of this.effects.swings) {
-      const definition = stepDefinition(swing.step);
       const elapsed = state.time - swing.born;
-      const activeEnd = definition.windup + definition.active;
-      const fade = swing.step === 3 ? 0.18 : 0.12;
-      if (elapsed < definition.windup || elapsed >= activeEnd + fade) continue;
+      const activeEnd = ATTACK.windup + ATTACK.active;
+      const fade = 0.12;
+      if (elapsed < ATTACK.windup || elapsed >= activeEnd + fade) continue;
 
       const alpha =
         elapsed < activeEnd
-          ? swing.step === 3
-            ? 0.55
-            : 0.35
-          : (swing.step === 3 ? 0.55 : 0.35) *
-            (1 - (elapsed - activeEnd) / fade);
-      const color =
-        swing.step === 3
-          ? `rgba(255, 226, 150, ${alpha})`
-          : `rgba(255, 214, 120, ${alpha})`;
-
-      context.fillStyle = color;
+          ? 0.35
+          : 0.35 * (1 - (elapsed - activeEnd) / fade);
+      context.fillStyle = `rgba(255, 214, 120, ${alpha})`;
       context.beginPath();
       context.moveTo(state.player.x, state.player.y);
       context.arc(
         state.player.x,
         state.player.y,
-        definition.reach,
-        swing.angle - definition.halfAngle,
-        swing.angle + definition.halfAngle,
+        ATTACK.reach,
+        swing.angle - ATTACK.halfAngle,
+        swing.angle + ATTACK.halfAngle,
       );
       context.closePath();
       context.fill();
@@ -1156,59 +1132,6 @@ export class Renderer {
       }
     }
     context.globalAlpha = 1;
-  }
-
-  /** Three pips above the player: chain count, next input, and break feedback. */
-  private drawComboGauge(state: GameState): void {
-    if (state.status !== "playing") return;
-    const player = state.player;
-
-    if (player.comboStep > 0) {
-      const windowOpen = comboWindowOpen(player);
-      for (let index = 0; index < 3; index += 1) {
-        const step = index + 1;
-        const filled = step <= player.comboHits;
-        const current = step === player.comboStep && !filled;
-        const pulsing = windowOpen && step === player.comboStep + 1;
-        const pulse = pulsing
-          ? 1.4 + 0.1 * Math.sin(state.time * Math.PI * 16)
-          : 1;
-        const base = step === 3 ? COMBO_PIP_RADIUS + 0.9 : COMBO_PIP_RADIUS;
-
-        this.drawPip(
-          player.x + (index - 1) * COMBO_PIP_SPACING,
-          player.y - COMBO_GAUGE_OFFSET,
-          base * pulse,
-          filled ? COMBO_PIP_COLOR : current ? COMBO_PIP_ACTIVE : COMBO_PIP_IDLE,
-        );
-      }
-    }
-
-    for (const burst of this.effects.chainBreaks) {
-      const age = state.time - burst.born;
-      if (age < 0 || age >= CHAIN_BREAK_LIFE) continue;
-      const progress = age / CHAIN_BREAK_LIFE;
-      for (let index = 0; index < 3; index += 1) {
-        this.drawPip(
-          burst.x +
-            (index - 1) * COMBO_PIP_SPACING * (1 - progress * 0.75),
-          burst.y - COMBO_GAUGE_OFFSET - progress * 3,
-          COMBO_PIP_RADIUS * (1 - progress * 0.6),
-          `rgba(${COMBO_BREAK_COLOR}, ${1 - progress})`,
-        );
-      }
-    }
-  }
-
-  private drawPip(x: number, y: number, radius: number, color: string): void {
-    const context = this.context;
-    context.fillStyle = color;
-    context.beginPath();
-    context.arc(x, y, radius, 0, Math.PI * 2);
-    context.fill();
-    context.strokeStyle = "rgba(0, 0, 0, 0.55)";
-    context.lineWidth = 0.6;
-    context.stroke();
   }
 
   private drawAim(state: GameState): void {
@@ -1355,7 +1278,7 @@ export class Renderer {
     context.font = "12px system-ui, sans-serif";
     context.textAlign = "left";
     context.fillText(
-      "WASD move · Mouse aim · LMB combo · Space dodge",
+      "WASD move · Mouse aim · LMB attack · Space dodge",
       HUD_INSET,
       cssHeight - 44,
     );
@@ -1782,7 +1705,7 @@ export class Renderer {
 
     context.font = "14px system-ui, sans-serif";
     context.fillText(
-      "WASD move · Mouse aim · LMB combo · Space dodge · E interact · Q draught · Esc pause · M mute",
+      "WASD move · Mouse aim · LMB attack · Space dodge · E interact · Q draught · Esc pause · M mute",
       centreX,
       titleY + 94,
     );

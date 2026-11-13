@@ -1,11 +1,10 @@
 import {
+  ATTACK,
   BOMB,
   BOSS,
   CAMERA,
-  COMBO,
   ECONOMY,
   HEAL_ON_DESCENT,
-  PROJECTILE,
   PURIFICATION,
   SHOP,
   ZOOM,
@@ -18,14 +17,12 @@ import {
 } from "../data/floor";
 import { advanceBomb, bombHitsPlayer, spawnBomb } from "../systems/bomb";
 import {
-  comboPhase,
-  comboWindowOpen,
-  markStepResolved,
-  resetCombo,
-  stepDefinition,
-  tickCombo,
-} from "../systems/combo";
-import { isInAttackArc } from "../systems/attack";
+  attackPhase,
+  cancelAttack,
+  isInAttackArc,
+  markAttackResolved,
+  tickAttack,
+} from "../systems/attack";
 import { clampCamera, updateCamera } from "../systems/camera";
 import {
   damageEnemy,
@@ -33,8 +30,9 @@ import {
   knockbackEnemy,
   tickPlayerTimers,
 } from "../systems/damage";
+import { scalingForDepth } from "../systems/depth";
 import { startDodge, tickDodgeTimers } from "../systems/dodge";
-import { staggerEnemy, updateEnemy } from "../systems/enemy";
+import { updateEnemy } from "../systems/enemy";
 import { movePlayer } from "../systems/movement";
 import {
   advanceProjectile,
@@ -155,8 +153,8 @@ export class Game {
     const events: GameEvent[] = [];
     const state = this.state;
 
-    // The finisher freezes the simulation briefly. Presses during the freeze
-    // are dropped, not penalised: the chain window is frozen with the world.
+    // A landed swing freezes the simulation briefly. Inputs during the freeze
+    // are dropped rather than buffered.
     if (state.hitstop > 0) {
       state.hitstop = Math.max(0, state.hitstop - dt);
       return events;
@@ -178,7 +176,7 @@ export class Game {
       const dodging = startDodge(player, input.move);
       if (dodging !== player) {
         events.push({ type: "dodge-started", x: player.x, y: player.y });
-        player = dodging.comboStep > 0 ? resetCombo(dodging) : dodging;
+        player = dodging.attacking ? cancelAttack(dodging) : dodging;
         // A dodge cancels the swing outright instead of starting a new one.
         pressed = false;
       }
@@ -198,26 +196,17 @@ export class Game {
       facing: input.aim.x < 0 ? -1 : 1,
     };
 
-    const combo = tickCombo(player, pressed, dt);
-    player = combo.player;
-    if (combo.started !== undefined) {
+    const attack = tickAttack(player, pressed, dt);
+    player = attack.player;
+    if (attack.started) {
       events.push({
         type: "attack-started",
         angle: Math.atan2(player.aim.y, player.aim.x),
-        step: combo.started,
-      });
-    }
-    if (combo.ended !== undefined) {
-      events.push({
-        type: "combo-ended",
-        reason: combo.ended,
-        x: player.x,
-        y: player.y,
       });
     }
 
-    if (comboPhase(player) === "active" && !player.comboResolved) {
-      player = this.resolveComboStep(player, events);
+    if (attackPhase(player) === "active" && !player.attackResolved) {
+      player = this.resolveAttack(player, events);
     }
 
     // Publish the ticked player before enemy logic so enemy damage applies to
@@ -438,9 +427,7 @@ export class Game {
    * Fragments resolve before damage so a final blow can break the last
    * fragment and put the mob to rest on the same swing.
    */
-  private resolveComboStep(player: GameState["player"], events: GameEvent[]) {
-    const definition = stepDefinition(player.comboStep);
-    const finisher = player.comboStep === 3;
+  private resolveAttack(player: GameState["player"], events: GameEvent[]) {
     const origin = { x: player.x, y: player.y };
     let hitAny = false;
     let restedAny = false;
@@ -452,8 +439,8 @@ export class Game {
         enemy,
         origin,
         player.aim,
-        definition.reach,
-        definition.halfAngle,
+        ATTACK.reach,
+        ATTACK.halfAngle,
       );
       let next = fragmentHit.enemy;
       if (fragmentHit.broken.length > 0) {
@@ -472,8 +459,8 @@ export class Game {
           origin,
           player.aim,
           enemy,
-          definition.reach,
-          definition.halfAngle,
+          ATTACK.reach,
+          ATTACK.halfAngle,
         )
       ) {
         return next;
@@ -481,24 +468,20 @@ export class Game {
 
       hitAny = true;
       const restable = canRest(next);
-      const result = damageEnemy(next, definition.damage);
+      const result = damageEnemy(next, ATTACK.damage);
       next = result.enemy;
-      if (finisher) {
-        next = staggerEnemy(next, COMBO.stagger);
-        next = knockbackEnemy(
-          next,
-          player.aim,
-          COMBO.knockback,
-          this.state.floor,
-          this.enemyBlockers(),
-        );
-      }
+      next = knockbackEnemy(
+        next,
+        player.aim,
+        ATTACK.knockback,
+        this.state.floor,
+        this.enemyBlockers(),
+      );
 
       events.push({
         type: "enemy-hit",
         x: enemy.x,
         y: enemy.y,
-        finisher,
       });
 
       if (!result.died) return next;
@@ -569,8 +552,8 @@ export class Game {
       events.push({ type: "floor-purified" });
     }
 
-    const resolved = markStepResolved(player, hitAny);
-    if (finisher && hitAny) this.state.hitstop = COMBO.hitstop;
+    const resolved = markAttackResolved(player);
+    if (hitAny) this.state.hitstop = ATTACK.hitstop;
 
     return resolved;
   }
@@ -582,7 +565,11 @@ export class Game {
     if (state.run.bossAwake || state.run.exitOpen) return false;
     if (state.enemies.some((enemy) => enemy.kind === "boss")) return false;
 
-    const boss = createBoss(state.floor, BOSS.emergence);
+    const boss = createBoss(
+      state.floor,
+      scalingForDepth(state.floor.depth).boss,
+      BOSS.emergence,
+    );
     state.enemies = [...state.enemies, boss];
     state.run.bossAwake = true;
     state.run.exitOpen = false;
@@ -760,6 +747,7 @@ export class Game {
           state.nextBombId,
           { x: next.x, y: next.y },
           update.bombTarget,
+          next.bombDamage,
         );
         state.nextBombId += 1;
         state.bombs.push(bomb);
@@ -777,6 +765,7 @@ export class Game {
           state.nextProjectileId,
           { x: next.x, y: next.y },
           target,
+          next.damage,
         );
         state.nextProjectileId += 1;
         state.projectiles.push(projectile);
@@ -818,7 +807,7 @@ export class Game {
           radius: BOMB.blastRadius,
         });
         if (bombHitsPlayer(advanced.bomb, state.player)) {
-          this.applyDamageToPlayer(BOMB.damage, events);
+          this.applyDamageToPlayer(advanced.bomb.damage, events);
         }
         continue;
       }
@@ -860,7 +849,7 @@ export class Game {
           x: advanced.projectile.x,
           y: advanced.projectile.y,
         });
-        this.applyDamageToPlayer(PROJECTILE.damage, events);
+        this.applyDamageToPlayer(advanced.projectile.damage, events);
         continue;
       }
 
@@ -935,21 +924,7 @@ export class Game {
       return restored;
     });
 
-    let player = damaged.player;
-    if (player.comboStep > 0) {
-      // Taking damage ends the chain. A swing already resolved in its active
-      // window still landed, so only the remaining chain is lost.
-      if (!damaged.died) {
-        events.push({
-          type: "combo-ended",
-          reason: "damage",
-          x: player.x,
-          y: player.y,
-        });
-      }
-      player = resetCombo(player);
-    }
-
+    const player = damaged.player;
     state.player = player;
     events.push({
       type: "player-hit",
@@ -992,11 +967,9 @@ export class Game {
         aimY: player.aim.y,
         dodging: player.dodgeTime > 0,
         invulnerable: player.invulnerable,
-        comboStep: player.comboStep,
-        comboHits: player.comboHits,
-        comboResolved: player.comboResolved,
-        comboHitThisStep: player.comboHitThisStep,
-        comboWindowOpen: comboWindowOpen(player),
+        attacking: player.attacking,
+        attackTime: player.attackTime,
+        attackResolved: player.attackResolved,
       },
       enemies: enemies.map((enemy) => ({
         id: enemy.id,

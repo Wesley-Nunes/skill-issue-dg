@@ -19,10 +19,10 @@ describe("0.1.0 playable combat slice", () => {
       expect(snapshot.enemies.map((enemy) => enemy.kind)).to.deep.equal([
         "melee",
         "melee",
-        "ranged",
+        "melee",
       ]);
       expect(snapshot.enemies.map((enemy) => enemy.hp)).to.deep.equal([
-        10, 10, 6,
+        8, 8, 8,
       ]);
       expect(
         snapshot.enemies.every((enemy) => enemy.status === "alive"),
@@ -167,19 +167,18 @@ describe("0.1.0 playable combat slice", () => {
     });
   });
 
-  it("damages a melee enemy with one press of the combo", () => {
+  it("damages a melee enemy with one press of the light attack", () => {
     cy.approachMelee();
     cy.gameSnapshot().then((snapshot) => {
       const target = meleeTarget(snapshot);
       cy.attackWorld(target.x, target.y);
       cy.waitForGame(
         (after) =>
-          (after.enemies.find((enemy) => enemy.id === target.id)?.hp ?? 10) <
-          10,
-        "the combo hit to land",
+          (after.enemies.find((enemy) => enemy.id === target.id)?.hp ?? 8) < 8,
+        "the light hit to land",
       ).then((after) => {
         const hit = after.enemies.find((enemy) => enemy.id === target.id);
-        expect(hit!.hp).to.be.lessThan(10);
+        expect(hit!.hp).to.be.lessThan(8);
       });
     });
   });
@@ -206,7 +205,7 @@ describe("0.1.0 playable combat slice", () => {
       expect(restarted.player.hp).to.equal(6);
       expect(restarted.enemies).to.have.length(3);
       expect(restarted.enemies.map((enemy) => enemy.hp)).to.deep.equal([
-        10, 10, 6,
+        8, 8, 8,
       ]);
       expect(restarted.spirit).to.equal(0);
       expect(restarted.floorPurified).to.equal(false);

@@ -338,10 +338,10 @@ Cypress.Commands.add("clickWorld", (worldX, worldY, options = {}) => {
  *
  * The engine samples input before its hitstop gate, so a press that lands
  * during hitstop is consumed without starting an attack. A single click is
- * therefore not reliable. A retry is only safe while `comboStep`,
- * `comboResolved` and the enemies' health all prove that nothing resolved:
- * taking damage resets the combo, so `comboStep === 0` alone cannot
- * distinguish a dropped press from a swing that was cancelled.
+ * therefore not reliable. A retry is only safe while the player's attack state
+ * and the enemies' health both prove that nothing started: `attacking` stays
+ * true for the whole committed 0.41 s swing, so the 100 ms observation window
+ * cannot miss a swing that began.
  */
 Cypress.Commands.add("attackWorld", (worldX, worldY, options = {}) => {
   const timeout = options.timeout ?? 5000;
@@ -356,7 +356,7 @@ Cypress.Commands.add("attackWorld", (worldX, worldY, options = {}) => {
           `attackWorld stopped because the run is ${snapshot.status}`,
         );
       }
-      if (snapshot.player.comboStep > 0 || snapshot.player.comboResolved) {
+      if (snapshot.player.attacking) {
         return;
       }
       if (Date.now() >= deadline) {
@@ -372,8 +372,7 @@ Cypress.Commands.add("attackWorld", (worldX, worldY, options = {}) => {
       cy.wait(100).then(() => {
         cy.gameSnapshot().then((after) => {
           if (
-            after.player.comboStep > 0 ||
-            after.player.comboResolved ||
+            after.player.attacking ||
             healthSignature(after) !== before
           ) {
             return;

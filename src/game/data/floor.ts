@@ -270,8 +270,9 @@ export function generateFloor(seed: number, depth = 1): Floor {
       ...tileCenter(secondCentre.column, secondCentre.row),
     },
     {
-      id: "ranged-3",
-      kind: "ranged",
+      // The depth-1 teaching floor keeps its third mob melee-only.
+      id: "mob-3",
+      kind: depth === 1 ? "melee" : "ranged",
       ...tileCenter(thirdCentre.column, thirdCentre.row),
     },
   ];

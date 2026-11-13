@@ -13,6 +13,7 @@ export function spawnProjectile(
   id: number,
   origin: Vec2,
   target: Vec2,
+  damage: number,
 ): Projectile {
   const dx = target.x - origin.x;
   const dy = target.y - origin.y;
@@ -27,6 +28,7 @@ export function spawnProjectile(
     vy: direction.y * PROJECTILE.speed,
     radius: PROJECTILE.radius,
     life: PROJECTILE.life,
+    damage,
   };
 }
 
