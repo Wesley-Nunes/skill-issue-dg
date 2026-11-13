@@ -10,14 +10,14 @@ This file is the canonical workflow state for the repository. It is maintained b
 | Goal | `0.8.0` combat baseline: replace the three-hit light chain with a single light attack, add depth-scaled difficulty, and make floor 1 the teaching floor |
 | Current SemVer ID | `0.8.0` |
 | Current task ID | `001` |
-| Active phase | `Design decisions` — docs handoff written and accepted by the orchestrator; design must turn the approved scope into concrete attack, feedback, and depth-curve values |
-| Active agent | `design` |
+| Active phase | `Implementation` — the design contract is written and accepted; the single attack, chain removal, and depth curve are next |
+| Active agent | `programmer` (executed by the orchestrator; no programmer subagent is available) |
 | Git branch | `feature/0.8.0-001-combat-feel` (local only) |
 | Last accepted commit | `da17b57` (merged `0.7.0` on `dev` via PR #11) |
 | Pushed HEAD | `origin/dev` at `da17b57`; the `0.8.0` branch is local and not pushed |
 | Pull request | Not created; PR target is `dev`; no `gh`/`hub` available, so the operator opens the PR |
 | Blocking questions remaining | `0` — all three discovery questions answered |
-| Overall status | `0.8.0 in design` — scope re-baselined and the three task files written; no design decisions or implementation exist yet |
+| Overall status | `0.8.0 in implementation` — docs and design are complete; the design contract fixes the single-attack values and the depth 1–10 curve; implementation and tests are next |
 
 Update this snapshot whenever a value changes. Do not leave stale status after a handoff.
 
@@ -44,7 +44,9 @@ Populate these links when the version and task have been approved:
   `001-programmer.md`, `001-qa.md` (written and accepted by the orchestrator;
   the docs stage was executed by the orchestrator because no docs subagent is
   available)
-- Design decisions: `design/0.8.0/design-decisions.md` (next stage)
+- Design decisions: [design/0.8.0/design-decisions.md](design/0.8.0/design-decisions.md)
+  (complete; attack contract, chain-feedback removal, depth curve, depth-1
+  teaching targets, verification hooks)
 - Implementation decision log: `programmer/0.8.0/CoT.md` (not started)
 - QA report: `qa/0.8.0/001-report.md` (not started)
 - Docs handoff: the three task files define chain removal, the single light
@@ -276,7 +278,8 @@ Append one entry for each meaningful phase transition:
 | 2026-11-13 | 0.7.0/001 | Ready for PR → Merged | PR #11 merged `feature/0.7.0-001-reward-loop` into `dev`; `dev` and `origin/dev` are at `da17b57` | `da17b57` |
 | 2026-11-13 | 0.8.0/001 | Complete → Docs discovery | Operator approved the `0.8.0` combat-feel direction (combo rework and its liberation role, plus a first balance baseline) after reviewing next-feature options; branch `feature/0.8.0-001-combat-feel` created from `dev`; detailed scope, blocking questions, and the task package belong to the docs stage | `ef205ab` |
 | 2026-11-13 | 0.8.0/001 | Scope re-baseline | Operator revised the direction: remove the three-hit light chain instead of retuning it, scale enemy/boss numbers by depth with a melee-only depth 1, keep the fixed branch and archetype roster, and defer the combo-challenge system to a future version; two blocking questions remain | `e0271a4` |
-| 2026-11-13 | 0.8.0/001 | Docs discovery → Design decisions | Operator answered the remaining questions: the single attack keeps knockback only (no stagger, boss uninterruptible) and the economy stays flat. Task package written by the orchestrator (no docs subagent available); product overview and `GOAL.md` updated; handoff accepted | this docs commit |
+| 2026-11-13 | 0.8.0/001 | Docs discovery → Design decisions | Operator answered the remaining questions: the single attack keeps knockback only (no stagger, boss uninterruptible) and the economy stays flat. Task package written by the orchestrator (no docs subagent available); product overview and `GOAL.md` updated; handoff accepted | `2a763d2` |
+| 2026-11-13 | 0.8.0/001 | Design decisions → Implementation | Operator approved the committed-swing contract, the integer rounding rule, and the depth 1–10 curve (HP +8% of base per depth, cadence −3% per depth, damage thresholds at depths 5–7, cap at 10); design contract written by the orchestrator and accepted; deferred heavy-attack and challenge directions recorded | this design commit |
 
 ## Status vocabulary
 
