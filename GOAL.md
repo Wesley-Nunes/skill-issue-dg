@@ -46,10 +46,12 @@ provide:
   restrained CC0/synthesized audio, a boot loading screen, and a mute toggle;
 - a Vite build configured for Vercel (`dev` staging, `main` production).
 
-`0.8.0` is in progress: it removes the three-hit light chain in favour of the
-single light attack and adds a numeric depth difficulty curve whose first floor
-is the teaching floor. Remaining `docs/about-the-project.md` §10 gaps are
-post-death purchases, meta-progression, persistence, income scaling, new enemy
+`0.8.0` is delivered (merged via PR #13): it removes the three-hit light chain
+in favour of the single light attack and adds a numeric depth difficulty curve
+whose first floor is the teaching floor. A safe-room combat exploit found after
+the merge is recorded in `docs/about-the-project.md` §4.2 and deferred to a
+future fix. Remaining `docs/about-the-project.md` §10 gaps are post-death
+purchases, meta-progression, persistence, income scaling, new enemy
 archetypes, a general floor generator, and artifacts.
 
 ## Definition of MVP completion

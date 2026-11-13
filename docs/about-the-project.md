@@ -358,6 +358,27 @@ one-time Vigor upgrade, and it closes for the floor when the Warden is
 summoned. The broader randomized safe-room vision above remains future work,
 not a change to this slice.
 
+#### Known issue (recorded 2026-11-13): safe rooms are enterable in combat
+
+The current build does not gate entry to the shop's safe zone on enemy
+state. The player can walk into the safe zone — or lure a mob or the Floor
+Warden to its threshold — while being hunted. Enemies cannot enter, so the
+player becomes untouchable inside and can still attack outward with no risk.
+This defeats the intended rule that a safe room is a safe place **between**
+encounters and can trivialize both mobs and the Warden.
+
+This is a recorded bug, not an approved change. It was found by the operator
+after `0.8.0` merged and is deferred to a future version.
+
+**Suggested fix (not designed or implemented):** track whether any living
+enemy is hunting the player as an `in_combat` flag. While the flag is true,
+block the player from entering a safe room; clear it when no enemy is hunting.
+The fix must also decide the threshold behavior (close during combat and
+reopen after disengage), the feedback shown when entry is blocked, and edge
+cases such as a shop already open, enemies losing aggro at the threshold, and
+the Warden summon. Alternatives that preserve "safe rooms are safe between
+encounters" are acceptable; the rule and its values remain to be designed.
+
 ### 4.3 Proposed core loop
 
 The current `0.7.0` loop is:
@@ -715,13 +736,14 @@ item in the MVP scope list above now has an implementation. MVP completion
 still requires the documented end-to-end loop to pass acceptance, QA sign-off,
 orchestrator review, and operator confirmation.
 
-**Status for `0.8.0` (in progress):** removes the three-hit chain, which
-resolves the known combo issue and targets validation item 2 ("combat is
-engaging and rewards player skill"), and adds the first depth difficulty
-curve, which gives validation item 7's descent real stakes and partially
-addresses the previously deferred difficulty scaling. The post-death purchase
-flow, meta-progression, persistence, income scaling, and a general procedural
-generator remain deferred and are not part of `0.8.0`.
+**Status for `0.8.0` (delivered, merged via PR #13):** removes the three-hit
+chain, which resolves the known combo issue and targets validation item 2
+("combat is engaging and rewards player skill"), and adds the first depth
+difficulty curve, which gives validation item 7's descent real stakes and
+partially addresses the previously deferred difficulty scaling. The post-death
+purchase flow, meta-progression, persistence, income scaling, and a general
+procedural generator remain deferred and are not part of `0.8.0`. A safe-room
+combat exploit found after the merge is recorded in §4.2 and deferred.
 
 ### Not required for the first MVP
 
@@ -790,6 +812,11 @@ playtesting.
 -   ~~Safe-room placement and how players reach them.~~ Resolved for the
     current slice: one shop at the end of the left branch (`0.7.0`).
     Randomized safe-room count and placement remain future work.
+-   How safe rooms behave during combat. The current `0.8.0` build lets the
+    player enter the safe zone while enemies are hunting, which is the
+    recorded exploit in §4.2. Whether entry is blocked during combat or the
+    protection is removed, and how disengaging reopens the room, is open; the
+    `in_combat` gate is the suggested direction, not an approved decision.
 -   Whether safe-room types are unique per floor (the current
     assumption) or across a whole run. The current slice has only the shop.
 

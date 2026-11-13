@@ -7,17 +7,19 @@ This file is the canonical workflow state for the repository. It is maintained b
 | Field | Value |
 |---|---|
 | Project | skill issue dg |
-| Goal | `0.8.0` combat baseline: replace the three-hit light chain with a single light attack, add depth-scaled difficulty, and make floor 1 the teaching floor |
-| Current SemVer ID | `0.8.0` |
-| Current task ID | `001` |
-| Active phase | `QA complete — ready for integration` — implementation, local checks, and QA evidence are done; the branch awaits operator push and PR |
-| Active agent | `qa` (executed by the orchestrator; no QA subagent is available) |
-| Git branch | `feature/0.8.0-001-combat-feel` (local only) |
-| Last accepted commit | `ae1b1fe` (`feat(game): replace light chain with committed swing and depth curve`) |
-| Pushed HEAD | `origin/dev` at `da17b57`; the `0.8.0` branch is local and not pushed |
-| Pull request | Not created; PR target is `dev`; no `gh`/`hub` available, so the operator opens the PR |
-| Blocking questions remaining | `0` — all discovery questions answered |
-| Overall status | `0.8.0 QA passed` — docs, design, implementation, and QA are complete; local typecheck, 187 unit tests, build, and 32/32 Chrome e2e (three consecutive passes) are green; hosted CI is pending |
+| Goal | `0.8.0` delivered — single light attack, depth-scaled difficulty, melee-only teaching floor; next version `TBD` |
+| Current SemVer ID | `0.8.0` (delivered, merged) |
+| Next target version | `TBD` — no version approved after `0.8.0` |
+| Current task ID | `—` |
+| Active phase | `Done — 0.8.0 merged; no next version approved` |
+| Active agent | `orchestrator` |
+| Git branch | `dev` |
+| Last accepted commit | `d04c66b` (PR #13 merge of `feature/0.8.0-001-combat-feel`) |
+| Pushed HEAD | `origin/dev` at `d04c66b`; the feature branch was deleted after merge |
+| Pull request | #13 merged into `dev` (operator-confirmed; verified in Git) |
+| Known issue | Safe rooms can be entered while enemies are hunting, allowing an invulnerable attack exploit — recorded in `docs/about-the-project.md` §4.2; fix deferred, no version assigned |
+| Blocking questions remaining | `0` — no active version or open blocking question |
+| Overall status | `0.8.0 delivered and merged via PR #13` — local checks were green before merge; hosted CI result was not verified locally. A post-merge safe-room combat exploit was recorded for a future fix. |
 
 Update this snapshot whenever a value changes. Do not leave stale status after a handoff.
 
@@ -65,7 +67,7 @@ Populate these links when the version and task have been approved:
 - Also merged into `dev`: `0.6.0` via PR #9 (`60318be`), `0.5.0` via PR #5
   (`3c2f62d`).
 
-### Version 0.8.0 scope (re-baselined 2026-11-13; details pending docs discovery)
+### Version 0.8.0 scope (delivered, merged via PR #13)
 
 - **Deliverable:** replace the three-hit light chain with a single, clearly
   defined light attack, and add a depth-scaled difficulty curve whose first
@@ -104,6 +106,10 @@ Populate these links when the version and task have been approved:
   `cypress/support/commands.ts` retry heuristics keyed on `comboStep`/
   `comboResolved` must be reworked rather than deleted; the product overview
   §3.2 and §10 must record the chain's removal and the deferred challenge.
+- **Delivered:** implementation `ae1b1fe`, QA report `3a76446`, merged via
+  PR #13 as `d04c66b`. See `programmer/0.8.0/CoT.md` and
+  `qa/0.8.0/001-report.md`. A post-merge safe-room combat exploit is recorded
+  in `docs/about-the-project.md` §4.2 and is not part of this version's scope.
 
 ### Version 0.7.0 scope (operator-approved 2026-11-09) — delivered, merged via PR #11
 
@@ -289,6 +295,8 @@ Append one entry for each meaningful phase transition:
 | 2026-11-13 | 0.8.0/001 | Implementation → QA verification | Three-hit chain removed (systems, state, config, events, rendering, effects, audio cue, `BOSS.staggerScale`, tests); one committed 0.41 s swing with 36 px/120° reach, 2 damage, 6 px knockback, 0.05 s hitstop; pure depth curve applied on creation and descent; depth 1 melee-only; Cypress helpers rekeyed to `attacking`; `depth.test.ts` added; 187 unit tests; typecheck/build pass; three Chrome e2e passes at 32/32 | `ae1b1fe` |
 | 2026-11-13 | 0.8.0/001 | QA verification → QA pass | Clean `npm ci`; typecheck, 187 unit tests in 17 files, build, and 32/32 Chrome e2e in three consecutive runs (2 m 53 s–2 m 55 s); curve independently recomputed at depths 1, 2, 5, 6, 10 and matched, cap verified; five canvas captures inspected; two low findings closed during implementation; one evidence-size limitation and four non-blocking observations recorded; verdict `Passed`; orchestrator-performed QA caveat recorded | this QA commit |
 | 2026-11-13 | 0.8.0/001 | QA pass → Ready for push and PR | Orchestrator reviewed the 31-file implementation diff (approved scope, no asset or dependency changes, no challenge/tutorial leftovers, production bundle free of debug hooks), accepted the version, and prepared the PR draft against `dev`; `gh`/`hub` are unavailable, so the operator pushes the branch and opens the PR; hosted CI and Vercel remain pending | this QA commit |
+| 2026-11-13 | 0.8.0/001 | Ready for PR → Merged | Operator pushed and merged PR #13 (`feature/0.8.0-001-combat-feel`) into `dev`; `dev` and `origin/dev` are at `d04c66b`; the feature branch is gone from the remote | `d04c66b` |
+| 2026-11-13 | — | Post-merge bug report | Operator found that safe rooms can be entered while enemies are hunting: luring a mob or the Warden to the shop threshold leaves the player untouchable inside while still able to attack out. Recorded in `docs/about-the-project.md` §4.2 with an `in_combat` entry gate as the suggested fix; alternatives are acceptable; deferred, not fixed in this commit | this state commit |
 
 ## Status vocabulary
 
