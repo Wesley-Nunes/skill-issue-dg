@@ -13,7 +13,7 @@ Built with TypeScript, the Canvas 2D API, and Vite. No runtime dependencies.
 |---|---|
 | `WASD` | Move |
 | Mouse | Aim |
-| Left mouse button | Light attack combo (three timed steps) |
+| Left mouse button | Light attack (one committed swing per press) |
 | `Space` | Dodge (brief invulnerability) |
 | `E` | Interact: browse the shop, summon the Warden |
 | `Q` | Use the carried healing draught |
@@ -59,10 +59,13 @@ on some desktops.
    rest. A conventional kill returns the mob.
 3. Resting a mob earns 1 skill point. Resting all three fills the spirit meter
    and opens the arena gate, but no longer summons the Warden automatically.
-4. The shop is a safe dead end off the junction. Browse it with `E` to buy a
-   healing draught for 1 point (one slot, heals 2 HP, use with `Q`) or Vigor
-   for 3 points (+1 maximum and current HP, once per run). The shop closes
-   permanently for the floor when the Warden is summoned.
+4. The shop is a safe room off the junction. Its ward is safe only between
+   encounters: while a living enemy hunts you, the threshold turns ember and
+   refuses entry, and the shop cannot be opened. Leaving the safe room is
+   always allowed. Browse with `E` to buy a healing draught for 1 point (one
+   slot, heals 2 HP, use with `Q`) or Vigor for 3 points (+1 maximum and
+   current HP, once per run). The shop closes permanently for the floor when
+   the Warden is summoned.
 5. Inside the open arena, press `E` at the altar to summon the Floor Warden.
    It chases, swipes at close range, and throws fused bombs at range. Defeating
    it awards 3 skill points and opens the stairs.
@@ -139,9 +142,13 @@ The e2e bundle is built with `VITE_E2E=1`.
 
 ## Scope
 
-`0.7.0` adds the run-scoped reward loop: skill points, the safe-room shop,
-the healing draught, one-time Vigor, the arena gate, and the explicit Warden
-summon. Random drops, loot tables, gold, score, artifacts, meta-progression,
-difficulty scaling, and multiple bosses remain deferred. See
+`0.9.0` is the MVP acceptance slice: it closes the safe-room combat exploit
+with the sealed ward, then validates the loop end to end. It adds no new
+content. The MVP already includes the `0.7.0` run-scoped reward loop (skill
+points, the shop, the healing draught, one-time Vigor, the arena gate, and the
+explicit Warden summon) and the `0.8.0` single light attack and depth curve.
+Random drops, loot tables, gold, score, artifacts, meta-progression, a general
+floor generator, and multiple bosses remain deferred. See
 [`docs/about-the-project.md`](docs/about-the-project.md) for the product
-direction and [`STATE.md`](STATE.md) for the current workflow state.
+direction, [`GOAL.md`](GOAL.md) for the MVP contract, and
+[`STATE.md`](STATE.md) for the current workflow state.

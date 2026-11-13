@@ -117,6 +117,7 @@ async function start(): Promise<void> {
       prepareRest: (id) => game.debugPrepareRest(id),
       giveSkillPoints: (amount) => game.debugGiveSkillPoints(amount),
       teleport: (x, y) => game.debugTeleport(x, y),
+      setEnemyAggro: (id, aggro) => game.debugSetEnemyAggro(id, aggro),
       prepareRite: () => game.debugPrepareRite(),
       weakenBoss: (hp) => game.debugWeakenBoss(hp),
       setPlayerHp: (hp) => game.debugSetPlayerHp(hp),

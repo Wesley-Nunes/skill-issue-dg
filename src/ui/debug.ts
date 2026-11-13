@@ -18,6 +18,8 @@ declare global {
       giveSkillPoints(amount: number): void;
       /** Test-only: moves the player without walking. */
       teleport(x: number, y: number): void;
+      /** Test-only: sets one enemy's hunting flag. */
+      setEnemyAggro(id: string, aggro?: boolean): void;
       /** Test-only: unlocks the arena without summoning. */
       prepareRite(): void;
       /** Test-only: leaves the Warden one hit from defeat. */

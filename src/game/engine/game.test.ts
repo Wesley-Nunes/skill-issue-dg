@@ -1,10 +1,11 @@
 import { describe, expect, it } from "vitest";
 import { ATTACK, BOMB, MELEE, PURIFICATION } from "../data/config";
-import { nextSeed } from "../data/floor";
+import { isInsideRect, nextSeed } from "../data/floor";
 import { createEnemy, createInitialState } from "../../state/initialState";
 import { spawnBomb } from "../systems/bomb";
 import { scalingForDepth } from "../systems/depth";
 import { fragmentPosition } from "../systems/purification";
+import { WARD_MESSAGE } from "../systems/safeRoom";
 import type { GameEvent, InputFrame } from "../types";
 import { Game } from "./game";
 
@@ -1061,7 +1062,7 @@ describe("Game", () => {
     expect(game.state.player.x).toBeLessThan(gate.x - game.state.player.radius);
   });
 
-  it("does not let enemies enter the shop or damage the player inside", () => {
+  it("keeps enemies out of the shop safe zone", () => {
     const game = createGame();
     const safe = game.state.floor.shop.safe;
     game.state.player = {
@@ -1090,6 +1091,215 @@ describe("Game", () => {
       moved.y <= safe.y + safe.height;
     expect(inside).toBe(false);
     expect(game.state.player.hp).toBe(6);
+  });
+
+  it("refuses safe-zone entry while an enemy hunts and reopens when it stops", () => {
+    const game = createGame();
+    const safe = game.state.floor.shop.safe;
+    const threshold = game.state.floor.shop.threshold;
+    const y = threshold.y + threshold.height / 2;
+    game.state.player = {
+      ...game.state.player,
+      x: safe.x + safe.width + 10,
+      y,
+    };
+    game.state.enemies = game.state.enemies.map((enemy, index) =>
+      index === 0
+        ? {
+            ...enemy,
+            x: game.state.player.x + 40,
+            y,
+            aggro: true,
+            stagger: 9,
+          }
+        : { ...enemy, aggro: false },
+    );
+
+    const blocked = stepFor(game, 0.5, { move: { x: -1, y: 0 } });
+
+    expect(game.state.player.x).toBeGreaterThan(safe.x + safe.width);
+    const refusals = blocked.filter(
+      (event) => event.type === "safe-room-blocked",
+    );
+    expect(refusals).toHaveLength(1);
+    expect(refusals[0]).toMatchObject({ message: WARD_MESSAGE });
+
+    game.state.enemies = game.state.enemies.map((enemy) => ({
+      ...enemy,
+      aggro: false,
+    }));
+    stepFor(game, 0.5, { move: { x: -1, y: 0 } });
+
+    expect(
+      isInsideRect(safe, game.state.player.x, game.state.player.y),
+    ).toBe(true);
+  });
+
+  it("throttles refused-entry messages while the player keeps pushing", () => {
+    const game = createGame();
+    const safe = game.state.floor.shop.safe;
+    const threshold = game.state.floor.shop.threshold;
+    const y = threshold.y + threshold.height / 2;
+    game.state.player = {
+      ...game.state.player,
+      x: safe.x + safe.width + 10,
+      y,
+    };
+    game.state.enemies = game.state.enemies.map((enemy, index) =>
+      index === 0
+        ? {
+            ...enemy,
+            x: game.state.player.x + 40,
+            y,
+            aggro: true,
+            stagger: 9,
+          }
+        : { ...enemy, aggro: false },
+    );
+
+    const blocked = stepFor(game, 5, { move: { x: -1, y: 0 } });
+    const refusals = blocked.filter(
+      (event) => event.type === "safe-room-blocked",
+    );
+
+    expect(refusals).toHaveLength(3);
+  });
+
+  it("never traps a player who is already inside the safe zone", () => {
+    const game = createGame();
+    const safe = game.state.floor.shop.safe;
+    const threshold = game.state.floor.shop.threshold;
+    const y = threshold.y + threshold.height / 2;
+    game.state.player = {
+      ...game.state.player,
+      x: safe.x + safe.width - 4,
+      y,
+    };
+    game.state.enemies = game.state.enemies.map((enemy, index) =>
+      index === 0
+        ? {
+            ...enemy,
+            x: safe.x + safe.width + 40,
+            y,
+            aggro: true,
+            stagger: 9,
+          }
+        : { ...enemy, aggro: false },
+    );
+
+    stepFor(game, 0.5, { move: { x: 1, y: 0 } });
+
+    expect(game.state.player.x).toBeGreaterThan(safe.x + safe.width);
+    expect(
+      isInsideRect(safe, game.state.player.x, game.state.player.y),
+    ).toBe(false);
+  });
+
+  it("refuses a dodge into the safe zone while an enemy hunts", () => {
+    const game = createGame();
+    const safe = game.state.floor.shop.safe;
+    const threshold = game.state.floor.shop.threshold;
+    const y = threshold.y + threshold.height / 2;
+    game.state.player = {
+      ...game.state.player,
+      x: safe.x + safe.width + 10,
+      y,
+    };
+    game.state.enemies = game.state.enemies.map((enemy, index) =>
+      index === 0
+        ? {
+            ...enemy,
+            x: game.state.player.x + 40,
+            y,
+            aggro: true,
+            stagger: 9,
+          }
+        : { ...enemy, aggro: false },
+    );
+
+    stepFor(game, 0.4, (frame) => ({
+      dodge: frame === 0,
+      move: { x: -1, y: 0 },
+    }));
+
+    expect(game.state.player.x).toBeGreaterThan(safe.x + safe.width);
+    expect(
+      isInsideRect(safe, game.state.player.x, game.state.player.y),
+    ).toBe(false);
+  });
+
+  it("applies damage inside the safe zone only while an enemy hunts", () => {
+    const makeBomb = (game: Game) => {
+      const player = game.state.player;
+      return {
+        ...spawnBomb(
+          99,
+          { x: player.x, y: player.y },
+          { x: player.x, y: player.y },
+          BOMB.damage,
+        ),
+        landed: true,
+        flight: BOMB.flightTime,
+        fuse: 0.01,
+      };
+    };
+
+    const sealed = createGame();
+    const sealedSafe = sealed.state.floor.shop.safe;
+    sealed.state.player = {
+      ...sealed.state.player,
+      x: sealedSafe.x + sealedSafe.width / 2,
+      y: sealedSafe.y + sealedSafe.height / 2,
+    };
+    sealed.state.enemies = sealed.state.enemies.map((enemy, index) =>
+      index === 0
+        ? { ...enemy, aggro: true, stagger: 9 }
+        : { ...enemy, aggro: false },
+    );
+    sealed.state.bombs = [makeBomb(sealed)];
+    stepFor(sealed, 0.05, {});
+    expect(sealed.state.player.hp).toBe(6 - BOMB.damage);
+
+    const open = createGame();
+    const openSafe = open.state.floor.shop.safe;
+    open.state.player = {
+      ...open.state.player,
+      x: openSafe.x + openSafe.width / 2,
+      y: openSafe.y + openSafe.height / 2,
+    };
+    open.state.enemies = open.state.enemies.map((enemy) => ({
+      ...enemy,
+      aggro: false,
+    }));
+    open.state.bombs = [makeBomb(open)];
+    stepFor(open, 0.05, {});
+    expect(open.state.player.hp).toBe(6);
+  });
+
+  it("refuses to open the shop while an enemy hunts", () => {
+    const game = createGame();
+    const shop = game.state.floor.shop;
+    game.state.player = {
+      ...game.state.player,
+      x: shop.interaction.x + shop.interaction.width / 2,
+      y: shop.interaction.y + shop.interaction.height / 2,
+    };
+    game.state.enemies = game.state.enemies.map((enemy, index) =>
+      index === 0
+        ? { ...enemy, aggro: true, stagger: 9 }
+        : { ...enemy, aggro: false },
+    );
+
+    const events = stepFor(game, 0.01, { interact: true });
+
+    expect(events.some((event) => event.type === "shop-opened")).toBe(false);
+    expect(events).toContainEqual(
+      expect.objectContaining({
+        type: "shop-unavailable",
+        message: WARD_MESSAGE,
+      }),
+    );
+    expect(game.state.shop.open).toBe(false);
   });
 
   it("opens the shop in the stall zone, buys Vigor, and closes with Escape", () => {

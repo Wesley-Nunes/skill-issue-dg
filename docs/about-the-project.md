@@ -268,7 +268,7 @@ Difficulty should increase as the player descends. Floors may introduce
 different enemy pools and combinations. The exact generation algorithm,
 room and corridor rules, floor themes, and difficulty scaling are open.
 
-#### Current slice: `0.7.0`
+#### Current slice: `0.7.0`–`0.9.0`
 
 The current dungeon slice uses a fixed six-room branch, generated from a seed;
 room sizes, gaps, and decoration may vary. The player starts in the first
@@ -358,26 +358,33 @@ one-time Vigor upgrade, and it closes for the floor when the Warden is
 summoned. The broader randomized safe-room vision above remains future work,
 not a change to this slice.
 
-#### Known issue (recorded 2026-11-13): safe rooms are enterable in combat
+#### Safe-room combat rule (operator-approved 2026-11-14, `0.9.0`)
 
-The current build does not gate entry to the shop's safe zone on enemy
-state. The player can walk into the safe zone — or lure a mob or the Floor
-Warden to its threshold — while being hunted. Enemies cannot enter, so the
-player becomes untouchable inside and can still attack outward with no risk.
-This defeats the intended rule that a safe room is a safe place **between**
-encounters and can trivialize both mobs and the Warden.
+The `0.8.0` build left the shop's safe zone absolute. The player could enter it —
+or lure a mob or the Floor Warden to its threshold — while hunted, become
+untouchable inside, and still attack outward. That was recorded as a known issue
+on 2026-11-13 and is fixed in `0.9.0`.
 
-This is a recorded bug, not an approved change. It was found by the operator
-after `0.8.0` merged and is deferred to a future version.
+The approved rule:
 
-**Suggested fix (not designed or implemented):** track whether any living
-enemy is hunting the player as an `in_combat` flag. While the flag is true,
-block the player from entering a safe room; clear it when no enemy is hunting.
-The fix must also decide the threshold behavior (close during combat and
-reopen after disengage), the feedback shown when entry is blocked, and edge
-cases such as a shop already open, enemies losing aggro at the threshold, and
-the Warden summon. Alternatives that preserve "safe rooms are safe between
-encounters" are acceptable; the rule and its values remain to be designed.
+- The shop ward is **sealed while any living enemy is hunting the player**
+  (its per-enemy aggro is active). Dead, dying, rested, and harmless emerging
+  enemies do not seal it.
+- While sealed, the player cannot cross the threshold into the safe zone, by
+  walking or dodging. Leaving the zone is always allowed, so a player already
+  inside is never trapped.
+- While sealed, the safe zone is **not a sanctuary**: the player no longer
+  ignores damage there. Enemies still cannot enter the zone, so the player must
+  leave, fight, or break pursuit.
+- The shop cannot be opened while sealed. The existing rule that the shop closes
+  once the Warden is summoned is unchanged.
+- The existing threshold band changes from cyan to ember and reads
+  `WARD SEALED`. A refused entry shows `The ward holds — enemies are hunting.`
+  at the threshold. The feedback requires no audio and respects reduced motion.
+- The exact predicate and edge-case behavior live in
+  `design/0.9.0/design-decisions.md`.
+
+The broader randomized safe-room vision above remains future work.
 
 ### 4.3 Proposed core loop
 
@@ -388,8 +395,9 @@ The current `0.7.0` loop is:
     1 skill point.
 3.  Choose the left branch for the second mob and the shop dead end, or the
     right branch for the third mob and the locked boss arena.
-4.  Before summoning, spend skill points in the safe-room shop on a healing
-    draught or the one-time Vigor upgrade; use the draught when needed.
+4.  Break pursuit, then spend skill points in the safe-room shop on a healing
+    draught or the one-time Vigor upgrade; use the draught when needed. The
+    ward is sealed while an enemy hunts.
 5.  Rest all three mobs to fill the spirit meter and unlock the arena.
 6.  Enter the arena and explicitly summon the Warden, or backtrack to the
     shop first. The shop closes once the Warden is summoned.
@@ -745,6 +753,14 @@ purchase flow, meta-progression, persistence, income scaling, and a general
 procedural generator remain deferred and are not part of `0.8.0`. A safe-room
 combat exploit found after the merge is recorded in §4.2 and deferred.
 
+**Status for `0.9.0` (MVP acceptance slice):** closes that safe-room exploit
+with the ward rule in §4.2, then runs the end-to-end MVP acceptance pass. The
+operator confirmed on 2026-11-14 that the seeded, fixed six-room topology
+counts as the MVP's procedural floor and that shop-only rewards satisfy
+validation item 5. The MVP acceptance criteria are recorded in `GOAL.md`.
+Feature scope is otherwise frozen: no new enemy, room, economy, loot, boss,
+progression, persistence, art, or audio work is part of this slice.
+
 ### Not required for the first MVP
 
 The following are part of the broader vision or possible future
@@ -812,11 +828,14 @@ playtesting.
 -   ~~Safe-room placement and how players reach them.~~ Resolved for the
     current slice: one shop at the end of the left branch (`0.7.0`).
     Randomized safe-room count and placement remain future work.
--   How safe rooms behave during combat. The current `0.8.0` build lets the
-    player enter the safe zone while enemies are hunting, which is the
-    recorded exploit in §4.2. Whether entry is blocked during combat or the
-    protection is removed, and how disengaging reopens the room, is open; the
-    `in_combat` gate is the suggested direction, not an approved decision.
+-   How safe rooms behave during combat. Resolved for the current slice:
+    the shop ward is sealed while a living enemy hunts, the player cannot enter
+    by walking or dodging, leaving is always allowed, the safe zone stops
+    granting damage immunity while sealed, and the shop cannot be opened
+    (`0.9.0`, operator-approved 2026-11-14). This replaces the `0.8.0`
+    exploit recorded in §4.2. Whether protection is removed or enemies may
+    enter remains a future question only if a later safe-room type needs a
+    different rule; randomized safe rooms remain future work.
 -   Whether safe-room types are unique per floor (the current
     assumption) or across a whole run. The current slice has only the shop.
 
@@ -915,6 +934,11 @@ The `0.8.0` slice advances priority 9 and partially addresses the
 difficulty-scaling gap: it replaces the three-hit chain with a single light
 attack and adds a numeric depth curve over the fixed branch, without changing
 the archetype roster, enemy count, or economy.
+
+The `0.9.0` slice finishes priority 9's first acceptance pass: it closes the
+safe-room combat exploit recorded in §4.2 and validates the MVP loop end to
+end against the criteria in `GOAL.md`. It adds no content and does not reopen
+the economy, generator, archetype, or progression questions.
 
 The order can change when implementation discoveries justify it. Keep
 the first playable slice small and testable.

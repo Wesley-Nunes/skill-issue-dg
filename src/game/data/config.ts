@@ -117,6 +117,8 @@ export const GATE = {
 export const SHOP = {
   /** How long a purchase message stays in the panel footer. */
   messageTime: 2.5,
+  /** Minimum seconds between refused-entry messages while the player pushes. */
+  wardMessageCooldown: 2,
   /** Interaction range around the altar and stall zones. */
   altarPromptRange: 48,
 } as const;
