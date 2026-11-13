@@ -10,14 +10,14 @@ This file is the canonical workflow state for the repository. It is maintained b
 | Goal | `0.8.0` combat baseline: replace the three-hit light chain with a single light attack, add depth-scaled difficulty, and make floor 1 the teaching floor |
 | Current SemVer ID | `0.8.0` |
 | Current task ID | `001` |
-| Active phase | `Implementation` — the design contract is written and accepted; the single attack, chain removal, and depth curve are next |
-| Active agent | `programmer` (executed by the orchestrator; no programmer subagent is available) |
+| Active phase | `QA complete — ready for integration` — implementation, local checks, and QA evidence are done; the branch awaits operator push and PR |
+| Active agent | `qa` (executed by the orchestrator; no QA subagent is available) |
 | Git branch | `feature/0.8.0-001-combat-feel` (local only) |
-| Last accepted commit | `da17b57` (merged `0.7.0` on `dev` via PR #11) |
+| Last accepted commit | `ae1b1fe` (`feat(game): replace light chain with committed swing and depth curve`) |
 | Pushed HEAD | `origin/dev` at `da17b57`; the `0.8.0` branch is local and not pushed |
 | Pull request | Not created; PR target is `dev`; no `gh`/`hub` available, so the operator opens the PR |
-| Blocking questions remaining | `0` — all three discovery questions answered |
-| Overall status | `0.8.0 in implementation` — docs and design are complete; the design contract fixes the single-attack values and the depth 1–10 curve; implementation and tests are next |
+| Blocking questions remaining | `0` — all discovery questions answered |
+| Overall status | `0.8.0 QA passed` — docs, design, implementation, and QA are complete; local typecheck, 187 unit tests, build, and 32/32 Chrome e2e (three consecutive passes) are green; hosted CI is pending |
 
 Update this snapshot whenever a value changes. Do not leave stale status after a handoff.
 
@@ -47,8 +47,11 @@ Populate these links when the version and task have been approved:
 - Design decisions: [design/0.8.0/design-decisions.md](design/0.8.0/design-decisions.md)
   (complete; attack contract, chain-feedback removal, depth curve, depth-1
   teaching targets, verification hooks)
-- Implementation decision log: `programmer/0.8.0/CoT.md` (not started)
-- QA report: `qa/0.8.0/001-report.md` (not started)
+- Implementation decision log: [programmer/0.8.0/CoT.md](programmer/0.8.0/CoT.md)
+  (complete; attack rule, depth module, composition, verification, assumptions)
+- QA report: [qa/0.8.0/001-report.md](qa/0.8.0/001-report.md) (complete;
+  verdict `Passed`, two closed low findings, one evidence limitation and four
+  non-blocking observations; orchestrator-verified independence caveat)
 - Docs handoff: the three task files define chain removal, the single light
   attack, chain-feedback removal, the depth-scaling table, the melee-only
   depth-1 teaching floor, the flat economy, boss uninterruptibility, and the
@@ -86,10 +89,13 @@ Populate these links when the version and task have been approved:
   damage; a pure depth-scaling function applied to mobs and the Warden;
   depth-1 teaching values; a balance baseline for the first few depths; unit
   and Cypress coverage for the revised rules.
-- **Open blocking items for discovery:** the single attack's values and whether
-  knockback, stagger, or boss interruptibility survive its loss of the
-  finisher; whether skill-point income scales with depth so the shop stays
-  relevant; how far the tested curve reaches.
+- **Resolved discovery items (2026-11-13):**
+  - the single attack keeps **knockback only**: no stagger, no enemy interruption,
+    and the Warden is never interruptible;
+  - the economy stays flat (1 point per rested mob, 3 for the Warden, draught 1,
+    Vigor 3); shop relevance at depth is recorded as a future balance question;
+  - the curve is tested to a cap of depth 10; depth 11 and beyond reuse the
+    depth-10 row.
 - **Excluded:** the challenge system, buff/status effects, new enemy
   archetypes, artifacts or drops, randomized safe rooms, a general floor
   generator, post-death purchases, meta-progression, persistence, tutorial
@@ -279,7 +285,10 @@ Append one entry for each meaningful phase transition:
 | 2026-11-13 | 0.8.0/001 | Complete → Docs discovery | Operator approved the `0.8.0` combat-feel direction (combo rework and its liberation role, plus a first balance baseline) after reviewing next-feature options; branch `feature/0.8.0-001-combat-feel` created from `dev`; detailed scope, blocking questions, and the task package belong to the docs stage | `ef205ab` |
 | 2026-11-13 | 0.8.0/001 | Scope re-baseline | Operator revised the direction: remove the three-hit light chain instead of retuning it, scale enemy/boss numbers by depth with a melee-only depth 1, keep the fixed branch and archetype roster, and defer the combo-challenge system to a future version; two blocking questions remain | `e0271a4` |
 | 2026-11-13 | 0.8.0/001 | Docs discovery → Design decisions | Operator answered the remaining questions: the single attack keeps knockback only (no stagger, boss uninterruptible) and the economy stays flat. Task package written by the orchestrator (no docs subagent available); product overview and `GOAL.md` updated; handoff accepted | `2a763d2` |
-| 2026-11-13 | 0.8.0/001 | Design decisions → Implementation | Operator approved the committed-swing contract, the integer rounding rule, and the depth 1–10 curve (HP +8% of base per depth, cadence −3% per depth, damage thresholds at depths 5–7, cap at 10); design contract written by the orchestrator and accepted; deferred heavy-attack and challenge directions recorded | this design commit |
+| 2026-11-13 | 0.8.0/001 | Design decisions → Implementation | Operator approved the committed-swing contract, the integer rounding rule, and the depth 1–10 curve (HP +8% of base per depth, cadence −3% per depth, damage thresholds at depths 5–7, cap at 10); design contract written by the orchestrator and accepted; deferred heavy-attack and challenge directions recorded | `6bf19de` |
+| 2026-11-13 | 0.8.0/001 | Implementation → QA verification | Three-hit chain removed (systems, state, config, events, rendering, effects, audio cue, `BOSS.staggerScale`, tests); one committed 0.41 s swing with 36 px/120° reach, 2 damage, 6 px knockback, 0.05 s hitstop; pure depth curve applied on creation and descent; depth 1 melee-only; Cypress helpers rekeyed to `attacking`; `depth.test.ts` added; 187 unit tests; typecheck/build pass; three Chrome e2e passes at 32/32 | `ae1b1fe` |
+| 2026-11-13 | 0.8.0/001 | QA verification → QA pass | Clean `npm ci`; typecheck, 187 unit tests in 17 files, build, and 32/32 Chrome e2e in three consecutive runs (2 m 53 s–2 m 55 s); curve independently recomputed at depths 1, 2, 5, 6, 10 and matched, cap verified; five canvas captures inspected; two low findings closed during implementation; one evidence-size limitation and four non-blocking observations recorded; verdict `Passed`; orchestrator-performed QA caveat recorded | this QA commit |
+| 2026-11-13 | 0.8.0/001 | QA pass → Ready for push and PR | Orchestrator reviewed the 31-file implementation diff (approved scope, no asset or dependency changes, no challenge/tutorial leftovers, production bundle free of debug hooks), accepted the version, and prepared the PR draft against `dev`; `gh`/`hub` are unavailable, so the operator pushes the branch and opens the PR; hosted CI and Vercel remain pending | this QA commit |
 
 ## Status vocabulary
 
