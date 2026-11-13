@@ -11,15 +11,15 @@ This file is the canonical workflow state for the repository. It is maintained b
 | Current SemVer ID | `0.9.0` (in progress) |
 | Next target version | `—` — `0.9.0` is the MVP acceptance slice; no later version approved |
 | Current task ID | `001` |
-| Active phase | `Design decisions → Implementation` |
-| Active agent | `programmer` |
+| Active phase | `Implementation → QA verification` |
+| Active agent | `qa` |
 | Git branch | `feature/0.9.0-001-mvp-acceptance` |
 | Last accepted commit | `d04c66b` (PR #13 merge of `feature/0.8.0-001-combat-feel`) |
 | Pushed HEAD | `origin/dev` at `d04c66b`; the `0.9.0` branch is local only |
 | Pull request | None yet; `0.9.0` is uncommitted to a remote |
-| Known issue | The safe-room combat exploit recorded on 2026-11-13 is assigned to `0.9.0` and is being fixed; no other blocking defect is known |
+| Known issue | The safe-room combat exploit is fixed in `09f6e45` and awaits independent QA; no other blocking defect is known |
 | Blocking questions remaining | `0` — both MVP interpretation questions were answered on 2026-11-14 |
-| Overall status | `0.9.0` scoped. The MVP acceptance contract is in `GOAL.md`; the docs task package is written; design decisions are next. Hosted CI and Vercel remain pending from earlier versions. |
+| Overall status | `0.9.0` implementation is complete and green locally (typecheck, 198 unit tests, build, production-bundle hook scan, 33/33 Chrome e2e). Independent QA and the MVP acceptance evidence run are next. Hosted CI and Vercel remain pending. |
 
 Update this snapshot whenever a value changes. Do not leave stale status after a handoff.
 
@@ -53,7 +53,9 @@ Populate these links when the version and task have been approved:
 - Design decisions: [design/0.9.0/design-decisions.md](design/0.9.0/design-decisions.md)
   (complete; predicate, one-way entry, conditional protection, interaction rule,
   feedback, edge cases, verification hooks)
-- Implementation decision log: `programmer/0.9.0/CoT.md` (pending)
+- Implementation decision log: [programmer/0.9.0/CoT.md](programmer/0.9.0/CoT.md)
+  (complete at `09f6e45`; predicate, one-way movement rule, conditional damage,
+  interaction rule, feedback, verification, assumptions)
 - QA report: `qa/0.9.0/001-report.md` (pending)
 - Docs handoff: the task package defines the seal predicate, the entry and exit
   behavior, the protection and interaction rules, the threshold feedback, the
@@ -341,6 +343,7 @@ Append one entry for each meaningful phase transition:
 | 2026-11-14 | 0.9.0/001 | Complete → Docs discovery | Operator approved the MVP acceptance plan: close the safe-room exploit, write the MVP contract, and run end-to-end acceptance. Branch `feature/0.9.0-001-mvp-acceptance` created from `dev` | this docs commit |
 | 2026-11-14 | 0.9.0/001 | Docs discovery → Design decisions | Operator confirmed the seeded fixed six-room topology as the MVP's procedural floor and shop-only rewards as the loot decision. `GOAL.md` now holds the testable MVP contract (SC1–SC10); the three `0.9.0` task files and the product-overview updates are written; design next | this docs commit |
 | 2026-11-14 | 0.9.0/001 | Design decisions → Implementation | Design contract approved: `isInCombat` = living enemy with aggro; one-way entry refusal by walking and dodging; damage applies inside while sealed; shop cannot open while sealed; cyan/ember threshold states, `WARD SEALED`, and `The ward holds — enemies are hunting.` throttled to 2 s. No new system, asset, or HUD element | this design commit |
+| 2026-11-14 | 0.9.0/001 | Implementation → QA verification | Pure `isInCombat`/`WARD_MESSAGE` module; one-way movement guard for walk and dodge; conditional safe-zone damage; shop refusal with the ward copy; ember threshold and `WARD SEALED`; `inCombat` snapshot field and `setEnemyAggro` test hook; 198 unit tests, typecheck/build pass, production bundle has no debug hook, and 33/33 Chrome e2e pass across 6 specs in 2 m 58 s; README and version `0.9.0` updated | `09f6e45` |
 
 ## Status vocabulary
 
