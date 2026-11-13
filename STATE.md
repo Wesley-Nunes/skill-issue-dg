@@ -7,7 +7,7 @@ This file is the canonical workflow state for the repository. It is maintained b
 | Field | Value |
 |---|---|
 | Project | skill issue dg |
-| Goal | `0.8.0` combat-feel pass: rework the three-hit light combo and its role in the liberation loop, plus a first balance baseline |
+| Goal | `0.8.0` combat baseline: replace the three-hit light chain with a single light attack, add depth-scaled difficulty, and make floor 1 the teaching floor |
 | Current SemVer ID | `0.8.0` |
 | Current task ID | `001` |
 | Active phase | `Docs discovery` — operator approved the combat-feel direction on 2026-11-13; detailed scope, remaining blocking-question count, and the task package are owned by the docs agent |
@@ -16,8 +16,8 @@ This file is the canonical workflow state for the repository. It is maintained b
 | Last accepted commit | `da17b57` (merged `0.7.0` on `dev` via PR #11) |
 | Pushed HEAD | `origin/dev` at `da17b57`; the `0.8.0` branch is local and not pushed |
 | Pull request | Not created; PR target is `dev`; no `gh`/`hub` available, so the operator opens the PR |
-| Blocking questions remaining | `TBD` — docs discovery has not started |
-| Overall status | `0.8.0 in discovery` — `0.7.0` delivered and merged via PR #11; the next version targets the recorded combo known issue and a first balance baseline; no task files, design decisions, or implementation exist yet |
+| Blocking questions remaining | `2` — single-attack values and boss interruptibility; whether skill-point income scales with depth |
+| Overall status | `0.8.0 in discovery` — `0.7.0` delivered and merged via PR #11; scope re-baselined on 2026-11-13 to remove the three-hit chain, scale difficulty by depth (numbers only, depth 1 melee-only), and defer the combo-challenge system; the scope section is written, but no task files, design decisions, or implementation exist yet |
 
 Update this snapshot whenever a value changes. Do not leave stale status after a handoff.
 
@@ -55,32 +55,42 @@ Populate these links when the version and task have been approved:
 - Also merged into `dev`: `0.6.0` via PR #9 (`60318be`), `0.5.0` via PR #5
   (`3c2f62d`).
 
-### Version 0.8.0 scope (direction approved 2026-11-13; details pending docs discovery)
+### Version 0.8.0 scope (re-baselined 2026-11-13; details pending docs discovery)
 
-- **Deliverable (approved direction):** a combat-feel pass that reworks the
-  three-hit light combo and its role in the liberation loop, plus a first
-  balance baseline. No new systems, assets, or currencies are implied by the
-  direction.
-- **Why:** the product overview records the combo as a known issue
-  (2026-11-11) — timing windows, input feedback, and fragment-breaking feel
-  are not yet satisfying — and MVP validation item 2 ("combat is engaging and
-  rewards player skill") cannot be signed off while the only fragment-breaking
-  verb feels bad. `0.7.0`'s skill-point economy depends on that verb.
-- **Included (to be specified by docs discovery):** combo timing/input-window
-  rework; legible feedback for the open window, mistimed input, and
-  fragment-breaking; a first pass over player, enemy, boss, spirit, and
-  economy values so early floors escalate measurably; unit and Cypress
-  coverage for the revised rules.
-- **Not yet decided:** whether input becomes buffered or stays hard-timed, the
-  exact window/damage values, whether the finisher is the intended
-  fragment-breaker, and how far the balance pass reaches. These are blocking
-  discovery questions; do not treat any of them as settled.
-- **Excluded unless discovery approves it:** new enemy archetypes, artifacts
-  or drops, randomized safe rooms, a general floor generator, post-death
-  purchases, meta-progression, persistence, new art, and new audio.
-- **Known consequence:** revising combo timing and balance will invalidate
-  existing timing-sensitive unit and Cypress expectations, and the design and
-  QA tasks must define how the new feel is verified rather than asserted.
+- **Deliverable:** replace the three-hit light chain with a single, clearly
+  defined light attack, and add a depth-scaled difficulty curve whose first
+  step makes floor 1 the teaching floor. No new systems, assets, or currencies.
+- **Why:** two design passes over the chain's timing windows did not make it
+  feel good, and it is the only verb that breaks spirit fragments. The
+  recorded known issue (2026-11-11) is resolved by removal rather than another
+  tuning pass. The fixed six-room branch currently plays identically at every
+  depth, so the endless descent has no stakes.
+- **Operator decisions (2026-11-13):**
+  - remove the three-hit light chain entirely;
+  - difficulty scales enemy and boss **numbers only**, plus one composition
+    rule: depth 1 spawns melee enemies only;
+  - the enemy archetype roster, enemy count, and the fixed six-room branch do
+    not change;
+  - the combo-challenge system discussed on 2026-11-13 (per-floor challenge
+    card, challenge progression, combo rewards) is **deferred to a future
+    version**, not deleted from the product direction.
+- **Included:** removal of chain state, systems, rendering, feedback, and
+  tests; a single-attack definition owning windup/active/recovery/reach/arc/
+  damage; a pure depth-scaling function applied to mobs and the Warden;
+  depth-1 teaching values; a balance baseline for the first few depths; unit
+  and Cypress coverage for the revised rules.
+- **Open blocking items for discovery:** the single attack's values and whether
+  knockback, stagger, or boss interruptibility survive its loss of the
+  finisher; whether skill-point income scales with depth so the shop stays
+  relevant; how far the tested curve reaches.
+- **Excluded:** the challenge system, buff/status effects, new enemy
+  archetypes, artifacts or drops, randomized safe rooms, a general floor
+  generator, post-death purchases, meta-progression, persistence, tutorial
+  prompts or overlays, new art, and new audio.
+- **Known consequence:** a net deletion across `src/`, and
+  `cypress/support/commands.ts` retry heuristics keyed on `comboStep`/
+  `comboResolved` must be reworked rather than deleted; the product overview
+  §3.2 and §10 must record the chain's removal and the deferred challenge.
 
 ### Version 0.7.0 scope (operator-approved 2026-11-09) — delivered, merged via PR #11
 
@@ -259,7 +269,8 @@ Append one entry for each meaningful phase transition:
 | 2026-11-11 | 0.7.0/001 | QA pass → Ready for push and PR | Orchestrator reviewed the 37-file diff (approved scope, no asset/dependency/meta-progression changes), re-ran typecheck/unit/build/e2e, and accepted the version; branch is local at `496e007` plus this state commit; `gh`/`hub` are unavailable, so the operator pushes and opens the PR against `dev`; hosted CI and Vercel remain pending | this state commit |
 | 2026-11-11 | 0.7.0/001 | Post-QA operator fixes → Ready for push and PR | Operator playtest found the junction `SHOP`/`WARDEN` labels overlapping and the chevrons pointing the wrong way; the waystone was removed entirely (`99787aa`) and the combo rework was recorded as a known issue in the product overview (`b74da29`); QA amended and re-verified with fresh 1024 × 640 and 1440 × 810 captures (`020c178`); typecheck, 190 unit tests, build, and 32/32 Chrome e2e pass; verdict `Passed after fixes`; branch ahead of `origin` at `f8b0a51`; hosted CI and Vercel remain pending | `99787aa`, `b74da29`, `020c178`, plus this state commit |
 | 2026-11-13 | 0.7.0/001 | Ready for PR → Merged | PR #11 merged `feature/0.7.0-001-reward-loop` into `dev`; `dev` and `origin/dev` are at `da17b57` | `da17b57` |
-| 2026-11-13 | 0.8.0/001 | Complete → Docs discovery | Operator approved the `0.8.0` combat-feel direction (combo rework and its liberation role, plus a first balance baseline) after reviewing next-feature options; branch `feature/0.8.0-001-combat-feel` created from `dev`; detailed scope, blocking questions, and the task package belong to the docs stage | this state commit |
+| 2026-11-13 | 0.8.0/001 | Complete → Docs discovery | Operator approved the `0.8.0` combat-feel direction (combo rework and its liberation role, plus a first balance baseline) after reviewing next-feature options; branch `feature/0.8.0-001-combat-feel` created from `dev`; detailed scope, blocking questions, and the task package belong to the docs stage | `ef205ab` |
+| 2026-11-13 | 0.8.0/001 | Scope re-baseline | Operator revised the direction: remove the three-hit light chain instead of retuning it, scale enemy/boss numbers by depth with a melee-only depth 1, keep the fixed branch and archetype roster, and defer the combo-challenge system to a future version; two blocking questions remain | this state commit |
 
 ## Status vocabulary
 
