@@ -7,19 +7,19 @@ This file is the canonical workflow state for the repository. It is maintained b
 | Field | Value |
 |---|---|
 | Project | skill issue dg |
-| Goal | `0.8.0` delivered — single light attack, depth-scaled difficulty, melee-only teaching floor; next version `TBD` |
-| Current SemVer ID | `0.8.0` (delivered, merged) |
-| Next target version | `TBD` — no version approved after `0.8.0` |
-| Current task ID | `—` |
-| Active phase | `Done — 0.8.0 merged; no next version approved` |
-| Active agent | `orchestrator` |
-| Git branch | `dev` |
+| Goal | `0.9.0` MVP acceptance: close the safe-room combat exploit, lock the MVP contract, and complete end-to-end acceptance evidence |
+| Current SemVer ID | `0.9.0` (in progress) |
+| Next target version | `—` — `0.9.0` is the MVP acceptance slice; no later version approved |
+| Current task ID | `001` |
+| Active phase | `Docs discovery → Design decisions` |
+| Active agent | `design` |
+| Git branch | `feature/0.9.0-001-mvp-acceptance` |
 | Last accepted commit | `d04c66b` (PR #13 merge of `feature/0.8.0-001-combat-feel`) |
-| Pushed HEAD | `origin/dev` at `d04c66b`; the feature branch was deleted after merge |
-| Pull request | #13 merged into `dev` (operator-confirmed; verified in Git) |
-| Known issue | Safe rooms can be entered while enemies are hunting, allowing an invulnerable attack exploit — recorded in `docs/about-the-project.md` §4.2; fix deferred, no version assigned |
-| Blocking questions remaining | `0` — no active version or open blocking question |
-| Overall status | `0.8.0 delivered and merged via PR #13` — local checks were green before merge; hosted CI result was not verified locally. A post-merge safe-room combat exploit was recorded for a future fix. |
+| Pushed HEAD | `origin/dev` at `d04c66b`; the `0.9.0` branch is local only |
+| Pull request | None yet; `0.9.0` is uncommitted to a remote |
+| Known issue | The safe-room combat exploit recorded on 2026-11-13 is assigned to `0.9.0` and is being fixed; no other blocking defect is known |
+| Blocking questions remaining | `0` — both MVP interpretation questions were answered on 2026-11-14 |
+| Overall status | `0.9.0` scoped. The MVP acceptance contract is in `GOAL.md`; the docs task package is written; design decisions are next. Hosted CI and Vercel remain pending from earlier versions. |
 
 Update this snapshot whenever a value changes. Do not leave stale status after a handoff.
 
@@ -41,31 +41,70 @@ The state manager must not invent decisions, change product scope, edit game cod
 
 Populate these links when the version and task have been approved:
 
-- Product overview: `docs/about-the-project.md`
-- Task package: `docs/tasks/0.8.0/001-design.md`,
-  `001-programmer.md`, `001-qa.md` (written and accepted by the orchestrator;
-  the docs stage was executed by the orchestrator because no docs subagent is
-  available)
-- Design decisions: [design/0.8.0/design-decisions.md](design/0.8.0/design-decisions.md)
-  (complete; attack contract, chain-feedback removal, depth curve, depth-1
-  teaching targets, verification hooks)
-- Implementation decision log: [programmer/0.8.0/CoT.md](programmer/0.8.0/CoT.md)
-  (complete; attack rule, depth module, composition, verification, assumptions)
-- QA report: [qa/0.8.0/001-report.md](qa/0.8.0/001-report.md) (complete;
-  verdict `Passed`, two closed low findings, one evidence limitation and four
-  non-blocking observations; orchestrator-verified independence caveat)
-- Docs handoff: the three task files define chain removal, the single light
-  attack, chain-feedback removal, the depth-scaling table, the melee-only
-  depth-1 teaching floor, the flat economy, boss uninterruptibility, and the
-  independent QA plan. `docs/about-the-project.md` §1, §3.2, §4.1, §5, §6, §9,
-  §10, §11 and §12 now describe the post-chain slice and record the deferred
-  challenge direction; `GOAL.md` progress was refreshed.
+### `0.9.0` / `001` (in progress)
+
+- Product overview: `docs/about-the-project.md` (§4.2 records the approved ward
+  rule; §9, §10, and §11 record the MVP acceptance slice)
+- MVP contract: [GOAL.md](GOAL.md) (locked 2026-11-14; §4 success criteria
+  SC1–SC10, accepted limitations, quality bar)
+- Task package: `docs/tasks/0.9.0/001-design.md`,
+  `001-programmer.md`, `001-qa.md` (written by the orchestrator; no dedicated
+  docs subagent is available)
+- Design decisions: `design/0.9.0/design-decisions.md` (pending)
+- Implementation decision log: `programmer/0.9.0/CoT.md` (pending)
+- QA report: `qa/0.9.0/001-report.md` (pending)
+- Docs handoff: the task package defines the seal predicate, the entry and exit
+  behavior, the protection and interaction rules, the threshold feedback, the
+  README/version hygiene, and the independent MVP acceptance run. The operator
+  confirmed on 2026-11-14 that the seeded fixed six-room topology is the MVP's
+  procedural floor and that shop-only rewards satisfy the loot decision.
 - Deployment: Vercel — `dev` is staging, `main` is production; the operator
   connects the repository in Vercel.
-- Prior release: `0.7.0` is merged into `dev` via PR #11 (`da17b57`);
-  implementation `17510eb`, QA `Passed after fixes` (`020c178`).
+
+### Prior version links
+
+- `0.8.0`: task package `docs/tasks/0.8.0/001-*`, design
+  [design/0.8.0/design-decisions.md](design/0.8.0/design-decisions.md),
+  implementation [programmer/0.8.0/CoT.md](programmer/0.8.0/CoT.md), QA
+  [qa/0.8.0/001-report.md](qa/0.8.0/001-report.md) — merged via PR #13.
+- `0.7.0` is merged into `dev` via PR #11 (`da17b57`); implementation
+  `17510eb`, QA `Passed after fixes` (`020c178`).
 - Also merged into `dev`: `0.6.0` via PR #9 (`60318be`), `0.5.0` via PR #5
   (`3c2f62d`).
+
+### Version 0.9.0 scope (operator-approved 2026-11-14, in progress)
+
+- **Deliverable:** close the recorded safe-room combat exploit and complete the
+  end-to-end MVP acceptance pass, with no new content.
+- **Why:** the exploit makes the shop a damage-free firing position against
+  mobs and the Warden, so combat and boss validation cannot be trusted. The MVP
+  already has every feature in its own scope list; what remained was definition,
+  integrity, and evidence.
+- **Operator decisions (2026-11-14):**
+  - fix the exploit now, before any further balance or content pass;
+  - the seeded fixed six-room topology counts as the MVP's "procedurally
+    generated floor"; no general generator is required;
+  - shop-only rewards satisfy the MVP's "loot and safe room provide useful
+    decisions"; no drop source is required.
+- **MVP contract:** locked in `GOAL.md` with success criteria SC1–SC10,
+  explicit exclusions, accepted limitations, and the quality bar. MVP completion
+  now requires evidence for every criterion, not another feature.
+- **Included:** the ward predicate; entry refusal by walking and dodging;
+  always-allowed exit; the design's protection and shop-interaction rules while
+  sealed; threshold state and refusal feedback; unit and Cypress coverage;
+  a debug snapshot field and the minimum test-only hook; README accuracy;
+  `package.json`/lockfile version `0.9.0`; an independent QA acceptance run.
+- **Excluded:** general floor generator, randomized or extra safe rooms, drops,
+  loot tables, artifacts, post-death purchases, meta-progression, persistence,
+  new archetypes, boss phases/variety, skill tree, secondary/heavy attack,
+  challenge/combo system, income/price scaling, tutorial overlays, remapping,
+  settings, mobile, localisation, new art, and new audio.
+- **Known consequence:** the safe zone stops being absolute; while an enemy
+  hunts, the player cannot enter and does not ignore damage inside. The shop
+  panel cannot be opened in combat. The `0.8.0` exploit test's title and
+  expectations must be updated rather than deleted.
+- **Release checks:** hosted CI and the Vercel deployment remain operator-owned
+  and are recorded as pending until confirmed on the host.
 
 ### Version 0.8.0 scope (delivered, merged via PR #13)
 
@@ -297,6 +336,8 @@ Append one entry for each meaningful phase transition:
 | 2026-11-13 | 0.8.0/001 | QA pass → Ready for push and PR | Orchestrator reviewed the 31-file implementation diff (approved scope, no asset or dependency changes, no challenge/tutorial leftovers, production bundle free of debug hooks), accepted the version, and prepared the PR draft against `dev`; `gh`/`hub` are unavailable, so the operator pushes the branch and opens the PR; hosted CI and Vercel remain pending | this QA commit |
 | 2026-11-13 | 0.8.0/001 | Ready for PR → Merged | Operator pushed and merged PR #13 (`feature/0.8.0-001-combat-feel`) into `dev`; `dev` and `origin/dev` are at `d04c66b`; the feature branch is gone from the remote | `d04c66b` |
 | 2026-11-13 | — | Post-merge bug report | Operator found that safe rooms can be entered while enemies are hunting: luring a mob or the Warden to the shop threshold leaves the player untouchable inside while still able to attack out. Recorded in `docs/about-the-project.md` §4.2 with an `in_combat` entry gate as the suggested fix; alternatives are acceptable; deferred, not fixed in this commit | this state commit |
+| 2026-11-14 | 0.9.0/001 | Complete → Docs discovery | Operator approved the MVP acceptance plan: close the safe-room exploit, write the MVP contract, and run end-to-end acceptance. Branch `feature/0.9.0-001-mvp-acceptance` created from `dev` | this docs commit |
+| 2026-11-14 | 0.9.0/001 | Docs discovery → Design decisions | Operator confirmed the seeded fixed six-room topology as the MVP's procedural floor and shop-only rewards as the loot decision. `GOAL.md` now holds the testable MVP contract (SC1–SC10); the three `0.9.0` task files and the product-overview updates are written; design next | this docs commit |
 
 ## Status vocabulary
 
