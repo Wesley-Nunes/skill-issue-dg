@@ -753,11 +753,14 @@ purchase flow, meta-progression, persistence, income scaling, and a general
 procedural generator remain deferred and are not part of `0.8.0`. A safe-room
 combat exploit found after the merge is recorded in §4.2 and deferred.
 
-**Status for `0.9.0` (MVP acceptance slice):** closes that safe-room exploit
-with the ward rule in §4.2, then runs the end-to-end MVP acceptance pass. The
-operator confirmed on 2026-11-14 that the seeded, fixed six-room topology
-counts as the MVP's procedural floor and that shop-only rewards satisfy
-validation item 5. The MVP acceptance criteria are recorded in `GOAL.md`.
+**Status for `0.9.0` (MVP acceptance slice, delivered):** closes that safe-room
+exploit with the ward rule in §4.2 and completes the end-to-end MVP acceptance
+pass. The operator confirmed on 2026-11-14 that the seeded, fixed six-room
+topology counts as the MVP's procedural floor and that shop-only rewards satisfy
+validation item 5. The acceptance criteria are recorded in `GOAL.md`; the QA
+report `qa/0.9.0/001-report.md` passes SC1–SC10 with a recorded full-loop run,
+and hosted CI passed on `9263f81`. The MVP is technically complete; operator
+confirmation, Vercel verification, and the `dev` → `main` release remain.
 Feature scope is otherwise frozen: no new enemy, room, economy, loot, boss,
 progression, persistence, art, or audio work is part of this slice.
 
@@ -938,7 +941,9 @@ the archetype roster, enemy count, or economy.
 The `0.9.0` slice finishes priority 9's first acceptance pass: it closes the
 safe-room combat exploit recorded in §4.2 and validates the MVP loop end to
 end against the criteria in `GOAL.md`. It adds no content and does not reopen
-the economy, generator, archetype, or progression questions.
+the economy, generator, archetype, or progression questions. QA passed on
+2026-11-14 with a recorded full-loop run; remaining work is release closure,
+not implementation.
 
 The order can change when implementation discoveries justify it. Keep
 the first playable slice small and testable.
