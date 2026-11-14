@@ -68,7 +68,6 @@ const CLOTH = ["cloth1.ogg", "cloth2.ogg", "cloth3.ogg", "cloth4.ogg"];
  */
 export const AUDIO_MANIFEST: readonly string[] = [
   "knifeSlice.ogg",
-  "knifeSlice2.ogg",
   "metalClick.ogg",
   "metalLatch.ogg",
   "monster_roar.ogg",
@@ -256,9 +255,9 @@ export class AudioManager {
           this.play("metalClick.ogg", { volume: 0.35 });
           break;
         case "attack-started":
-          this.play(event.step === 3 ? "knifeSlice2.ogg" : "knifeSlice.ogg", {
+          this.play("knifeSlice.ogg", {
             volume: 0.26,
-            rate: event.step === 3 ? 0.85 : 1,
+            rate: 1,
             pan: panFor(state.player.x),
           });
           break;
@@ -268,13 +267,6 @@ export class AudioManager {
             rate: randomBetween(0.95, 1.05),
             pan: panFor(event.x),
           });
-          if (event.finisher) {
-            this.play("impactSoft_heavy_000.ogg", {
-              volume: gainFor(event.x, 0.24),
-              rate: 0.9,
-              pan: panFor(event.x),
-            });
-          }
           break;
         case "player-hit":
           this.play(pick(SOFT), {

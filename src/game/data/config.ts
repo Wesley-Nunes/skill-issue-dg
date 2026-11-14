@@ -1,23 +1,31 @@
-import type { ComboStep } from "../types";
-
 export const TILE = 16;
 export const ZOOM = 3;
 
 /**
- * First dungeon slice: a four-room chain joined by two-tile-high corridors.
- * Room sizes and gaps vary by seed; the chain keeps every floor traversable
- * without a pathfinding or graph generator.
+ * The fixed six-room branch: start, three mob rooms, a shop dead end, and the
+ * boss arena. Room anchors and roles are fixed; sizes vary by one tile and
+ * decoration varies by seed. There is no graph generator or pathfinding.
  */
 export const FLOOR = {
   cols: 96,
   rows: 30,
-  roomCount: 4,
-  roomWidth: { min: 12, max: 17 },
-  roomHeight: { min: 10, max: 14 },
-  roomGap: { min: 4, max: 6 },
+  roomCount: 6,
+  roomVariation: 1,
   corridorRows: 2,
   corridorRow: 15,
+  shopCorridorRow: 5,
+  northCorridorColumn: 47,
   margin: 2,
+} as const;
+
+/** Skill-point economy and safe-room shop tuning. */
+export const ECONOMY = {
+  pointsPerMob: 1,
+  pointsPerWarden: 3,
+  draughtCost: 1,
+  draughtHeal: 2,
+  vigorCost: 3,
+  vigorMaxHpGain: 1,
 } as const;
 
 export const PLAYER = {
@@ -29,45 +37,35 @@ export const PLAYER = {
   hurtFlashWhite: 0.08,
 } as const;
 
-export const COMBO = {
-  steps: [
-    {
-      windup: 0.08,
-      active: 0.1,
-      recovery: 0.12,
-      reach: 34,
-      halfAngle: (55 * Math.PI) / 180,
-      damage: 2,
-    },
-    {
-      windup: 0.07,
-      active: 0.09,
-      recovery: 0.1,
-      reach: 36,
-      halfAngle: (55 * Math.PI) / 180,
-      damage: 2,
-    },
-    {
-      windup: 0.12,
-      active: 0.12,
-      recovery: 0.2,
-      reach: 40,
-      halfAngle: (80 * Math.PI) / 180,
-      damage: 4,
-    },
-  ] satisfies ComboStep[],
-  /**
-   * Short beat after a step's active window before the next input opens. It
-   * keeps the reply window away from the click rhythm of a mash.
-   */
-  windowDelay: 0.06,
-  /** How long the next step's input window stays open. */
-  window: 0.1,
-  /** How long the completed finisher stays on screen after it lands. */
-  finisherHold: 0.12,
-  hitstop: 0.06,
+/** One committed light swing. See design/0.8.0/design-decisions.md §2. */
+export const ATTACK = {
+  windup: 0.1,
+  active: 0.09,
+  recovery: 0.22,
+  reach: 36,
+  halfAngle: (60 * Math.PI) / 180,
+  damage: 2,
   knockback: 6,
-  stagger: 0.15,
+  hitstop: 0.05,
+} as const;
+
+/** Depth difficulty curve. Values are design-owned; see design/0.8.0 §5. */
+export const DEPTH = {
+  cap: 10,
+  hpBase: 0.8,
+  hpStep: 0.08,
+  hpMax: 1.52,
+  cadenceBase: 1.15,
+  cadenceStep: 0.03,
+  cadenceMin: 0.88,
+  /** Depth from which the melee mob hits for 2. */
+  meleeDamageDepth: 5,
+  /** Depth from which the projectile hits for 2. */
+  rangedDamageDepth: 6,
+  /** Depth from which the Warden's melee hits for 3. */
+  bossDamageDepth: 6,
+  /** Depth from which a bomb blast hits for 3. */
+  bombDamageDepth: 7,
 } as const;
 
 export const MELEE = {
@@ -107,8 +105,22 @@ export const BOSS = {
   damage: 2,
   bombCooldown: 2.6,
   bombWindup: 0.7,
-  /** Fraction of a finisher's stagger that actually affects the boss. */
-  staggerScale: 0.35,
+  /** Harmless emergence window after the explicit summon. */
+  emergence: 0.8,
+} as const;
+
+/** Presentation timing for the arena gate and the shop panel message. */
+export const GATE = {
+  openTime: 0.4,
+} as const;
+
+export const SHOP = {
+  /** How long a purchase message stays in the panel footer. */
+  messageTime: 2.5,
+  /** Minimum seconds between refused-entry messages while the player pushes. */
+  wardMessageCooldown: 2,
+  /** Interaction range around the altar and stall zones. */
+  altarPromptRange: 48,
 } as const;
 
 /** A thrown boss bomb: arc to the target, fuse, then a radial blast. */

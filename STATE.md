@@ -7,17 +7,19 @@ This file is the canonical workflow state for the repository. It is maintained b
 | Field | Value |
 |---|---|
 | Project | skill issue dg |
-| Goal | `0.6.0` boot loading screen, complete image/audio/font preload, and self-hosted display typography |
-| Current SemVer ID | `0.6.0` |
+| Goal | `0.9.0` MVP acceptance: close the safe-room combat exploit, lock the MVP contract, and complete end-to-end acceptance evidence |
+| Current SemVer ID | `0.9.0` (delivered; MVP acceptance passed, release closure in progress) |
+| Next target version | `—` — `0.9.0` is the MVP acceptance slice; no later version approved |
 | Current task ID | `001` |
-| Active phase | `QA passed` — branch pushed; pull request and merge pending |
+| Active phase | `Release ready → operator acceptance` |
 | Active agent | `orchestrator` |
-| Git branch | `feature/0.6.0-001-loading-screen` |
-| Last accepted commit | `3c2f62d` (merged `0.5.0` on `dev`) |
-| Pushed HEAD | Branch pushed; QA commit `e57c7eb` verified on `origin/feature/0.6.0-001-loading-screen`, followed by this state commit |
-| Pull request | Not created; `gh`/`hub` unavailable; PR target is `dev` |
-| Blocking questions remaining | `0` |
-| Overall status | `QA passed locally` — boot loading screen, full image/audio/font preload, and Grenze Gotisch integration delivered at `a627259` (log `0094c17`); QA report at `e57c7eb`; clean `npm ci`, typecheck, 157 unit tests, build, and 27 Chrome e2e tests pass in two consecutive runs; hosted CI and merge pending |
+| Git branch | `feature/0.9.0-001-mvp-acceptance-closure` (QA report and closure, from `dev`; pushed to origin) |
+| Last accepted commit | `9263f81` (PR #14 merge of `feature/0.9.0-001-mvp-acceptance`) |
+| Pushed HEAD | `origin/dev` at `9263f81`; closure branch pushed as `origin/feature/0.9.0-001-mvp-acceptance-closure` |
+| Pull request | #14 merged (`0.9.0` implementation); closure branch PR pending — `gh`/`hub` and a GitHub token are unavailable, so the operator opens it |
+| Known issue | The safe-room combat exploit is fixed; independent QA passed with no blocking finding. No known blocking defect |
+| Blocking questions remaining | `0` — both MVP interpretation questions were answered on 2026-11-14 |
+| Overall status | `0.9.0` is implemented, merged, and verified: QA report `qa/0.9.0/001-report.md` passes SC1–SC10, including a recorded full-loop run; typecheck, 198 unit tests, build, bundle scan, and 33/33 Chrome e2e pass in two consecutive runs. Hosted CI passed on `9263f81`. Remaining: closure commits/PR, operator confirmation, Vercel verification, and the `dev` → `main` production release. |
 
 Update this snapshot whenever a value changes. Do not leave stale status after a handoff.
 
@@ -39,17 +41,152 @@ The state manager must not invent decisions, change product scope, edit game cod
 
 Populate these links when the version and task have been approved:
 
-- Product overview: `docs/about-the-project.md`
-- Task package: `docs/tasks/0.6.0/001-design.md`,
-  `001-programmer.md`, `001-qa.md`
-- Design decisions: `design/0.6.0/design-decisions.md`
-- Implementation decision log: `programmer/0.6.0/CoT.md` (`0094c17`)
-- QA report: `qa/0.6.0/001-report.md` (`e57c7eb`, verdict Passed)
+### `0.9.0` / `001` (delivered; QA passed)
+
+- Product overview: `docs/about-the-project.md` (§4.2 records the approved ward
+  rule; §9, §10, and §11 record the MVP acceptance slice)
+- MVP contract: [GOAL.md](GOAL.md) (locked 2026-11-14; §4 success criteria
+  SC1–SC10, accepted limitations, quality bar)
+- Task package: `docs/tasks/0.9.0/001-design.md`,
+  `001-programmer.md`, `001-qa.md` (written by the orchestrator; no dedicated
+  docs subagent is available)
+- Design decisions: [design/0.9.0/design-decisions.md](design/0.9.0/design-decisions.md)
+  (complete; predicate, one-way entry, conditional protection, interaction rule,
+  feedback, edge cases, verification hooks)
+- Implementation decision log: [programmer/0.9.0/CoT.md](programmer/0.9.0/CoT.md)
+  (complete at `09f6e45`; predicate, one-way movement rule, conditional damage,
+  interaction rule, feedback, verification, assumptions)
+- QA report: [qa/0.9.0/001-report.md](qa/0.9.0/001-report.md) (`Passed`,
+  2026-11-14; verdict, SC1–SC10 evidence, findings, captures, and recorded run)
+- Closure branch: `feature/0.9.0-001-mvp-acceptance-closure` (pushed; QA report
+  and state/docs reconciliation; PR pending operator)
+- Docs handoff: the task package defines the seal predicate, the entry and exit
+  behavior, the protection and interaction rules, the threshold feedback, the
+  README/version hygiene, and the independent MVP acceptance run. The operator
+  confirmed on 2026-11-14 that the seeded fixed six-room topology is the MVP's
+  procedural floor and that shop-only rewards satisfy the loot decision.
 - Deployment: Vercel — `dev` is staging, `main` is production; the operator
   connects the repository in Vercel.
-- Prior release: `0.5.0` is merged into `dev` via PR #5 (`3c2f62d`).
 
-### Version 0.6.0 scope (operator-approved 2026-11-08)
+### Prior version links
+
+- `0.8.0`: task package `docs/tasks/0.8.0/001-*`, design
+  [design/0.8.0/design-decisions.md](design/0.8.0/design-decisions.md),
+  implementation [programmer/0.8.0/CoT.md](programmer/0.8.0/CoT.md), QA
+  [qa/0.8.0/001-report.md](qa/0.8.0/001-report.md) — merged via PR #13.
+- `0.7.0` is merged into `dev` via PR #11 (`da17b57`); implementation
+  `17510eb`, QA `Passed after fixes` (`020c178`).
+- Also merged into `dev`: `0.6.0` via PR #9 (`60318be`), `0.5.0` via PR #5
+  (`3c2f62d`).
+
+### Version 0.9.0 scope (operator-approved 2026-11-14, delivered)
+
+- **Deliverable:** close the recorded safe-room combat exploit and complete the
+  end-to-end MVP acceptance pass, with no new content.
+- **Why:** the exploit makes the shop a damage-free firing position against
+  mobs and the Warden, so combat and boss validation cannot be trusted. The MVP
+  already has every feature in its own scope list; what remained was definition,
+  integrity, and evidence.
+- **Operator decisions (2026-11-14):**
+  - fix the exploit now, before any further balance or content pass;
+  - the seeded fixed six-room topology counts as the MVP's "procedurally
+    generated floor"; no general generator is required;
+  - shop-only rewards satisfy the MVP's "loot and safe room provide useful
+    decisions"; no drop source is required.
+- **MVP contract:** locked in `GOAL.md` with success criteria SC1–SC10,
+  explicit exclusions, accepted limitations, and the quality bar. MVP completion
+  now requires evidence for every criterion, not another feature.
+- **Included:** the ward predicate; entry refusal by walking and dodging;
+  always-allowed exit; the design's protection and shop-interaction rules while
+  sealed; threshold state and refusal feedback; unit and Cypress coverage;
+  a debug snapshot field and the minimum test-only hook; README accuracy;
+  `package.json`/lockfile version `0.9.0`; an independent QA acceptance run.
+- **Excluded:** general floor generator, randomized or extra safe rooms, drops,
+  loot tables, artifacts, post-death purchases, meta-progression, persistence,
+  new archetypes, boss phases/variety, skill tree, secondary/heavy attack,
+  challenge/combo system, income/price scaling, tutorial overlays, remapping,
+  settings, mobile, localisation, new art, and new audio.
+- **Known consequence:** the safe zone stops being absolute; while an enemy
+  hunts, the player cannot enter and does not ignore damage inside. The shop
+  panel cannot be opened in combat. The `0.8.0` exploit test's title and
+  expectations must be updated rather than deleted.
+- **Release checks:** hosted CI and the Vercel deployment remain operator-owned
+  and are recorded as pending until confirmed on the host.
+
+### Version 0.8.0 scope (delivered, merged via PR #13)
+
+- **Deliverable:** replace the three-hit light chain with a single, clearly
+  defined light attack, and add a depth-scaled difficulty curve whose first
+  step makes floor 1 the teaching floor. No new systems, assets, or currencies.
+- **Why:** two design passes over the chain's timing windows did not make it
+  feel good, and it is the only verb that breaks spirit fragments. The
+  recorded known issue (2026-11-11) is resolved by removal rather than another
+  tuning pass. The fixed six-room branch currently plays identically at every
+  depth, so the endless descent has no stakes.
+- **Operator decisions (2026-11-13):**
+  - remove the three-hit light chain entirely;
+  - difficulty scales enemy and boss **numbers only**, plus one composition
+    rule: depth 1 spawns melee enemies only;
+  - the enemy archetype roster, enemy count, and the fixed six-room branch do
+    not change;
+  - the combo-challenge system discussed on 2026-11-13 (per-floor challenge
+    card, challenge progression, combo rewards) is **deferred to a future
+    version**, not deleted from the product direction.
+- **Included:** removal of chain state, systems, rendering, feedback, and
+  tests; a single-attack definition owning windup/active/recovery/reach/arc/
+  damage; a pure depth-scaling function applied to mobs and the Warden;
+  depth-1 teaching values; a balance baseline for the first few depths; unit
+  and Cypress coverage for the revised rules.
+- **Resolved discovery items (2026-11-13):**
+  - the single attack keeps **knockback only**: no stagger, no enemy interruption,
+    and the Warden is never interruptible;
+  - the economy stays flat (1 point per rested mob, 3 for the Warden, draught 1,
+    Vigor 3); shop relevance at depth is recorded as a future balance question;
+  - the curve is tested to a cap of depth 10; depth 11 and beyond reuse the
+    depth-10 row.
+- **Excluded:** the challenge system, buff/status effects, new enemy
+  archetypes, artifacts or drops, randomized safe rooms, a general floor
+  generator, post-death purchases, meta-progression, persistence, tutorial
+  prompts or overlays, new art, and new audio.
+- **Known consequence:** a net deletion across `src/`, and
+  `cypress/support/commands.ts` retry heuristics keyed on `comboStep`/
+  `comboResolved` must be reworked rather than deleted; the product overview
+  §3.2 and §10 must record the chain's removal and the deferred challenge.
+- **Delivered:** implementation `ae1b1fe`, QA report `3a76446`, merged via
+  PR #13 as `d04c66b`. See `programmer/0.8.0/CoT.md` and
+  `qa/0.8.0/001-report.md`. A post-merge safe-room combat exploit is recorded
+  in `docs/about-the-project.md` §4.2 and is not part of this version's scope.
+
+### Version 0.7.0 scope (operator-approved 2026-11-09) — delivered, merged via PR #11
+
+- **Deliverable:** close the MVP reward loop with a skill-point economy, a
+  branching floor that contains one safe-room shop, and a player-controlled
+  Warden summon. No meta-progression or persistence.
+- **Included:** skill points as the only run currency, earned by putting mobs
+  to rest; a fixed branch layout (start → first mob → left: second mob →
+  shop dead end / right: third mob → locked boss arena); a safe-room shop;
+  healing draught (2 HP for 1 point, one carried slot); Vigor (+1 max HP for
+  the run for 3 points, one-time purchase per run); explicit Warden summon
+  after all mobs are at rest; spirit remains the readiness meter; HUD skill
+  points and carried-draught state; unit and Cypress coverage; version bump
+  to `0.7.0`.
+- **Operator decisions:** skill points are the only currency; no separate
+  combo resource; the shop is a dead end off the left branch; the player may
+  shop before summoning; the shop closes once the Warden is summoned; the
+  healing draught occupies one carried slot; rewards are shop-only.
+- **Defaults recorded as assumptions:** 1 skill point per rested mob and 3
+  for the Warden; `Q` uses the draught; skill points, Vigor, and the carried
+  draught persist across floors and reset on death/restart; the Warden is
+  summoned through an explicit interaction in the unlocked boss arena.
+- **Excluded:** separate gold currency, skill tree, artifacts, random drops,
+  chests, inventory grid, shop refresh, post-death purchases,
+  meta-progression, difficulty scaling, persistence, new enemies, and new art
+  unless design proves it necessary.
+- **Known consequence:** the floor generator changes from a linear four-room
+  chain to a fixed six-room branch, and the automatic full-spirit Warden
+  summon is replaced by an explicit player action.
+
+### Version 0.6.0 scope (operator-approved 2026-11-08) — delivered, merged via PR #9
 
 - **Deliverable:** a game-styled boot loading screen that reports real
   progress while all boot images, audio, and the display font are prepared,
@@ -188,6 +325,31 @@ Append one entry for each meaningful phase transition:
 | 2026-11-08 | 0.6.0/001 | Docs/design approved → Implementation | Static boot overlay, monotonic image/audio/font progress, offline audio decode of all 41 cues, delayed input attach, self-hosted Grenze Gotisch, boot error state, and Cypress coverage delivered; 157 unit + 25 Chrome e2e tests, typecheck/build pass; QA pending | `a627259`, `0094c17` |
 | 2026-11-09 | 0.6.0/001 | QA verification → QA pass | Clean `npm ci`; typecheck/unit/build pass; 27/27 Chrome e2e in two consecutive runs; audio-404 and missing-`AudioContext` degradation tests promoted into the permanent spec; restart boot assertion added; bundle has no debug hooks or external runtime font requests; boot/title/pause/boss/death visuals inspected; verdict Passed with 0 blocking findings | `e57c7eb` |
 | 2026-11-09 | 0.6.0/001 | QA pass → Pushed, PR pending | Branch pushed; `origin/feature/0.6.0-001-loading-screen` matches `e57c7eb`; PR creation blocked because `gh`/`hub` are unavailable, so the operator opens the PR against `dev`; hosted CI and Vercel remain pending | `e57c7eb`, plus this state commit |
+| 2026-11-09 | 0.6.0/001 | PR pending → Merged | PR #9 merged into `dev`; `dev` and `origin/dev` are at `60318be` | `60318be` |
+| 2026-11-09 | 0.7.0/001 | Complete → Docs discovery | Operator approved the reward-loop scope after six discovery decisions; branch created; task package next | this state commit |
+| 2026-11-09 | 0.7.0/001 | Docs discovery → Design decisions | Reward-loop task package written; product overview updated for the fixed six-room branch, safe-room shop, explicit Warden summon, skill-point economy, MVP status, open questions, and priority 6; design owns layout, shop, summon, HUD, feedback, and accessibility decisions | this docs commit |
+| 2026-11-10 | 0.7.0/001 | Design decisions → Implementation | Design contract covers the fixed six-room branch and junction hub, canvas shop modal with every purchase state, explicit altar summon, HUD skill-point/draught/heart-row treatment, feedback, controls, accessibility, and no new art/audio; programmer next | this design commit |
+| 2026-11-10 | 0.7.0/001 | Implementation → QA verification | Skill points, fixed six-room branch, safe-room shop, draught, one-time Vigor, arena gate, explicit Warden summon, HUD/feedback, and the safe-room rule delivered; 189 unit + 32 Chrome e2e tests pass, typecheck/build pass, production bundle has no debug hooks; QA verification next | `17510eb` |
+| 2026-11-11 | 0.7.0/001 | QA verification → QA pass | Clean `npm ci`; typecheck, 190 unit tests, build, and 32/32 Chrome e2e (5 specs, 3 m 05 s) pass; 30 exact-size canvas captures plus a title capture inspected; F1 (old-floor effects reappearing after descent) reproduced and fixed in `6e377d3` with a regression test; verdict `Passed after fix`; QA was run by the orchestrator because the QA subagent was unavailable; hosted CI and Vercel pending | `3a91f26` (fix `6e377d3`) |
+| 2026-11-11 | 0.7.0/001 | QA pass → Ready for push and PR | Orchestrator reviewed the 37-file diff (approved scope, no asset/dependency/meta-progression changes), re-ran typecheck/unit/build/e2e, and accepted the version; branch is local at `496e007` plus this state commit; `gh`/`hub` are unavailable, so the operator pushes and opens the PR against `dev`; hosted CI and Vercel remain pending | this state commit |
+| 2026-11-11 | 0.7.0/001 | Post-QA operator fixes → Ready for push and PR | Operator playtest found the junction `SHOP`/`WARDEN` labels overlapping and the chevrons pointing the wrong way; the waystone was removed entirely (`99787aa`) and the combo rework was recorded as a known issue in the product overview (`b74da29`); QA amended and re-verified with fresh 1024 × 640 and 1440 × 810 captures (`020c178`); typecheck, 190 unit tests, build, and 32/32 Chrome e2e pass; verdict `Passed after fixes`; branch ahead of `origin` at `f8b0a51`; hosted CI and Vercel remain pending | `99787aa`, `b74da29`, `020c178`, plus this state commit |
+| 2026-11-13 | 0.7.0/001 | Ready for PR → Merged | PR #11 merged `feature/0.7.0-001-reward-loop` into `dev`; `dev` and `origin/dev` are at `da17b57` | `da17b57` |
+| 2026-11-13 | 0.8.0/001 | Complete → Docs discovery | Operator approved the `0.8.0` combat-feel direction (combo rework and its liberation role, plus a first balance baseline) after reviewing next-feature options; branch `feature/0.8.0-001-combat-feel` created from `dev`; detailed scope, blocking questions, and the task package belong to the docs stage | `ef205ab` |
+| 2026-11-13 | 0.8.0/001 | Scope re-baseline | Operator revised the direction: remove the three-hit light chain instead of retuning it, scale enemy/boss numbers by depth with a melee-only depth 1, keep the fixed branch and archetype roster, and defer the combo-challenge system to a future version; two blocking questions remain | `e0271a4` |
+| 2026-11-13 | 0.8.0/001 | Docs discovery → Design decisions | Operator answered the remaining questions: the single attack keeps knockback only (no stagger, boss uninterruptible) and the economy stays flat. Task package written by the orchestrator (no docs subagent available); product overview and `GOAL.md` updated; handoff accepted | `2a763d2` |
+| 2026-11-13 | 0.8.0/001 | Design decisions → Implementation | Operator approved the committed-swing contract, the integer rounding rule, and the depth 1–10 curve (HP +8% of base per depth, cadence −3% per depth, damage thresholds at depths 5–7, cap at 10); design contract written by the orchestrator and accepted; deferred heavy-attack and challenge directions recorded | `6bf19de` |
+| 2026-11-13 | 0.8.0/001 | Implementation → QA verification | Three-hit chain removed (systems, state, config, events, rendering, effects, audio cue, `BOSS.staggerScale`, tests); one committed 0.41 s swing with 36 px/120° reach, 2 damage, 6 px knockback, 0.05 s hitstop; pure depth curve applied on creation and descent; depth 1 melee-only; Cypress helpers rekeyed to `attacking`; `depth.test.ts` added; 187 unit tests; typecheck/build pass; three Chrome e2e passes at 32/32 | `ae1b1fe` |
+| 2026-11-13 | 0.8.0/001 | QA verification → QA pass | Clean `npm ci`; typecheck, 187 unit tests in 17 files, build, and 32/32 Chrome e2e in three consecutive runs (2 m 53 s–2 m 55 s); curve independently recomputed at depths 1, 2, 5, 6, 10 and matched, cap verified; five canvas captures inspected; two low findings closed during implementation; one evidence-size limitation and four non-blocking observations recorded; verdict `Passed`; orchestrator-performed QA caveat recorded | this QA commit |
+| 2026-11-13 | 0.8.0/001 | QA pass → Ready for push and PR | Orchestrator reviewed the 31-file implementation diff (approved scope, no asset or dependency changes, no challenge/tutorial leftovers, production bundle free of debug hooks), accepted the version, and prepared the PR draft against `dev`; `gh`/`hub` are unavailable, so the operator pushes the branch and opens the PR; hosted CI and Vercel remain pending | this QA commit |
+| 2026-11-13 | 0.8.0/001 | Ready for PR → Merged | Operator pushed and merged PR #13 (`feature/0.8.0-001-combat-feel`) into `dev`; `dev` and `origin/dev` are at `d04c66b`; the feature branch is gone from the remote | `d04c66b` |
+| 2026-11-13 | — | Post-merge bug report | Operator found that safe rooms can be entered while enemies are hunting: luring a mob or the Warden to the shop threshold leaves the player untouchable inside while still able to attack out. Recorded in `docs/about-the-project.md` §4.2 with an `in_combat` entry gate as the suggested fix; alternatives are acceptable; deferred, not fixed in this commit | this state commit |
+| 2026-11-14 | 0.9.0/001 | Complete → Docs discovery | Operator approved the MVP acceptance plan: close the safe-room exploit, write the MVP contract, and run end-to-end acceptance. Branch `feature/0.9.0-001-mvp-acceptance` created from `dev` | this docs commit |
+| 2026-11-14 | 0.9.0/001 | Docs discovery → Design decisions | Operator confirmed the seeded fixed six-room topology as the MVP's procedural floor and shop-only rewards as the loot decision. `GOAL.md` now holds the testable MVP contract (SC1–SC10); the three `0.9.0` task files and the product-overview updates are written; design next | this docs commit |
+| 2026-11-14 | 0.9.0/001 | Design decisions → Implementation | Design contract approved: `isInCombat` = living enemy with aggro; one-way entry refusal by walking and dodging; damage applies inside while sealed; shop cannot open while sealed; cyan/ember threshold states, `WARD SEALED`, and `The ward holds — enemies are hunting.` throttled to 2 s. No new system, asset, or HUD element | this design commit |
+| 2026-11-14 | 0.9.0/001 | Implementation → QA verification | Pure `isInCombat`/`WARD_MESSAGE` module; one-way movement guard for walk and dodge; conditional safe-zone damage; shop refusal with the ward copy; ember threshold and `WARD SEALED`; `inCombat` snapshot field and `setEnemyAggro` test hook; 198 unit tests, typecheck/build pass, production bundle has no debug hook, and 33/33 Chrome e2e pass across 6 specs in 2 m 58 s; README and version `0.9.0` updated | `09f6e45` |
+| 2026-11-13 | 0.9.0/001 | Implementation → Merged (QA gate skipped) | Operator merged PR #14 into `dev` at `9263f81`; hosted CI run #18 and run #17 passed. The merge preceded the QA report, so the required QA gate did not run first; recorded as QA finding F1 | `9263f81` |
+| 2026-11-14 | 0.9.0/001 | QA verification → QA pass | Retrospective independent verification on `9263f81`: clean `npm ci`; typecheck, 198 unit tests, build, no production debug hook; 33/33 Chrome e2e twice (3 m 02 s each); open/sealed/refusal/reduced-motion captures inspected; recorded full-loop run 5/5 in 1 m 05 s; SC1–SC10 all evidenced; verdict `Passed`; F1 process finding, F2 Warden-lure and F3 capture-size limitations | `91a11b4` |
+| 2026-11-14 | 0.9.0/001 | QA pass → Release ready | Orchestrator reviewed the QA report, reconciled task statuses, and marked the MVP technically complete; `main` is still at `c7b1e17`, Vercel deployment is unverified, and operator confirmation is still required | `24a867b`, plus this state commit |
 
 ## Status vocabulary
 

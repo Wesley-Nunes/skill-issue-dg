@@ -60,7 +60,7 @@ describe("0.5.0 portfolio release", () => {
 
       const boss = snapshot.enemies.find((enemy) => enemy.kind === "boss");
       expect(boss, "Floor Warden").to.exist;
-      expect(boss!.hp).to.equal(30);
+      expect(boss!.hp).to.equal(24);
       expect(boss!.x).to.equal(snapshot.floor.bossSpawn.x);
       expect(boss!.y).to.equal(snapshot.floor.bossSpawn.y);
     });

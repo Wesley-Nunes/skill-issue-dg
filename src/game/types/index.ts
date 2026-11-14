@@ -5,14 +5,6 @@ export interface Vec2 {
 
 export type GameStatus = "title" | "playing" | "paused" | "dead";
 
-/** Why a combo chain stopped being available. */
-export type ComboEndReason =
-  | "mistime"
-  | "whiff"
-  | "timeout"
-  | "damage"
-  | "complete";
-
 export type EnemyStatus = "alive" | "dying" | "dead";
 
 export type EnemyKind = "melee" | "ranged" | "boss";
@@ -31,6 +23,24 @@ export interface EnemySpawn {
   y: number;
 }
 
+export type RoomRole = "start" | "mob" | "shop" | "arena";
+
+export interface FloorRoom extends Rect {
+  role: RoomRole;
+}
+
+/** The fixed safe-room shop anchors for one floor. */
+export interface ShopFloor {
+  room: Rect;
+  stall: Rect;
+  /** Interaction zone in front of the counter. */
+  interaction: Rect;
+  /** Area where enemies cannot enter or damage the player. */
+  safe: Rect;
+  /** Safe threshold band across the entrance. */
+  threshold: Rect;
+}
+
 export interface Floor {
   seed: number;
   depth: number;
@@ -40,28 +50,25 @@ export interface Floor {
   height: number;
   /** Row-major walkable tile map. */
   walkable: boolean[];
-  /** Generated rooms in world pixels. */
-  rooms: Rect[];
+  /** The six fixed-role rooms in world pixels. */
+  rooms: FloorRoom[];
+  /** The junction hub between the two branches. */
+  junction: Rect;
   spawn: Vec2;
   stairs: Rect;
   /** Where the Floor Warden appears once the floor is purified. */
   bossSpawn: Vec2;
   enemySpawns: EnemySpawn[];
+  /** Arena gate; blocks the arena until the floor is purified. */
+  gate: Rect;
+  /** Altar sigil where the player explicitly summons the Warden. */
+  altar: Rect;
+  shop: ShopFloor;
 }
 
 export interface Viewport {
   width: number;
   height: number;
-}
-
-/** One step of the three-hit light combo. */
-export interface ComboStep {
-  windup: number;
-  active: number;
-  recovery: number;
-  reach: number;
-  halfAngle: number;
-  damage: number;
 }
 
 export interface Player {
@@ -77,14 +84,12 @@ export interface Player {
   dodgeTime: number;
   dodgeCooldown: number;
   dodgeDir: Vec2;
-  /** 0 = idle, 1..3 = current chain step. */
-  comboStep: 0 | 1 | 2 | 3;
-  /** Seconds elapsed in the current step. */
-  comboTime: number;
-  /** Steps of the current chain that have connected, 0..3. */
-  comboHits: number;
-  comboResolved: boolean;
-  comboHitThisStep: boolean;
+  /** True while a single light swing is in progress. */
+  attacking: boolean;
+  /** Seconds elapsed in the current swing. */
+  attackTime: number;
+  /** True once the current swing has applied its damage. */
+  attackResolved: boolean;
   moving: boolean;
 }
 
@@ -102,6 +107,7 @@ export interface Enemy {
   status: EnemyStatus;
   fade: number;
   hurtFlash: number;
+  /** Internal freeze timer; no player action applies it. */
   stagger: number;
   aggro: boolean;
   windup: number;
@@ -117,8 +123,18 @@ export interface Enemy {
   respawn: number;
   /** Boss only: the windup currently in progress. */
   attackKind: "melee" | "bomb" | null;
+  /** Damage this enemy deals with its own attack. */
+  damage: number;
+  /** Seconds between this enemy's attacks, after depth scaling. */
+  attackInterval: number;
+  /** Boss only: damage of a bomb blast, after depth scaling. */
+  bombDamage: number;
+  /** Boss only: seconds between bombs, after depth scaling. */
+  bombInterval: number;
   /** Boss only: seconds until the next bomb throw. */
   bombCooldown: number;
+  /** Boss only: seconds left in the harmless summon emergence. */
+  emerging: number;
 }
 
 export interface Projectile {
@@ -129,6 +145,8 @@ export interface Projectile {
   vy: number;
   radius: number;
   life: number;
+  /** Damage on hit, after depth scaling. */
+  damage: number;
 }
 
 /** A thrown boss bomb: it arcs to a landing point, fuses, then explodes. */
@@ -146,6 +164,8 @@ export interface Bomb {
   /** Seconds left on the fuse once landed. */
   fuse: number;
   radius: number;
+  /** Blast damage, after depth scaling. */
+  damage: number;
 }
 
 export interface RunState {
@@ -159,12 +179,34 @@ export interface RunState {
   bossAwake: boolean;
   /** True when the Warden is defeated and the stairs may be used. */
   exitOpen: boolean;
+  /** Presentation clock start for the gate-opening animation. */
+  gateOpenedAt: number | null;
+  /** True once the shop is closed for this floor (after summoning). */
+  shopClosed: boolean;
+  /** Run-scoped skill points. */
+  skillPoints: number;
+  /** Run-scoped carried healing draught. */
+  draughtCarried: boolean;
+  /** Run-scoped one-time Vigor purchase. */
+  vigorPurchased: boolean;
+}
+
+export type ShopItemId = "draught" | "vigor";
+
+export type ShopMessageTone = "success" | "blocked";
+
+/** Runtime state for the canvas shop panel. */
+export interface ShopState {
+  open: boolean;
+  selection: number;
+  message: string | null;
+  tone: ShopMessageTone;
+  messageAt: number;
 }
 
 export type GameEvent =
-  | { type: "attack-started"; angle: number; step: number }
-  | { type: "combo-ended"; reason: ComboEndReason; x: number; y: number }
-  | { type: "enemy-hit"; x: number; y: number; finisher: boolean }
+  | { type: "attack-started"; angle: number }
+  | { type: "enemy-hit"; x: number; y: number }
   | { type: "enemy-died"; x: number; y: number }
   | { type: "player-hit"; x: number; y: number }
   | { type: "player-died" }
@@ -191,6 +233,33 @@ export type GameEvent =
   | { type: "bomb-landed"; x: number; y: number }
   | { type: "bomb-exploded"; x: number; y: number; radius: number }
   | { type: "player-healed"; x: number; y: number; amount: number }
+  | {
+      type: "skill-points-earned";
+      amount: number;
+      total: number;
+      x?: number;
+      y?: number;
+    }
+  | { type: "shop-opened" }
+  | { type: "shop-closed" }
+  | {
+      type: "shop-purchase";
+      item: ShopItemId;
+      success: boolean;
+      message: string;
+    }
+  | { type: "draught-used"; x: number; y: number; healed: number }
+  | {
+      type: "draught-blocked";
+      x: number;
+      y: number;
+      reason: "empty" | "full";
+      message: string;
+    }
+  | { type: "summon-blocked"; x: number; y: number; message: string }
+  | { type: "shop-unavailable"; x: number; y: number; message: string }
+  | { type: "safe-room-blocked"; x: number; y: number; message: string }
+  | { type: "vigor-purchased"; x: number; y: number; maxHp: number }
   | { type: "floor-descended"; depth: number; seed: number }
   | { type: "run-started" }
   | { type: "run-paused" }
@@ -211,6 +280,7 @@ export interface GameState {
   pointer: Vec2;
   floor: Floor;
   run: RunState;
+  shop: ShopState;
 }
 
 /** Read-only view of the run used by development tooling and browser tests. */
@@ -227,11 +297,9 @@ export interface DebugSnapshot {
     aimY: number;
     dodging: boolean;
     invulnerable: number;
-    comboStep: number;
-    comboHits: number;
-    comboResolved: boolean;
-    comboHitThisStep: boolean;
-    comboWindowOpen: boolean;
+    attacking: boolean;
+    attackTime: number;
+    attackResolved: boolean;
   };
   enemies: Array<{
     id: string;
@@ -246,6 +314,7 @@ export interface DebugSnapshot {
     respawn: number;
     attackKind: "melee" | "bomb" | null;
     bombCooldown: number;
+    emerging: number;
   }>;
   projectiles: Array<{ x: number; y: number }>;
   bombs: Array<{
@@ -262,6 +331,25 @@ export interface DebugSnapshot {
   bossAwake: boolean;
   exitOpen: boolean;
   depth: number;
+  gateOpen: boolean;
+  /** True while a living enemy is hunting the player; seals the shop ward. */
+  inCombat: boolean;
+  summonAvailable: boolean;
+  skillPoints: number;
+  draughtCarried: boolean;
+  vigorPurchased: boolean;
+  shopOpen: boolean;
+  shopClosed: boolean;
+  shopSelection: number;
+  shopMessage: string | null;
+  shopTone: ShopMessageTone;
+  shopRows: Array<{
+    id: ShopItemId;
+    cost: number;
+    affordable: boolean;
+    state: string;
+    stateLabel: string;
+  }>;
   floor: {
     seed: number;
     depth: number;
@@ -269,10 +357,16 @@ export interface DebugSnapshot {
     rows: number;
     width: number;
     height: number;
+    /** Row-major walkable tile map, exposed for test navigation only. */
+    walkable: boolean[];
     spawn: Vec2;
     stairs: Rect;
     bossSpawn: Vec2;
-    rooms: Rect[];
+    rooms: FloorRoom[];
+    junction: Rect;
+    gate: Rect;
+    altar: Rect;
+    shop: ShopFloor;
   };
   camera: Vec2;
   pointer: Vec2;
@@ -293,6 +387,15 @@ export interface InputFrame {
   pause: boolean;
   /** True on the frame M is pressed. */
   mute: boolean;
+  /** True on the frame E is pressed. */
+  interact: boolean;
+  /** True on the frame Q is pressed. */
+  useDraught: boolean;
+  /** One-press shop navigation. */
+  menuUp: boolean;
+  menuDown: boolean;
+  /** True on the frame Enter is pressed. */
+  confirm: boolean;
   /** True on any user gesture; used to unlock audio once. */
   gesture: boolean;
   pointer: Vec2;

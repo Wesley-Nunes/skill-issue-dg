@@ -16,7 +16,12 @@ function lerp(from: number, to: number, t: number): number {
  * bomb arcs to that point, then burns its fuse. It flies over walls, so the
  * landing point is the only positional rule the player must read.
  */
-export function spawnBomb(id: number, origin: Vec2, target: Vec2): Bomb {
+export function spawnBomb(
+  id: number,
+  origin: Vec2,
+  target: Vec2,
+  damage: number,
+): Bomb {
   return {
     id,
     x: origin.x,
@@ -29,6 +34,7 @@ export function spawnBomb(id: number, origin: Vec2, target: Vec2): Bomb {
     landed: false,
     fuse: BOMB.fuse,
     radius: BOMB.radius,
+    damage,
   };
 }
 

@@ -1,5 +1,5 @@
 import { ENEMY_FADE, IMPACT, PLAYER } from "../data/config";
-import type { Enemy, Floor, Player, Vec2 } from "../types";
+import type { Enemy, Floor, Player, Rect, Vec2 } from "../types";
 import { moveCircle } from "./collision";
 
 export interface EnemyDamageResult {
@@ -45,6 +45,7 @@ export function knockbackEnemy(
   direction: Vec2,
   distance: number,
   floor: Floor,
+  blocked: readonly Rect[] = [],
 ): Enemy {
   // The Floor Warden is too heavy to push around.
   if (enemy.status !== "alive" || enemy.kind === "boss") return enemy;
@@ -55,6 +56,7 @@ export function knockbackEnemy(
     direction.x * distance,
     direction.y * distance,
     enemy.radius,
+    blocked,
   );
   return { ...enemy, x: position.x, y: position.y };
 }

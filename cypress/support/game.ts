@@ -1,4 +1,4 @@
-import type { DebugSnapshot } from "../../src/game/types";
+import type { DebugSnapshot, Vec2 } from "../../src/game/types";
 
 /** Options shared by the movement commands. */
 export interface WalkOptions {
@@ -68,6 +68,103 @@ export function fragmentPoint(enemy: DebugSnapshot["enemies"][number]) {
     x: enemy.x + Math.cos(angle) * 12,
     y: enemy.y - 10 + Math.sin(angle) * 12,
   };
+}
+
+/**
+ * Plans a tile-centre route from the player to a world-space target.
+ *
+ * The floor is a fixed branch rather than an open field, so walking straight
+ * at a room across a wall stalls the player. The route is a test-only BFS over
+ * the snapshot's walkable tiles; the game itself has no pathfinding.
+ */
+export function planRoute(
+  snapshot: DebugSnapshot,
+  target: Vec2,
+  stop = 8,
+): Vec2[] {
+  const cols = snapshot.floor.cols;
+  const rows = snapshot.floor.rows;
+  const tile = snapshot.floor.width / cols;
+  const startColumn = clamp(Math.floor(snapshot.player.x / tile), 0, cols - 1);
+  const startRow = clamp(Math.floor(snapshot.player.y / tile), 0, rows - 1);
+  const goalColumn = clamp(Math.floor(target.x / tile), 0, cols - 1);
+  const goalRow = clamp(Math.floor(target.y / tile), 0, rows - 1);
+  const index = (column: number, row: number): number => row * cols + column;
+  const walkable = snapshot.floor.walkable;
+  const start = index(startColumn, startRow);
+
+  if (walkable[start] !== true) return [];
+
+  const parent = new Int32Array(cols * rows).fill(-1);
+  parent[start] = start;
+  const queue = [start];
+  let best = start;
+  let bestDistance = Math.hypot(
+    startColumn - goalColumn,
+    startRow - goalRow,
+  );
+
+  for (let head = 0; head < queue.length; head += 1) {
+    const current = queue[head]!;
+    const column = current % cols;
+    const row = Math.floor(current / cols);
+    const distance = Math.hypot(column - goalColumn, row - goalRow);
+    if (distance < bestDistance) {
+      bestDistance = distance;
+      best = current;
+    }
+    if (current === index(goalColumn, goalRow)) {
+      best = current;
+      break;
+    }
+
+    const neighbours: number[] = [];
+    if (column + 1 < cols) neighbours.push(index(column + 1, row));
+    if (column > 0) neighbours.push(index(column - 1, row));
+    if (row + 1 < rows) neighbours.push(index(column, row + 1));
+    if (row > 0) neighbours.push(index(column, row - 1));
+    for (const neighbour of neighbours) {
+      if (walkable[neighbour] !== true || parent[neighbour] !== -1) continue;
+      parent[neighbour] = current;
+      queue.push(neighbour);
+    }
+  }
+
+  const tiles: number[] = [];
+  let node = best;
+  while (node !== start) {
+    tiles.push(node);
+    node = parent[node]!;
+    if (node === -1) return [];
+  }
+  tiles.reverse();
+
+  const points = tiles.map((tileIndex) => ({
+    x: ((tileIndex % cols) + 0.5) * tile,
+    y: (Math.floor(tileIndex / cols) + 0.5) * tile,
+  }));
+
+  // Keep only the turns so each leg is one straight walk.
+  const compact: Vec2[] = [];
+  points.forEach((point, pointIndex) => {
+    const previous = compact[compact.length - 1];
+    const next = points[pointIndex + 1];
+    if (!previous || !next) {
+      compact.push(point);
+      return;
+    }
+    const sameX = Math.abs(previous.x - point.x) < 0.01;
+    const sameY = Math.abs(previous.y - point.y) < 0.01;
+    const nextSameX = Math.abs(point.x - next.x) < 0.01;
+    const nextSameY = Math.abs(point.y - next.y) < 0.01;
+    if (sameX !== nextSameX || sameY !== nextSameY) compact.push(point);
+  });
+
+  const final = compact[compact.length - 1];
+  if (final && Math.hypot(final.x - target.x, final.y - target.y) < stop) {
+    compact.pop();
+  }
+  return compact;
 }
 
 /** WASD keys that move the player toward a world-space delta. */

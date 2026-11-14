@@ -62,7 +62,7 @@ describe("damagePlayer", () => {
 describe("damageEnemy", () => {
   it("reduces enemy HP and flashes the sprite", () => {
     const result = damageEnemy(createEnemy(meleeSpawn), 2);
-    expect(result.enemy.hp).toBe(8);
+    expect(result.enemy.hp).toBe(6);
     expect(result.enemy.hurtFlash).toBeGreaterThan(0);
     expect(result.died).toBe(false);
   });

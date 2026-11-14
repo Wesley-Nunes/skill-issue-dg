@@ -3,33 +3,30 @@ import { createInitialState } from "../../state/initialState";
 import { VisualEffects } from "./effects";
 
 describe("VisualEffects", () => {
-  it("records a finisher spark larger than a normal one", () => {
+  it("records one hit spark per landed swing", () => {
     const effects = new VisualEffects();
     const state = { ...createInitialState(), time: 1.5 };
 
-    effects.handle(
-      [{ type: "enemy-hit", x: 10, y: 20, finisher: true }],
-      state,
-    );
+    effects.handle([{ type: "enemy-hit", x: 10, y: 20 }], state);
 
     expect(effects.sparks).toHaveLength(1);
     expect(effects.sparks[0]).toMatchObject({
       x: 10,
       y: 20,
       born: 1.5,
-      count: 6,
-      length: 12,
+      count: 4,
+      length: 8,
     });
   });
 
-  it("records a swing with its chain step", () => {
+  it("records a swing with its aim angle", () => {
     const effects = new VisualEffects();
     const state = createInitialState();
 
-    effects.handle([{ type: "attack-started", angle: 0, step: 2 }], state);
+    effects.handle([{ type: "attack-started", angle: Math.PI / 2 }], state);
 
     expect(effects.swings).toHaveLength(1);
-    expect(effects.swings[0]?.step).toBe(2);
+    expect(effects.swings[0]).toMatchObject({ angle: Math.PI / 2, born: 0 });
   });
 
   it("records pale sparks when a fragment breaks", () => {
@@ -53,8 +50,8 @@ describe("VisualEffects", () => {
     const state = createInitialState();
     effects.handle(
       [
-        { type: "enemy-hit", x: 0, y: 0, finisher: false },
-        { type: "attack-started", angle: 0, step: 1 },
+        { type: "enemy-hit", x: 0, y: 0 },
+        { type: "attack-started", angle: 0 },
         { type: "fragment-broken", x: 2, y: 3 },
       ],
       state,
@@ -64,6 +61,28 @@ describe("VisualEffects", () => {
 
     expect(effects.sparks).toHaveLength(0);
     expect(effects.swings).toHaveLength(0);
+  });
+
+  it("clears transient state on descent because the floor clock restarts", () => {
+    const effects = new VisualEffects();
+    const state = { ...createInitialState(), time: 12 };
+    effects.handle(
+      [
+        { type: "boss-defeated", x: 0, y: 0 },
+        { type: "skill-points-earned", amount: 3, total: 3 },
+        { type: "draught-used", x: 1, y: 2, healed: 2 },
+      ],
+      state,
+    );
+
+    effects.handle([{ type: "floor-descended", depth: 2, seed: 7 }], state);
+
+    expect(effects.sparks).toHaveLength(0);
+    expect(effects.rings).toHaveLength(0);
+    expect(effects.floatingTexts).toHaveLength(0);
+    expect(effects.banners).toHaveLength(0);
+    expect(effects.healPulses).toHaveLength(0);
+    expect(effects.skillPointHighlightAt).toBeNull();
   });
 
   it("captures exactly two afterimages per dodge", () => {
@@ -105,8 +124,8 @@ describe("VisualEffects", () => {
     const state = createInitialState();
     effects.handle(
       [
-        { type: "enemy-hit", x: 0, y: 0, finisher: false },
-        { type: "attack-started", angle: 0, step: 1 },
+        { type: "enemy-hit", x: 0, y: 0 },
+        { type: "attack-started", angle: 0 },
       ],
       state,
     );

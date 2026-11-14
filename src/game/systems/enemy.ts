@@ -1,5 +1,5 @@
 import { BOSS, MELEE, RANGED } from "../data/config";
-import type { Enemy, Floor, Vec2 } from "../types";
+import type { Enemy, Floor, Rect, Vec2 } from "../types";
 import { moveCircle } from "./collision";
 import { hasLineOfSight } from "./vision";
 
@@ -23,28 +23,13 @@ function idle(enemy: Enemy): EnemyUpdate {
   };
 }
 
-/** Ends any in-progress attack and blocks the enemy for the duration. */
-export function staggerEnemy(enemy: Enemy, duration: number): Enemy {
-  if (enemy.status !== "alive") return enemy;
-  const applied =
-    enemy.kind === "boss" ? duration * BOSS.staggerScale : duration;
-  return {
-    ...enemy,
-    stagger: Math.max(enemy.stagger, applied),
-    windup: 0,
-    active: 0,
-    attackKind: null,
-    attackHit: false,
-    moving: false,
-  };
-}
-
 /** Advances enemy state by dt. Pure: no side effects, no I/O. */
 export function updateEnemy(
   enemy: Enemy,
   target: Vec2,
   floor: Floor,
   dt: number,
+  blocked: readonly Rect[] = [],
 ): EnemyUpdate {
   if (enemy.status === "dead") {
     return {
@@ -82,14 +67,19 @@ export function updateEnemy(
     bombCooldown: Math.max(0, enemy.bombCooldown - dt),
   };
 
+  // The Warden is harmless while it emerges: no movement, attack, or damage.
+  if (next.kind === "boss" && next.emerging > 0) {
+    return idle({ ...next, emerging: Math.max(0, next.emerging - dt) });
+  }
+
   if (enemy.stagger > 0) {
     return idle(next);
   }
 
-  if (next.kind === "boss") return updateBoss(next, target, floor, dt);
+  if (next.kind === "boss") return updateBoss(next, target, floor, dt, blocked);
   return next.kind === "ranged"
-    ? updateRanged(next, target, floor, dt)
-    : updateMelee(next, target, floor, dt);
+    ? updateRanged(next, target, floor, dt, blocked)
+    : updateMelee(next, target, floor, dt, blocked);
 }
 
 function updateMelee(
@@ -97,6 +87,7 @@ function updateMelee(
   target: Vec2,
   floor: Floor,
   dt: number,
+  blocked: readonly Rect[],
 ): EnemyUpdate {
   let next = enemy;
   const distance = Math.hypot(target.x - next.x, target.y - next.y);
@@ -134,7 +125,7 @@ function updateMelee(
 
     if (!attackHit && distance <= MELEE.attackRange) {
       attackHit = true;
-      damageToPlayer = MELEE.damage;
+      damageToPlayer = enemy.damage;
     }
 
     return {
@@ -144,7 +135,7 @@ function updateMelee(
         attackHit,
         moving: false,
         attackCooldown:
-          active <= 0 ? MELEE.attackCooldown : next.attackCooldown,
+          active <= 0 ? next.attackInterval : next.attackCooldown,
       },
       damageToPlayer,
       attackStarted: false,
@@ -177,6 +168,7 @@ function updateMelee(
       direction.x * MELEE.speed * dt,
       direction.y * MELEE.speed * dt,
       next.radius,
+      blocked,
     );
     return {
       enemy: { ...next, x: position.x, y: position.y, moving: true },
@@ -205,6 +197,7 @@ function updateRanged(
   target: Vec2,
   floor: Floor,
   dt: number,
+  blocked: readonly Rect[],
 ): EnemyUpdate {
   let next = enemy;
   const distance = Math.hypot(target.x - next.x, target.y - next.y);
@@ -216,7 +209,7 @@ function updateRanged(
         enemy: {
           ...next,
           windup: 0,
-          attackCooldown: RANGED.attackCooldown,
+          attackCooldown: next.attackInterval,
           moving: false,
         },
         damageToPlayer: 0,
@@ -261,6 +254,7 @@ function updateRanged(
       direction.x * RANGED.speed * dt,
       direction.y * RANGED.speed * dt,
       next.radius,
+      blocked,
     );
 
     return {
@@ -298,6 +292,7 @@ function updateBoss(
   target: Vec2,
   floor: Floor,
   dt: number,
+  blocked: readonly Rect[],
 ): EnemyUpdate {
   let next = enemy;
   const distance = Math.hypot(target.x - next.x, target.y - next.y);
@@ -320,7 +315,7 @@ function updateBoss(
           ...next,
           windup: 0,
           attackKind: null,
-          bombCooldown: BOSS.bombCooldown,
+          bombCooldown: next.bombInterval,
           moving: false,
         },
         damageToPlayer: 0,
@@ -353,7 +348,7 @@ function updateBoss(
 
     if (!attackHit && distance <= BOSS.attackRange) {
       attackHit = true;
-      damageToPlayer = BOSS.damage;
+      damageToPlayer = enemy.damage;
     }
 
     return {
@@ -364,7 +359,7 @@ function updateBoss(
         moving: false,
         attackKind: active <= 0 ? null : next.attackKind,
         attackCooldown:
-          active <= 0 ? BOSS.attackCooldown : next.attackCooldown,
+          active <= 0 ? next.attackInterval : next.attackCooldown,
       },
       damageToPlayer,
       attackStarted: false,
@@ -427,6 +422,7 @@ function updateBoss(
       direction.x * BOSS.speed * dt,
       direction.y * BOSS.speed * dt,
       next.radius,
+      blocked,
     );
     return {
       enemy: { ...next, x: position.x, y: position.y, moving: true },
