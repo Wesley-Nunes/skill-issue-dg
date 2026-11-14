@@ -116,7 +116,9 @@ Capture limitation: this X11 session clamps the browser window, so
 `cy.viewport(1440, 810)` screenshots save at **1280 × 633**. The e2e suite still
 asserts the canvas and internal viewport at the configured sizes; the saved
 pixels are one size only. Recorded as F3, matching the `0.8.0` environment
-limitation.
+limitation. Screenshots and the full-loop video are gitignored and were not
+committed; retained local copies for this pass are in
+`/tmp/opencode/qa-0.9.0-evidence/`.
 
 ### 4.5 Automated checks and release hygiene
 
