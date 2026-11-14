@@ -753,7 +753,7 @@ purchase flow, meta-progression, persistence, income scaling, and a general
 procedural generator remain deferred and are not part of `0.8.0`. A safe-room
 combat exploit found after the merge is recorded in §4.2 and deferred.
 
-**Status for `0.9.0` (MVP acceptance slice, delivered):** closes that safe-room
+**Status for `0.9.0` (MVP acceptance slice, complete):** closes that safe-room
 exploit with the ward rule in §4.2 and completes the end-to-end MVP acceptance
 pass. The operator confirmed on 2026-11-14 that the seeded, fixed six-room
 topology counts as the MVP's procedural floor and that shop-only rewards satisfy
@@ -761,7 +761,7 @@ validation item 5. The acceptance criteria are recorded in `GOAL.md`; the QA
 report `qa/0.9.0/001-report.md` passes SC1–SC10 with a recorded full-loop run.
 The MVP is released: `dev` and `main` carry the same app tree (`main` at
 `f2735af`), and Vercel production at `https://skill-issue-dg.vercel.app` serves
-the `0.9.0` bundle. Only the operator's formal confirmation remains.
+the `0.9.0` bundle. The operator confirmed the MVP on 2026-11-14.
 Feature scope is otherwise frozen: no new enemy, room, economy, loot, boss,
 progression, persistence, art, or audio work is part of this slice.
 

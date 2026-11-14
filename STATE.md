@@ -8,18 +8,18 @@ This file is the canonical workflow state for the repository. It is maintained b
 |---|---|
 | Project | skill issue dg |
 | Goal | `0.9.0` MVP acceptance: close the safe-room combat exploit, lock the MVP contract, and complete end-to-end acceptance evidence |
-| Current SemVer ID | `0.9.0` (released to production; MVP acceptance passed) |
-| Next target version | `—` — no later version approved |
+| Current SemVer ID | `0.9.0` (released; **MVP complete and operator-confirmed**) |
+| Next target version | `—` — no later version approved; discovery required before new scope |
 | Current task ID | `001` |
-| Active phase | `Complete → next discovery` |
+| Active phase | `Complete` |
 | Active agent | `operator` / `orchestrator` |
-| Git branch | `main` (production) and `dev` (staging); released through PRs #15 and #16 |
-| Last accepted commit | `f2735af` (PR #16 merge of `dev` into `main`) |
-| Pushed HEAD | `origin/main` at `f2735af`; `origin/dev` at `03114fb` (same app tree, plus the final state commit after this update) |
-| Pull request | #15 (QA/state closure → `dev`) and #16 (`dev` → `main`) merged; #14 was the implementation merge |
-| Known issue | The safe-room combat exploit is fixed; independent QA passed with no blocking finding. No known blocking defect |
+| Git branch | `main` (production) and `dev` (staging), synced on the confirmation docs |
+| Last accepted commit | The operator-confirmation commit recorded in the history below, merged into `main` |
+| Pushed HEAD | `origin/dev` and `origin/main` carry the confirmation docs; `main` adds only the merge commit on top |
+| Pull request | #14 (implementation), #15 (QA/state closure → `dev`), and #16 (`dev` → `main`) merged |
+| Known issue | None blocking. The safe-room combat exploit is fixed; independent QA passed. F2 (no live Warden lure) and F3 (capture size) remain non-blocking evidence limitations |
 | Blocking questions remaining | `0` |
-| Overall status | **MVP released.** `0.9.0` is on `dev` and `main` with identical app trees; QA report `qa/0.9.0/001-report.md` passes SC1–SC10; clean-install typecheck, 198 unit tests, build, bundle scan, and 33/33 Chrome e2e pass twice; hosted CI passed on `03114fb`/`4895c5a`; Vercel production at `https://skill-issue-dg.vercel.app` serves the `0.9.0` bundle (`index-BxraWZQO.js`, no debug hook). Only the operator's formal MVP confirmation is outstanding. |
+| Overall status | **MVP complete.** Operator confirmed the result on 2026-11-14 after reviewing the polished `README.md` (play link, screenshot, requirements, live deployment). `0.9.0` runs from title to Warden, shop, and descent; QA report `qa/0.9.0/001-report.md` passes SC1–SC10; clean-install typecheck, 198 unit tests, build, bundle scan, and 33/33 Chrome e2e pass twice; hosted CI passed on the release heads; Vercel production at `https://skill-issue-dg.vercel.app` serves the `0.9.0` bundle (`index-BxraWZQO.js`, no debug hook). Deferred work is listed in `GOAL.md` and `docs/about-the-project.md`. |
 
 Update this snapshot whenever a value changes. Do not leave stale status after a handoff.
 
@@ -353,6 +353,8 @@ Append one entry for each meaningful phase transition:
 | 2026-11-14 | 0.9.0/001 | QA pass → Release ready | Orchestrator reviewed the QA report, reconciled task statuses, and marked the MVP technically complete; `main` is still at `c7b1e17`, Vercel deployment is unverified, and operator confirmation is still required | `24a867b`, plus this state commit |
 | 2026-11-14 | 0.9.0/001 | Release ready → Merged to `dev` | Operator opened and merged PR #15 (`feature/0.9.0-001-mvp-acceptance-closure` → `dev`) as `03114fb`; hosted CI run on `03114fb` and PR run on `4895c5a` both passed | `03114fb` |
 | 2026-11-14 | 0.9.0/001 | Merged → Released to production | Operator merged PR #16 (`dev` → `main`) as `f2735af`; `origin/dev` and `origin/main` have identical app trees; Vercel production `https://skill-issue-dg.vercel.app` serves `0.9.0` (`index-BxraWZQO.js`, no debug hook); only formal operator confirmation remains | `f2735af`, plus this state commit |
+| 2026-11-14 | 0.9.0/001 | Release → README polish | Orchestrator reviewed `README.md` from a player's perspective and rewrote it: play link, first-floor screenshot (`docs/screenshots/gameplay.png`), requirements, no-save note, accurate seeded-branch wording, and live Vercel deployment section. Committed and pushed to `dev` | `a2d619c` |
+| 2026-11-14 | 0.9.0/001 | Complete | Operator confirmed the MVP on 2026-11-14 after reviewing the polished README. Orchestrator recorded the sign-off and synced `dev` into `main`; no app code changed | this confirmation commit |
 
 ## Status vocabulary
 
