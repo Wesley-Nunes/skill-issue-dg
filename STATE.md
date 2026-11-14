@@ -354,7 +354,7 @@ Append one entry for each meaningful phase transition:
 | 2026-11-14 | 0.9.0/001 | Release ready → Merged to `dev` | Operator opened and merged PR #15 (`feature/0.9.0-001-mvp-acceptance-closure` → `dev`) as `03114fb`; hosted CI run on `03114fb` and PR run on `4895c5a` both passed | `03114fb` |
 | 2026-11-14 | 0.9.0/001 | Merged → Released to production | Operator merged PR #16 (`dev` → `main`) as `f2735af`; `origin/dev` and `origin/main` have identical app trees; Vercel production `https://skill-issue-dg.vercel.app` serves `0.9.0` (`index-BxraWZQO.js`, no debug hook); only formal operator confirmation remains | `f2735af`, plus this state commit |
 | 2026-11-14 | 0.9.0/001 | Release → README polish | Orchestrator reviewed `README.md` from a player's perspective and rewrote it: play link, first-floor screenshot (`docs/screenshots/gameplay.png`), requirements, no-save note, accurate seeded-branch wording, and live Vercel deployment section. Committed and pushed to `dev` | `a2d619c` |
-| 2026-11-14 | 0.9.0/001 | Complete | Operator confirmed the MVP on 2026-11-14 after reviewing the polished README. Orchestrator recorded the sign-off and synced `dev` into `main`; no app code changed | this confirmation commit |
+| 2026-11-14 | 0.9.0/001 | Complete | Operator confirmed the MVP on 2026-11-14 after reviewing the polished README. Orchestrator recorded the sign-off, synced `dev` into `main`, and verified hosted CI on the confirmation commit (`2f8cb2b`, run `43600242839`, success); no app code changed | this confirmation commit |
 
 ## Status vocabulary
 
