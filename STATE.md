@@ -13,10 +13,10 @@ This file is the canonical workflow state for the repository. It is maintained b
 | Current task ID | `001` |
 | Active phase | `Release ready → operator acceptance` |
 | Active agent | `orchestrator` |
-| Git branch | `feature/0.9.0-001-mvp-acceptance-closure` (QA report and closure, from `dev`) |
+| Git branch | `feature/0.9.0-001-mvp-acceptance-closure` (QA report and closure, from `dev`; pushed to origin) |
 | Last accepted commit | `9263f81` (PR #14 merge of `feature/0.9.0-001-mvp-acceptance`) |
-| Pushed HEAD | `origin/dev` at `9263f81`; the closure branch is local only |
-| Pull request | #14 merged (`0.9.0` implementation); the closure branch still needs a PR |
+| Pushed HEAD | `origin/dev` at `9263f81`; closure branch pushed at `24a867b` |
+| Pull request | #14 merged (`0.9.0` implementation); closure branch PR pending — `gh`/`hub` and a GitHub token are unavailable, so the operator opens it |
 | Known issue | The safe-room combat exploit is fixed; independent QA passed with no blocking finding. No known blocking defect |
 | Blocking questions remaining | `0` — both MVP interpretation questions were answered on 2026-11-14 |
 | Overall status | `0.9.0` is implemented, merged, and verified: QA report `qa/0.9.0/001-report.md` passes SC1–SC10, including a recorded full-loop run; typecheck, 198 unit tests, build, bundle scan, and 33/33 Chrome e2e pass in two consecutive runs. Hosted CI passed on `9263f81`. Remaining: closure commits/PR, operator confirmation, Vercel verification, and the `dev` → `main` production release. |
@@ -58,8 +58,8 @@ Populate these links when the version and task have been approved:
   interaction rule, feedback, verification, assumptions)
 - QA report: [qa/0.9.0/001-report.md](qa/0.9.0/001-report.md) (`Passed`,
   2026-11-14; verdict, SC1–SC10 evidence, findings, captures, and recorded run)
-- Closure branch: `feature/0.9.0-001-mvp-acceptance-closure` (QA report and
-  state/docs reconciliation; pending push and PR)
+- Closure branch: `feature/0.9.0-001-mvp-acceptance-closure` (pushed; QA report
+  and state/docs reconciliation; PR pending operator)
 - Docs handoff: the task package defines the seal predicate, the entry and exit
   behavior, the protection and interaction rules, the threshold feedback, the
   README/version hygiene, and the independent MVP acceptance run. The operator
@@ -349,7 +349,7 @@ Append one entry for each meaningful phase transition:
 | 2026-11-14 | 0.9.0/001 | Implementation → QA verification | Pure `isInCombat`/`WARD_MESSAGE` module; one-way movement guard for walk and dodge; conditional safe-zone damage; shop refusal with the ward copy; ember threshold and `WARD SEALED`; `inCombat` snapshot field and `setEnemyAggro` test hook; 198 unit tests, typecheck/build pass, production bundle has no debug hook, and 33/33 Chrome e2e pass across 6 specs in 2 m 58 s; README and version `0.9.0` updated | `09f6e45` |
 | 2026-11-13 | 0.9.0/001 | Implementation → Merged (QA gate skipped) | Operator merged PR #14 into `dev` at `9263f81`; hosted CI run #18 and run #17 passed. The merge preceded the QA report, so the required QA gate did not run first; recorded as QA finding F1 | `9263f81` |
 | 2026-11-14 | 0.9.0/001 | QA verification → QA pass | Retrospective independent verification on `9263f81`: clean `npm ci`; typecheck, 198 unit tests, build, no production debug hook; 33/33 Chrome e2e twice (3 m 02 s each); open/sealed/refusal/reduced-motion captures inspected; recorded full-loop run 5/5 in 1 m 05 s; SC1–SC10 all evidenced; verdict `Passed`; F1 process finding, F2 Warden-lure and F3 capture-size limitations | `91a11b4` |
-| 2026-11-14 | 0.9.0/001 | QA pass → Release ready | Orchestrator reviewed the QA report, reconciled task statuses, and marked the MVP technically complete; `main` is still at `c7b1e17`, Vercel deployment is unverified, and operator confirmation is still required | this state commit |
+| 2026-11-14 | 0.9.0/001 | QA pass → Release ready | Orchestrator reviewed the QA report, reconciled task statuses, and marked the MVP technically complete; `main` is still at `c7b1e17`, Vercel deployment is unverified, and operator confirmation is still required | `24a867b`, plus this state commit |
 
 ## Status vocabulary
 
