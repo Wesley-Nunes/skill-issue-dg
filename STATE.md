@@ -15,7 +15,7 @@ This file is the canonical workflow state for the repository. It is maintained b
 | Active agent | `orchestrator` |
 | Git branch | `feature/0.9.0-001-mvp-acceptance-closure` (QA report and closure, from `dev`; pushed to origin) |
 | Last accepted commit | `9263f81` (PR #14 merge of `feature/0.9.0-001-mvp-acceptance`) |
-| Pushed HEAD | `origin/dev` at `9263f81`; closure branch pushed at `24a867b` |
+| Pushed HEAD | `origin/dev` at `9263f81`; closure branch pushed as `origin/feature/0.9.0-001-mvp-acceptance-closure` |
 | Pull request | #14 merged (`0.9.0` implementation); closure branch PR pending — `gh`/`hub` and a GitHub token are unavailable, so the operator opens it |
 | Known issue | The safe-room combat exploit is fixed; independent QA passed with no blocking finding. No known blocking defect |
 | Blocking questions remaining | `0` — both MVP interpretation questions were answered on 2026-11-14 |
