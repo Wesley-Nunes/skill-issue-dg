@@ -758,9 +758,10 @@ exploit with the ward rule in §4.2 and completes the end-to-end MVP acceptance
 pass. The operator confirmed on 2026-11-14 that the seeded, fixed six-room
 topology counts as the MVP's procedural floor and that shop-only rewards satisfy
 validation item 5. The acceptance criteria are recorded in `GOAL.md`; the QA
-report `qa/0.9.0/001-report.md` passes SC1–SC10 with a recorded full-loop run,
-and hosted CI passed on `9263f81`. The MVP is technically complete; operator
-confirmation, Vercel verification, and the `dev` → `main` release remain.
+report `qa/0.9.0/001-report.md` passes SC1–SC10 with a recorded full-loop run.
+The MVP is released: `dev` and `main` carry the same app tree (`main` at
+`f2735af`), and Vercel production at `https://skill-issue-dg.vercel.app` serves
+the `0.9.0` bundle. Only the operator's formal confirmation remains.
 Feature scope is otherwise frozen: no new enemy, room, economy, loot, boss,
 progression, persistence, art, or audio work is part of this slice.
 
@@ -942,8 +943,8 @@ The `0.9.0` slice finishes priority 9's first acceptance pass: it closes the
 safe-room combat exploit recorded in §4.2 and validates the MVP loop end to
 end against the criteria in `GOAL.md`. It adds no content and does not reopen
 the economy, generator, archetype, or progression questions. QA passed on
-2026-11-14 with a recorded full-loop run; remaining work is release closure,
-not implementation.
+2026-11-14 with a recorded full-loop run, and the slice is released to
+production.
 
 The order can change when implementation discoveries justify it. Keep
 the first playable slice small and testable.

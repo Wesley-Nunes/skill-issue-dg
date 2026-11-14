@@ -8,18 +8,18 @@ This file is the canonical workflow state for the repository. It is maintained b
 |---|---|
 | Project | skill issue dg |
 | Goal | `0.9.0` MVP acceptance: close the safe-room combat exploit, lock the MVP contract, and complete end-to-end acceptance evidence |
-| Current SemVer ID | `0.9.0` (delivered; MVP acceptance passed, release closure in progress) |
-| Next target version | `—` — `0.9.0` is the MVP acceptance slice; no later version approved |
+| Current SemVer ID | `0.9.0` (released to production; MVP acceptance passed) |
+| Next target version | `—` — no later version approved |
 | Current task ID | `001` |
-| Active phase | `Release ready → operator acceptance` |
-| Active agent | `orchestrator` |
-| Git branch | `feature/0.9.0-001-mvp-acceptance-closure` (QA report and closure, from `dev`; pushed to origin) |
-| Last accepted commit | `9263f81` (PR #14 merge of `feature/0.9.0-001-mvp-acceptance`) |
-| Pushed HEAD | `origin/dev` at `9263f81`; closure branch pushed as `origin/feature/0.9.0-001-mvp-acceptance-closure` |
-| Pull request | #14 merged (`0.9.0` implementation); closure branch PR pending — `gh`/`hub` and a GitHub token are unavailable, so the operator opens it |
+| Active phase | `Complete → next discovery` |
+| Active agent | `operator` / `orchestrator` |
+| Git branch | `main` (production) and `dev` (staging); released through PRs #15 and #16 |
+| Last accepted commit | `f2735af` (PR #16 merge of `dev` into `main`) |
+| Pushed HEAD | `origin/main` at `f2735af`; `origin/dev` at `03114fb` (same app tree, plus the final state commit after this update) |
+| Pull request | #15 (QA/state closure → `dev`) and #16 (`dev` → `main`) merged; #14 was the implementation merge |
 | Known issue | The safe-room combat exploit is fixed; independent QA passed with no blocking finding. No known blocking defect |
-| Blocking questions remaining | `0` — both MVP interpretation questions were answered on 2026-11-14 |
-| Overall status | `0.9.0` is implemented, merged, and verified: QA report `qa/0.9.0/001-report.md` passes SC1–SC10, including a recorded full-loop run; typecheck, 198 unit tests, build, bundle scan, and 33/33 Chrome e2e pass in two consecutive runs. Hosted CI passed on `9263f81`. Remaining: closure commits/PR, operator confirmation, Vercel verification, and the `dev` → `main` production release. |
+| Blocking questions remaining | `0` |
+| Overall status | **MVP released.** `0.9.0` is on `dev` and `main` with identical app trees; QA report `qa/0.9.0/001-report.md` passes SC1–SC10; clean-install typecheck, 198 unit tests, build, bundle scan, and 33/33 Chrome e2e pass twice; hosted CI passed on `03114fb`/`4895c5a`; Vercel production at `https://skill-issue-dg.vercel.app` serves the `0.9.0` bundle (`index-BxraWZQO.js`, no debug hook). Only the operator's formal MVP confirmation is outstanding. |
 
 Update this snapshot whenever a value changes. Do not leave stale status after a handoff.
 
@@ -41,7 +41,7 @@ The state manager must not invent decisions, change product scope, edit game cod
 
 Populate these links when the version and task have been approved:
 
-### `0.9.0` / `001` (delivered; QA passed)
+### `0.9.0` / `001` (released)
 
 - Product overview: `docs/about-the-project.md` (§4.2 records the approved ward
   rule; §9, §10, and §11 record the MVP acceptance slice)
@@ -65,8 +65,9 @@ Populate these links when the version and task have been approved:
   README/version hygiene, and the independent MVP acceptance run. The operator
   confirmed on 2026-11-14 that the seeded fixed six-room topology is the MVP's
   procedural floor and that shop-only rewards satisfy the loot decision.
-- Deployment: Vercel — `dev` is staging, `main` is production; the operator
-  connects the repository in Vercel.
+- Deployment: Vercel — production verified on 2026-11-14 at
+  `https://skill-issue-dg.vercel.app`; it serves the `0.9.0` bundle
+  (`index-BxraWZQO.js`, no debug hook). `dev` is staging, `main` is production.
 
 ### Prior version links
 
@@ -79,7 +80,7 @@ Populate these links when the version and task have been approved:
 - Also merged into `dev`: `0.6.0` via PR #9 (`60318be`), `0.5.0` via PR #5
   (`3c2f62d`).
 
-### Version 0.9.0 scope (operator-approved 2026-11-14, delivered)
+### Version 0.9.0 scope (operator-approved 2026-11-14, released)
 
 - **Deliverable:** close the recorded safe-room combat exploit and complete the
   end-to-end MVP acceptance pass, with no new content.
@@ -350,6 +351,8 @@ Append one entry for each meaningful phase transition:
 | 2026-11-13 | 0.9.0/001 | Implementation → Merged (QA gate skipped) | Operator merged PR #14 into `dev` at `9263f81`; hosted CI run #18 and run #17 passed. The merge preceded the QA report, so the required QA gate did not run first; recorded as QA finding F1 | `9263f81` |
 | 2026-11-14 | 0.9.0/001 | QA verification → QA pass | Retrospective independent verification on `9263f81`: clean `npm ci`; typecheck, 198 unit tests, build, no production debug hook; 33/33 Chrome e2e twice (3 m 02 s each); open/sealed/refusal/reduced-motion captures inspected; recorded full-loop run 5/5 in 1 m 05 s; SC1–SC10 all evidenced; verdict `Passed`; F1 process finding, F2 Warden-lure and F3 capture-size limitations | `91a11b4` |
 | 2026-11-14 | 0.9.0/001 | QA pass → Release ready | Orchestrator reviewed the QA report, reconciled task statuses, and marked the MVP technically complete; `main` is still at `c7b1e17`, Vercel deployment is unverified, and operator confirmation is still required | `24a867b`, plus this state commit |
+| 2026-11-14 | 0.9.0/001 | Release ready → Merged to `dev` | Operator opened and merged PR #15 (`feature/0.9.0-001-mvp-acceptance-closure` → `dev`) as `03114fb`; hosted CI run on `03114fb` and PR run on `4895c5a` both passed | `03114fb` |
+| 2026-11-14 | 0.9.0/001 | Merged → Released to production | Operator merged PR #16 (`dev` → `main`) as `f2735af`; `origin/dev` and `origin/main` have identical app trees; Vercel production `https://skill-issue-dg.vercel.app` serves `0.9.0` (`index-BxraWZQO.js`, no debug hook); only formal operator confirmation remains | `f2735af`, plus this state commit |
 
 ## Status vocabulary
 

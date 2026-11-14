@@ -166,9 +166,10 @@ provide:
 `0.9.0` is the MVP acceptance slice: it closed the safe-room combat exploit and
 completed the end-to-end acceptance evidence for the criteria above. It added no
 content. Its QA report (`qa/0.9.0/001-report.md`) passes SC1–SC10, including a
-recorded full-loop run, and hosted CI passed on `9263f81`. The MVP is technically
-complete; operator confirmation, Vercel verification, and the `dev` → `main`
-production release remain.
+recorded full-loop run. The MVP is released to production: PR #15 merged the
+closure into `dev` at `03114fb`, PR #16 merged `dev` into `main` at `f2735af`,
+hosted CI passed, and Vercel production serves the `0.9.0` bundle with no debug
+hook. Only the operator's formal MVP confirmation remains.
 
 ## Definition of MVP completion
 
@@ -188,10 +189,11 @@ Hosted CI and the Vercel deployment must be recorded truthfully as pending
 until they are confirmed on the host; they are not evidence of gameplay
 completion.
 
-**Status 2026-11-14 — technically complete, operator confirmation pending.**
+**Status 2026-11-14 — released; operator confirmation pending.**
 Every success criterion has cited evidence in `qa/0.9.0/001-report.md`, the core
 loop was completed in a recorded run, QA returned `Passed`, clean-install
 typecheck/unit/build/e2e pass with no debug hook in the production bundle, and
-the known limitations and deferred work are documented. Hosted CI passed for
-`9263f81`. The MVP is not yet *released*: the operator has not confirmed the
-result, Vercel deployment is unverified, and `main` is still at `c7b1e17`.
+the known limitations and deferred work are documented. `dev` and `main` carry
+the same app tree (`main` at `f2735af`), and Vercel production at
+`https://skill-issue-dg.vercel.app` serves the `0.9.0` bundle. The remaining
+completion condition is the operator's formal confirmation of the result.
