@@ -8,18 +8,18 @@ This file is the canonical workflow state for the repository. It is maintained b
 |---|---|
 | Project | skill issue dg |
 | Goal | `0.9.0` MVP acceptance: close the safe-room combat exploit, lock the MVP contract, and complete end-to-end acceptance evidence |
-| Current SemVer ID | `0.9.0` (in progress) |
+| Current SemVer ID | `0.9.0` (delivered; MVP acceptance passed, release closure in progress) |
 | Next target version | `—` — `0.9.0` is the MVP acceptance slice; no later version approved |
 | Current task ID | `001` |
-| Active phase | `Implementation → QA verification` |
-| Active agent | `qa` |
-| Git branch | `feature/0.9.0-001-mvp-acceptance` |
-| Last accepted commit | `d04c66b` (PR #13 merge of `feature/0.8.0-001-combat-feel`) |
-| Pushed HEAD | `origin/dev` at `d04c66b`; the `0.9.0` branch is local only |
-| Pull request | None yet; `0.9.0` is uncommitted to a remote |
-| Known issue | The safe-room combat exploit is fixed in `09f6e45` and awaits independent QA; no other blocking defect is known |
+| Active phase | `Release ready → operator acceptance` |
+| Active agent | `orchestrator` |
+| Git branch | `feature/0.9.0-001-mvp-acceptance-closure` (QA report and closure, from `dev`; pushed to origin) |
+| Last accepted commit | `9263f81` (PR #14 merge of `feature/0.9.0-001-mvp-acceptance`) |
+| Pushed HEAD | `origin/dev` at `9263f81`; closure branch pushed as `origin/feature/0.9.0-001-mvp-acceptance-closure` |
+| Pull request | #14 merged (`0.9.0` implementation); closure branch PR pending — `gh`/`hub` and a GitHub token are unavailable, so the operator opens it |
+| Known issue | The safe-room combat exploit is fixed; independent QA passed with no blocking finding. No known blocking defect |
 | Blocking questions remaining | `0` — both MVP interpretation questions were answered on 2026-11-14 |
-| Overall status | `0.9.0` implementation is complete and green locally (typecheck, 198 unit tests, build, production-bundle hook scan, 33/33 Chrome e2e). Independent QA and the MVP acceptance evidence run are next. Hosted CI and Vercel remain pending. |
+| Overall status | `0.9.0` is implemented, merged, and verified: QA report `qa/0.9.0/001-report.md` passes SC1–SC10, including a recorded full-loop run; typecheck, 198 unit tests, build, bundle scan, and 33/33 Chrome e2e pass in two consecutive runs. Hosted CI passed on `9263f81`. Remaining: closure commits/PR, operator confirmation, Vercel verification, and the `dev` → `main` production release. |
 
 Update this snapshot whenever a value changes. Do not leave stale status after a handoff.
 
@@ -41,7 +41,7 @@ The state manager must not invent decisions, change product scope, edit game cod
 
 Populate these links when the version and task have been approved:
 
-### `0.9.0` / `001` (in progress)
+### `0.9.0` / `001` (delivered; QA passed)
 
 - Product overview: `docs/about-the-project.md` (§4.2 records the approved ward
   rule; §9, §10, and §11 record the MVP acceptance slice)
@@ -56,7 +56,10 @@ Populate these links when the version and task have been approved:
 - Implementation decision log: [programmer/0.9.0/CoT.md](programmer/0.9.0/CoT.md)
   (complete at `09f6e45`; predicate, one-way movement rule, conditional damage,
   interaction rule, feedback, verification, assumptions)
-- QA report: `qa/0.9.0/001-report.md` (pending)
+- QA report: [qa/0.9.0/001-report.md](qa/0.9.0/001-report.md) (`Passed`,
+  2026-11-14; verdict, SC1–SC10 evidence, findings, captures, and recorded run)
+- Closure branch: `feature/0.9.0-001-mvp-acceptance-closure` (pushed; QA report
+  and state/docs reconciliation; PR pending operator)
 - Docs handoff: the task package defines the seal predicate, the entry and exit
   behavior, the protection and interaction rules, the threshold feedback, the
   README/version hygiene, and the independent MVP acceptance run. The operator
@@ -76,7 +79,7 @@ Populate these links when the version and task have been approved:
 - Also merged into `dev`: `0.6.0` via PR #9 (`60318be`), `0.5.0` via PR #5
   (`3c2f62d`).
 
-### Version 0.9.0 scope (operator-approved 2026-11-14, in progress)
+### Version 0.9.0 scope (operator-approved 2026-11-14, delivered)
 
 - **Deliverable:** close the recorded safe-room combat exploit and complete the
   end-to-end MVP acceptance pass, with no new content.
@@ -344,6 +347,9 @@ Append one entry for each meaningful phase transition:
 | 2026-11-14 | 0.9.0/001 | Docs discovery → Design decisions | Operator confirmed the seeded fixed six-room topology as the MVP's procedural floor and shop-only rewards as the loot decision. `GOAL.md` now holds the testable MVP contract (SC1–SC10); the three `0.9.0` task files and the product-overview updates are written; design next | this docs commit |
 | 2026-11-14 | 0.9.0/001 | Design decisions → Implementation | Design contract approved: `isInCombat` = living enemy with aggro; one-way entry refusal by walking and dodging; damage applies inside while sealed; shop cannot open while sealed; cyan/ember threshold states, `WARD SEALED`, and `The ward holds — enemies are hunting.` throttled to 2 s. No new system, asset, or HUD element | this design commit |
 | 2026-11-14 | 0.9.0/001 | Implementation → QA verification | Pure `isInCombat`/`WARD_MESSAGE` module; one-way movement guard for walk and dodge; conditional safe-zone damage; shop refusal with the ward copy; ember threshold and `WARD SEALED`; `inCombat` snapshot field and `setEnemyAggro` test hook; 198 unit tests, typecheck/build pass, production bundle has no debug hook, and 33/33 Chrome e2e pass across 6 specs in 2 m 58 s; README and version `0.9.0` updated | `09f6e45` |
+| 2026-11-13 | 0.9.0/001 | Implementation → Merged (QA gate skipped) | Operator merged PR #14 into `dev` at `9263f81`; hosted CI run #18 and run #17 passed. The merge preceded the QA report, so the required QA gate did not run first; recorded as QA finding F1 | `9263f81` |
+| 2026-11-14 | 0.9.0/001 | QA verification → QA pass | Retrospective independent verification on `9263f81`: clean `npm ci`; typecheck, 198 unit tests, build, no production debug hook; 33/33 Chrome e2e twice (3 m 02 s each); open/sealed/refusal/reduced-motion captures inspected; recorded full-loop run 5/5 in 1 m 05 s; SC1–SC10 all evidenced; verdict `Passed`; F1 process finding, F2 Warden-lure and F3 capture-size limitations | `91a11b4` |
+| 2026-11-14 | 0.9.0/001 | QA pass → Release ready | Orchestrator reviewed the QA report, reconciled task statuses, and marked the MVP technically complete; `main` is still at `c7b1e17`, Vercel deployment is unverified, and operator confirmation is still required | `24a867b`, plus this state commit |
 
 ## Status vocabulary
 

@@ -7,7 +7,7 @@
 | Version | `0.9.0` |
 | Task ID | `001` |
 | Owning agent | `design` |
-| Status | `Ready` |
+| Status | `Approved` (`design/0.9.0/design-decisions.md`) |
 | Depends on | `docs/about-the-project.md` §4.2/§10, operator decisions of 2026-11-13 and 2026-11-14 |
 | Produces | `design/0.9.0/design-decisions.md` |
 | Hands off to | `docs/tasks/0.9.0/001-programmer.md` |

@@ -7,7 +7,7 @@
 | Version | `0.9.0` |
 | Task ID | `001` |
 | Owning agent | `programmer` |
-| Status | `Blocked — waiting for design decisions` |
+| Status | `Delivered` (`09f6e45`; merged via PR #14 as `9263f81`) |
 | Depends on | `design/0.9.0/design-decisions.md` |
 | Produces | `programmer/0.9.0/CoT.md`, source and test changes, README and version hygiene |
 | Hands off to | `docs/tasks/0.9.0/001-qa.md` |

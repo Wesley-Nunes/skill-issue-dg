@@ -144,7 +144,7 @@ meta-progression in the MVP.
 
 ## Current progress (2026-11-14)
 
-Versions `0.1.0`–`0.8.0` are delivered and merged into `dev`. Together they
+Versions `0.1.0`–`0.9.0` are delivered and merged into `dev`. Together they
 provide:
 
 - one playable character with WASD movement, mouse aim, a single light attack,
@@ -159,11 +159,16 @@ provide:
 - death, run summary, restart, heal-on-descent, a title/start screen, pause,
   restrained CC0/synthesized audio, a boot loading screen, and a mute toggle;
 - a Vite build configured for Vercel (`dev` staging, `main` production);
-- the `0.8.0` single light attack and depth curve.
+- the `0.8.0` single light attack and depth curve;
+- the `0.9.0` safe-room ward, which seals the shop while an enemy hunts and
+  makes damage apply inside it, closing the post-`0.8.0` exploit.
 
-`0.9.0` is the MVP acceptance slice: it closes the post-`0.8.0` safe-room combat
-exploit and completes the end-to-end acceptance evidence for the criteria
-above. It adds no content.
+`0.9.0` is the MVP acceptance slice: it closed the safe-room combat exploit and
+completed the end-to-end acceptance evidence for the criteria above. It added no
+content. Its QA report (`qa/0.9.0/001-report.md`) passes SC1–SC10, including a
+recorded full-loop run, and hosted CI passed on `9263f81`. The MVP is technically
+complete; operator confirmation, Vercel verification, and the `dev` → `main`
+production release remain.
 
 ## Definition of MVP completion
 
@@ -182,3 +187,11 @@ The MVP is complete only when all of the following are true:
 Hosted CI and the Vercel deployment must be recorded truthfully as pending
 until they are confirmed on the host; they are not evidence of gameplay
 completion.
+
+**Status 2026-11-14 — technically complete, operator confirmation pending.**
+Every success criterion has cited evidence in `qa/0.9.0/001-report.md`, the core
+loop was completed in a recorded run, QA returned `Passed`, clean-install
+typecheck/unit/build/e2e pass with no debug hook in the production bundle, and
+the known limitations and deferred work are documented. Hosted CI passed for
+`9263f81`. The MVP is not yet *released*: the operator has not confirmed the
+result, Vercel deployment is unverified, and `main` is still at `c7b1e17`.
