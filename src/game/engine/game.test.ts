@@ -1,7 +1,11 @@
 import { describe, expect, it } from "vitest";
 import { ATTACK, BOMB, MELEE, PURIFICATION } from "../data/config";
 import { isInsideRect, nextSeed } from "../data/floor";
-import { createEnemy, createInitialState } from "../../state/initialState";
+import {
+  createBoss,
+  createEnemy,
+  createInitialState,
+} from "../../state/initialState";
 import { spawnBomb } from "../systems/bomb";
 import { scalingForDepth } from "../systems/depth";
 import { fragmentPosition } from "../systems/purification";
@@ -320,6 +324,49 @@ describe("Game", () => {
     expect(game.state.enemies[0]?.fragments).toEqual([true, true]);
     expect(game.state.enemies[0]?.hp).toBe(DEPTH1.melee.maxHp);
     expect(events.some((event) => event.type === "rite-reset")).toBe(true);
+  });
+
+  it("resets fragments and HP when a bomb costs the player HP", () => {
+    const game = createGame();
+    const warden = {
+      ...createBoss(game.state.floor),
+      hp: DEPTH1.boss.maxHp - 4,
+      stagger: 9,
+    };
+    game.state.enemies = [
+      ...game.state.enemies.map((enemy, index) =>
+        index === 0
+          ? {
+              ...enemy,
+              hp: DEPTH1.melee.maxHp - 2,
+              fragments: [false, false],
+              stagger: 9,
+            }
+          : { ...enemy, stagger: 9 },
+      ),
+      warden,
+    ];
+    game.state.bombs = [
+      spawnBomb(
+        1,
+        { x: game.state.player.x + 40, y: game.state.player.y },
+        { x: game.state.player.x, y: game.state.player.y },
+        BOMB.damage,
+      ),
+    ];
+
+    const events = stepFor(game, BOMB.flightTime + BOMB.fuse + 0.1, {});
+
+    expect(game.state.player.hp).toBe(6 - BOMB.damage);
+    expect(game.state.enemies[0]?.fragments).toEqual([true, true]);
+    expect(game.state.enemies[0]?.hp).toBe(DEPTH1.melee.maxHp);
+    const wardenAfter = game.state.enemies.find(
+      (enemy) => enemy.kind === "boss",
+    );
+    expect(wardenAfter?.hp).toBe(DEPTH1.boss.maxHp - 4);
+    expect(events.filter((event) => event.type === "rite-reset")).toHaveLength(
+      1,
+    );
   });
 
   it("resets the rite on a melee hit instead of discarding the reset", () => {
