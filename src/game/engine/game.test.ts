@@ -293,7 +293,7 @@ describe("Game", () => {
     expect(game.state.enemies[0]?.rested).toBe(true);
   });
 
-  it("restores every broken fragment when the player loses HP", () => {
+  it("resets fragments and HP when a projectile costs the player HP", () => {
     const game = createGame();
     duel(game);
     game.state.enemies[0] = {
@@ -318,12 +318,91 @@ describe("Game", () => {
 
     expect(game.state.player.hp).toBe(5);
     expect(game.state.enemies[0]?.fragments).toEqual([true, true]);
-    expect(
-      events.some((event) => event.type === "fragments-restored"),
-    ).toBe(true);
+    expect(game.state.enemies[0]?.hp).toBe(DEPTH1.melee.maxHp);
+    expect(events.some((event) => event.type === "rite-reset")).toBe(true);
   });
 
-  it("keeps fragments broken when invulnerability blocks the HP loss", () => {
+  it("resets the rite on a melee hit instead of discarding the reset", () => {
+    const game = createGame();
+    duel(game);
+    game.state.enemies[0] = {
+      ...game.state.enemies[0]!,
+      x: game.state.player.x + 10,
+      y: game.state.player.y,
+      stagger: 0,
+      active: MELEE.active,
+      attackHit: false,
+    };
+    game.state.enemies[1] = {
+      ...game.state.enemies[1]!,
+      status: "alive",
+      rested: false,
+      respawn: 0,
+      hp: 3,
+      fragments: [false, false],
+    };
+
+    const events = stepFor(game, 0.05, {});
+
+    expect(game.state.player.hp).toBe(5);
+    expect(game.state.enemies[1]?.fragments).toEqual([true, true]);
+    expect(game.state.enemies[1]?.hp).toBe(DEPTH1.melee.maxHp);
+    expect(events.some((event) => event.type === "rite-reset")).toBe(true);
+  });
+
+  it("applies every enemy's damage when several attacks land together", () => {
+    const game = createGame();
+    const [first, second, third] = game.state.enemies;
+    game.state.enemies = [
+      {
+        ...first!,
+        x: game.state.player.x + 8,
+        y: game.state.player.y,
+        active: MELEE.active,
+        attackHit: false,
+      },
+      {
+        ...second!,
+        x: game.state.player.x - 8,
+        y: game.state.player.y,
+        active: MELEE.active,
+        attackHit: false,
+      },
+      {
+        ...third!,
+        x: game.state.player.x,
+        y: game.state.player.y + 8,
+        active: MELEE.active,
+        attackHit: false,
+      },
+    ];
+
+    const events = stepFor(game, 0.01, {});
+
+    expect(game.state.player.hp).toBe(6 - MELEE.damage * 3);
+    expect(events.filter((event) => event.type === "player-hit")).toHaveLength(
+      1,
+    );
+  });
+
+  it("separates enemy bodies lured onto the same point", () => {
+    const game = createGame();
+    const [first, second, third] = game.state.enemies;
+    const point = game.state.floor.enemySpawns[0]!;
+    game.state.enemies = [
+      { ...first!, x: point.x, y: point.y },
+      { ...second!, x: point.x, y: point.y },
+      { ...third!, status: "dead", hp: 0, rested: true },
+    ];
+
+    stepFor(game, 0.05, {});
+
+    const [a, b] = game.state.enemies;
+    const distance = Math.hypot(a!.x - b!.x, a!.y - b!.y);
+    expect(distance).toBeGreaterThanOrEqual(a!.radius + b!.radius - 0.5);
+  });
+
+  it("keeps fragments broken when dodge invulnerability blocks the HP loss", () => {
     const game = createGame();
     duel(game);
     game.state.enemies[0] = {
@@ -348,9 +427,7 @@ describe("Game", () => {
 
     expect(game.state.player.hp).toBe(6);
     expect(game.state.enemies[0]?.fragments).toEqual([false, false]);
-    expect(
-      events.some((event) => event.type === "fragments-restored"),
-    ).toBe(false);
+    expect(events.some((event) => event.type === "rite-reset")).toBe(false);
   });
 
   it("rests the last mob, awards a point, and unlocks the arena without summoning", () => {

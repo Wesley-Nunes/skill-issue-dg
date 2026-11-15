@@ -223,6 +223,9 @@ describe("0.2.0 QA verification", () => {
 
   it("does not repeat the swing while the button is held", () => {
     cy.approachMelee();
+    // A melee hit now resets the mob's rite, so keep the held-swing assertion
+    // about swing repeat only.
+    cy.setPlayerInvulnerable(5);
     cy.gameSnapshot().then((snapshot) => {
       const target = meleeTarget(snapshot);
       const clientX = (target.x - snapshot.camera.x) * snapshot.zoom;

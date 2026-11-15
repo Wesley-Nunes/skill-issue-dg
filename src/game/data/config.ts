@@ -32,7 +32,6 @@ export const PLAYER = {
   speed: 120,
   radius: 6,
   maxHp: 6,
-  damageInvulnerability: 0.6,
   hurtFlash: 0.15,
   hurtFlashWhite: 0.08,
 } as const;
