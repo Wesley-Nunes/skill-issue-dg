@@ -1,8 +1,9 @@
 # Implementation decisions — 0.9.1 combat integrity
 
 Owner: `programmer` · Task `0.9.1/001` · Implemented on 2026-11-15.
-Commit: `6538005` (`feat(game): reset the rite on a hit, count every enemy hit,
-and separate mobs`).
+Commits: `6538005` (`feat(game): reset the rite on a hit, count every enemy
+hit, and separate mobs`) and `18a24d2` (`test(game): cover bomb resets and
+blocked separation`, the QA follow-up below).
 
 Source contract: `docs/tasks/0.9.1/001-programmer.md` and
 `design/0.9.1/design-decisions.md`. No product scope was added.
@@ -30,7 +31,44 @@ Source contract: `docs/tasks/0.9.1/001-programmer.md` and
   `cypress/e2e/combat-integrity.cy.ts`.
 - **Version hygiene.** `package.json` and the lockfile root report `0.9.1`.
 
-## 2. Decisions and rationale
+## 2. QA follow-up (`18a24d2`)
+
+QA returned the task with **Changes requested** in `qa/0.9.1/001-report.md`
+(commit `dd3731b`): no behavioral defect, only missing required automated
+coverage. This follow-up is test-only; no application source, copy, HUD, audio,
+economy, tuning, or dependency changed.
+
+- **QA-001 (medium) — bomb-hit reset coverage.** Added the engine test
+  `resets fragments and HP when a bomb costs the player HP` in
+  `src/game/engine/game.test.ts`. A damaged mob with two broken fragments and a
+  pre-damaged Warden are placed, every enemy is staggered so the only damage is
+  the bomb, and the test asserts the player loses `BOMB.damage`, the mob returns
+  to full HP and intact fragments, exactly one `rite-reset` event fires, and
+  the Warden's HP is unchanged.
+- **QA-002 (medium) — wall/blocker separation coverage.** Added
+  `keeps a wall-edge push inside the floor geometry` and
+  `keeps a blocked-rect push out of the gate and shop safe zone` in
+  `src/game/systems/enemy.test.ts`. Both use the existing `openFloor()` helper,
+  assert every separated body remains walkable under the same `moveCircle`
+  geometry (and outside the blocker rect), assert the pass actually moves the
+  pair, and assert two runs over the same inputs produce identical positions.
+  The blocker rect models the arena gate / shop safe zone; `separateEnemies`
+  treats every blocked rect identically.
+- **QA-003 (low) — dead/dying evidence.** Extended
+  `ignores dead and dying bodies` so a living enemy overlaps both a dying and a
+  dead body at the same point and all three positions are asserted unchanged.
+  The old test could not fail for a living body pushed by a non-living one.
+- **QA-004 (low) — dev-only hook retained.** `debugSetPlayerInvulnerable`
+  remains necessary for e2e isolation and stays inside the existing
+  `DEV`/`VITE_E2E` gate; production still has no `__gameDebug`. The test-only
+  hook is now also used by `slice-regressions.cy.ts` "damages a melee enemy
+  exactly once per press": with every distinct hit applying damage, the player
+  can die during the scripted approach, which made that outgoing-damage
+  assertion flaky. Setting 30 s of invulnerability isolates incoming damage
+  without changing what the test asserts. The first full e2e run failed only
+  there (33/34); the stabilized rerun passed 34/34.
+
+## 3. Decisions and rationale
 
 ### Publish before applying damage
 
@@ -89,7 +127,7 @@ itself is verified through real hits in `combat-integrity.cy.ts`. It stays
 inside the existing `DEV`/`VITE_E2E` gate. Production still has no
 `__gameDebug`.
 
-## 3. Files
+## 4. Files
 
 Changed:
 
@@ -101,22 +139,34 @@ Changed:
 - `src/game/types/index.ts`, `src/ui/rendering/effects.ts` — event rename.
 - `src/ui/debug.ts`, `src/index.ts` — debug hook type and wiring.
 - `package.json`, `package-lock.json` — `0.9.1`.
+- `src/game/engine/game.test.ts`, `src/game/systems/enemy.test.ts` — QA follow-up
+  coverage (bomb reset, wall/blocker separation, dead/dying living overlap).
+- `cypress/e2e/slice-regressions.cy.ts` — damage isolation for the exact-HP
+  outgoing-damage assertion.
 
 Added:
 
 - `cypress/e2e/combat-integrity.cy.ts` — real melee-hit reset regression.
 - `cypress/support` commands/types for `setPlayerInvulnerable`.
-- Engine and pure tests listed in §4.
+- Engine and pure tests listed in §5.
 
-## 4. Verification evidence
+## 5. Verification evidence
+
+Rerun after the QA follow-up (`18a24d2`):
 
 | Gate | Result |
 |---|---|
 | `npm run typecheck` | Pass |
-| `npm test` | Pass — 18 files, 207 tests |
+| `npm test` | Pass — 18 files, 210 tests |
 | `npm run build` | Pass — `dist/assets/index--MKoW431.js`, 82.33 kB |
-| Production bundle scan | No `__gameDebug` |
-| `CYPRESS_BROWSER=chrome npm run e2e` | Pass — 7 specs, 34/34 tests, 3 m 07 s |
+| Production bundle scan | No `__gameDebug` in `dist/assets/*.js` |
+| `DISPLAY=:0 CYPRESS_BROWSER=chrome npm run e2e` | Pass — 7 specs, 34/34 tests, 3 m 03 s |
+
+The first full e2e run failed 1/34 ("damages a melee enemy exactly once per
+press": the player died during the scripted approach now that every hit
+applies). The test was isolated with the existing dev hook and the rerun
+passed 34/34. `DISPLAY=:0` is an environment requirement; the inherited `:1`
+has no X server.
 
 New/updated unit coverage:
 
@@ -124,13 +174,16 @@ New/updated unit coverage:
   untouched, dying enemy untouched, identity when already full;
 - damage: no post-hit window, second hit applies immediately, dodge blocks,
   dodge expiry allows damage;
-- engine: projectile hit resets fragments and HP, melee hit resets instead of
-  discarding, three enemies in one step deal `3 × MELEE.damage`, stacked bodies
-  separate, dodge keeps fragments broken;
-- separation: two superimposed, three superimposed, Warden immovable, dead/dying
-  ignored.
+- engine: projectile hit resets fragments and HP, **bomb hit resets every
+  living mob's fragments and HP while the Warden's HP is unchanged**, melee hit
+  resets instead of discarding, three enemies in one step deal
+  `3 × MELEE.damage`, stacked bodies separate, dodge keeps fragments broken;
+- separation: two superimposed, three superimposed, Warden immovable,
+  dead/dying ignored (including a living body overlapping a dying one), **wall
+  edge respected, blocked rect (gate / shop safe zone) respected, deterministic
+  repeatability**.
 
-## 5. Assumptions and follow-ups
+## 6. Assumptions and follow-ups
 
 - The `rite-reset` event replaces `fragments-restored`; no audio mapping or
   Cypress selector referenced the old name.
@@ -140,10 +193,11 @@ New/updated unit coverage:
   absence of fragments, so a future fragment-bearing boss stays excluded.
 - Hosted CI is unverified until the branch is pushed.
 
-## 6. Handoff
+## 7. Handoff
 
-QA must verify the behavior in `docs/tasks/0.9.1/001-qa.md` against this commit,
-including melee/projectile/bomb resets, dodge safety, Warden HP, simultaneous
-hits, separation near geometry, and the full loop regression. The known
-non-blocking evidence limitations from `0.9.0` (no live Warden lure, capture
-size) still apply.
+QA must verify the behavior in `docs/tasks/0.9.1/001-qa.md` against the
+implementation (`6538005`) plus the coverage follow-up (`18a24d2`), including
+melee/projectile/bomb resets, dodge safety, Warden HP, simultaneous hits,
+separation near geometry, and the full loop regression. QA-001 through QA-004
+are addressed as described in §2. The known non-blocking evidence limitations
+from `0.9.0` (no live Warden lure, capture size) still apply.
