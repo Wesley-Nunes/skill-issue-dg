@@ -1,49 +1,193 @@
+![Node.js](https://img.shields.io/badge/Node.js-0b0a0f?style=for-the-badge&logo=nodedotjs "Node.js")
+![TypeScript](https://img.shields.io/badge/typescript-0b0a0f?style=for-the-badge&logo=typescript "TypeScript")
+![Vite](https://img.shields.io/badge/vite-0b0a0f?style=for-the-badge&logo=vite "Vite")
+![Vitest](https://img.shields.io/badge/vitest-0b0a0f?style=for-the-badge&logo=vitest "Vitest")
+![Cypress](https://img.shields.io/badge/cypress-0b0a0f?style=for-the-badge&logo=cypress "Cypress")
+![Vercel](https://img.shields.io/badge/vercel-0b0a0f?style=for-the-badge&logo=vercel&logoColor=f2e9da "Vercel")
+
 # skill issue dg
+
+[![Unit Tests](https://github.com/Wesley-Nunes/skill-issue-dg/actions/workflows/vitest_tests.yaml/badge.svg)](https://github.com/Wesley-Nunes/skill-issue-dg/actions/workflows/vitest_tests.yaml)
+[![E2E Tests](https://github.com/Wesley-Nunes/skill-issue-dg/actions/workflows/cypress_tests.yaml/badge.svg)](https://github.com/Wesley-Nunes/skill-issue-dg/actions/workflows/cypress_tests.yaml)
 
 **▶ Play in your browser: [skill-issue-dg.vercel.app](https://skill-issue-dg.vercel.app)**
 
-A dark-fantasy action roguelike vertical slice. Descend through a seeded
-dungeon branch, break a mob's spirit fragments without taking a hit, put it to
-rest, and summon the **Floor Warden**. Defeat it to open the stairs and go
-deeper. Death is the only end.
+A dark-fantasy action roguelike vertical slice.  
+Descend through a seeded dungeon branch, break a mob's spirit fragments without taking a hit, put it to
+rest, and summon the **Floor Warden**. Defeat it to open the stairs and go deeper.  
+Death is the only end.
 
 ![The player facing a first-floor mob with two spirit fragments](docs/screenshots/gameplay.png)
 
-Built with TypeScript, the Canvas 2D API, and Vite. No runtime dependencies.
+## Table of Content
 
-## Status
+- [Motivation](#motivation)
+- [Design & Architecture](#design-and-architecture)
+- [Tech Stack](#tech-stack)
+- [How to Run](#how-to-run)
+- [Demo](#demo)
+- [License](#license)
+- [Author](#author)
 
-`0.9.0` — **MVP**. The loop runs from the title screen to the Floor Warden,
-the shop, and descent, and it is deployed to production. See
-[`GOAL.md`](GOAL.md) for the acceptance contract and
-[`qa/0.9.0/001-report.md`](qa/0.9.0/001-report.md) for the verification
-report.
+## <a name="motivation">Motivation</a>
 
-## Requirements
+I decided to develop this game because I want to test my skills in agentic development.  
+I used _only_ the free tier of OpenCode with DeepSeek V4.1 Flash Free. It took around seven days to achieve the **fully playable** MVP - `version 0.9.0`.
+
+### AI agent
+
+> Session: "AI agent" was written by the AI agent.
+
+#### Role and contribution
+
+**skill issue dg** was built by a human operator working with an AI coding agent
+in a small, explicitly defined team structure. The operator owned product intent
+and every acceptance decision. The AI agent owned planning, documentation,
+design, implementation, testing, and release bookkeeping — and recorded all of
+it in the repository.
+
+The shipped game contains no AI. No model, API, or adaptive behavior runs at
+runtime; enemy "AI" is ordinary deterministic game logic. AI was a development
+tool, not a feature.
+
+#### What the agent was responsible for
+
+| Role             | Responsibility                                                                                                              |
+| ---------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| Orchestrator     | Owned the version plan, branch and PR lifecycle, integration, code review, and final acceptance; kept `STATE.md` truthful.  |
+| Docs agent       | Ran product discovery with the operator and wrote the MVP contract, product overview, and per-version task handoffs.        |
+| Design agent     | Turned approved tasks into concrete visual and interaction decisions (layout, HUD, feedback, accessibility).                |
+| Programmer agent | Implemented the approved scope in TypeScript/Canvas, with unit and browser tests, and wrote an implementation decision log. |
+| QA agent         | Independently verified behavior against the task and design contract, recorded evidence, and returned work when it failed.  |
+
+Stages ran in a fixed order — **docs → design → programmer → QA** — each behind
+an orchestrator gate. Product questions went to the operator one at a time;
+implementation details were resolved by the agent under KISS, YAGNI, separation
+of concerns, and pragmatism.
+
+Concretely, that is roughly 7,300 lines of TypeScript plus 3,450 lines of unit
+tests, 198 unit tests, 33 Cypress browser tests, zero runtime dependencies, a GitHub Actions
+workflow, and a live Vercel build.
+
+#### How the work is traceable
+
+Every version left a consistent paper trail, so any decision can be checked
+against the code:
+
+```text
+GOAL.md                                   MVP contract and success criteria
+STATE.md                                  current version, phase, branch, blockers
+docs/about-the-project.md                 product vision and game rules
+docs/tasks/<version>/<task>-*.md          docs → design → programmer → QA handoffs
+design/<version>/design-decisions.md      approved visual/interaction contract
+programmer/<version>/CoT.md               implementation decision log
+qa/<version>/<task>-report.md             verification evidence and verdict
+```
+
+Commits follow
+`<type>(<scope>): <summary> [<version>/<task>/<agent>]`, so history shows which
+role produced each change. Quality evidence is recorded rather than asserted:
+QA reports cite commands, commit hashes, test counts, captures, and known
+limitations.
+
+#### Honest limits
+
+- **The operator made the product calls.** Scope, feel, and acceptance were not
+  delegated to the agent.
+- **Automated tests prove rules and pixels, not fun.** No human playtest
+  substitute was recorded for "feel" judgments.
+- **The workflow is heavier than the game.** The process artifacts are a
+  deliberate part of the portfolio value: they show how the work was planned,
+  reviewed, and verified.
+
+## <a name="design-and-architecture">Design & Architecture</a>
+
+Game rules stay independent from rendering and input.  
+Systems are pure where practical; the engine coordinates them and owns the mutable run state.
+
+### Project structure
+
+```text
+src/
+  game/
+    data/       static data: config, floor generation, sprite file names
+    systems/    deterministic rules: combat, enemy AI, bombs, collision
+    engine/     orchestration and the run state machine
+    types/      domain types shared across layers
+  state/        runtime state factories
+  ui/
+    audio/      Web Audio manager and synthesized boss layers
+    boot/       boot loading-screen progress and DOM controller
+    input/      keyboard and pointer translation
+    rendering/  canvas renderer and visual effects
+    styles/     page styling
+cypress/        end-to-end specs and shared commands
+```
+
+See [`docs/about-the-project.md`](docs/about-the-project.md) for the product
+direction, [`GOAL.md`](GOAL.md) for the MVP contract, and
+[`STATE.md`](STATE.md) for the current workflow state.
+
+## <a name="tech-stack">Tech Stack</a>
+
+| Area           | Technology                   |
+| :------------- | :--------------------------- |
+| **Frontend**   | TypeScript, Canvas 2D API    |
+| **Testing**    | Cypress (E2E), Vitest (Unit) |
+| **Build Tool** | Vite                         |
+| **Deployment** | Vercel                       |
+
+## <a name="how-to-run">How to Run & Requirements</a>
+
+### Requirements
 
 - A desktop browser with a keyboard and mouse (Chrome or Edge recommended).
 - [Node.js](https://nodejs.org/) 22 or newer and npm, for development only.
 - No install or account. Progress is held in memory, so closing the tab ends
   the run.
 
-## Controls
+### Run locally
 
-| Input | Action |
-|---|---|
-| `WASD` | Move |
-| Mouse | Aim |
-| Left mouse button | Light attack (one committed swing per press) |
-| `Space` | Dodge (brief invulnerability) |
-| `E` | Interact: browse the shop, summon the Warden |
-| `Q` | Use the carried healing draught |
-| `W` / `S` or `↑` / `↓` | Move the shop selection |
-| `Enter` | Confirm a shop purchase |
-| `Enter` / `Space` / click | Start from the title screen |
-| `Esc` | Pause / resume; close the shop |
-| `M` | Mute / unmute |
-| `R` | Restart after death |
+```bash
+npm install
+npm run dev
+```
 
-## Gameplay loop
+> Open the URL printed by Vite `http://localhost:5173`.
+
+### Production Build
+
+```bash
+npm run build
+npm run preview
+```
+
+> Open the URL printed by Vite `http://localhost:4173`.
+
+### Preview
+
+Play **[Skill Issue DG](https://skill-issue-dg.vercel.app)** 🎮 (v0.9.0)
+
+### Controls
+
+| Input                     | Action                                       |
+| ------------------------- | -------------------------------------------- |
+| `WASD`                    | Move                                         |
+| Mouse                     | Aim                                          |
+| Left mouse button         | Light attack (one committed swing per press) |
+| `Space`                   | Dodge (brief invulnerability)                |
+| `E`                       | Interact: browse the shop, summon the Warden |
+| `Q`                       | Use the carried healing draught              |
+| `W` / `S` or `↑` / `↓`    | Move the shop selection                      |
+| `Enter`                   | Confirm a shop purchase                      |
+| `Enter` / `Space` / click | Start from the title screen                  |
+| `Esc`                     | Pause / resume; close the shop               |
+| `M`                       | Mute / unmute                                |
+| `R`                       | Restart after death                          |
+
+#### Gameplay loop
+
+**0.9.0 version**:
 
 1. A floor is a seeded six-room branch: start, first mob, a junction, a shop
    dead end and second mob on the left, and a third mob plus the gated Warden
@@ -69,107 +213,22 @@ report.
    boss, and shop state. Skill points, a carried draught, Vigor, and the raised
    maximum HP persist for the run and reset on death.
 
-## Run locally
+## <a name="demo">Demo</a>
 
-```bash
-npm install
-npm run dev
-```
 
-Open the URL printed by Vite (usually `http://localhost:5173`).
 
-## Scripts
+https://github.com/user-attachments/assets/f61ea893-5b23-47ae-a241-b376a39daca8
 
-```bash
-npm run dev        # Vite dev server
-npm run typecheck  # TypeScript, no emit
-npm test           # Vitest unit suite
-npm run build      # Typecheck + production bundle
-npm run preview    # Serve the production bundle
-npm run e2e        # Build with the e2e flag, preview, and run Cypress
-```
 
-`npm run e2e` runs Cypress against the production bundle. Set
-`CYPRESS_BROWSER=chrome` to avoid Electron's requestAnimationFrame throttling
-on some desktops.
 
-## Project structure
 
-```text
-src/
-  game/
-    data/       static data: config, floor generation, sprite file names
-    systems/    deterministic rules: combat, enemy AI, bombs, collision
-    engine/     orchestration and the run state machine
-    types/      domain types shared across layers
-  state/        runtime state factories
-  ui/
-    audio/      Web Audio manager and synthesized boss layers
-    boot/       boot loading-screen progress and DOM controller
-    input/      keyboard and pointer translation
-    rendering/  canvas renderer and visual effects
-    styles/     page styling
-cypress/        end-to-end specs and shared commands
-```
+## <a name="license">License</a>
 
-Game rules stay independent from rendering and input. Systems are pure where
-practical; the engine coordinates them and owns the mutable run state.
+This project is licensed under the MIT License.
 
-## Boot and font
+## <a name="author">Author</a>
 
-The game opens on a loading screen that reports real progress while it fetches
-all 54 sprite images, downloads and decodes every audio cue, and prepares the
-display font. The screen paints from static markup before the JavaScript
-bundle runs, then fades into the title once those assets are settled. It is
-boot-only; restart and descent do not repeat it. A missing image is a fatal
-boot error, while unavailable audio or a failed font falls back silently.
+Developed by **Wesley Nunes**
 
-Display headings use the self-hosted **Grenze Gotisch** variable font
-(SIL Open Font License 1.1). See
-[`public/assets/fonts/ATTRIBUTION.md`](public/assets/fonts/ATTRIBUTION.md).
-Small HUD values, controls, and status text stay in the system UI stack.
-
-## Audio
-
-Concrete events use supplied CC0 sound files under `public/assets/audio/`.
-The Warden's presence, breathing, fire, voice, and magic are synthesized with
-the Web Audio API. Every cue is downloaded and decoded before play, then
-unlocked on the first user gesture, toggled with `M`, and never blocks play.
-The game is fully playable muted.
-
-See [`public/assets/audio/ATTRIBUTION.md`](public/assets/audio/ATTRIBUTION.md)
-and the DungeonTileset II attribution note under
-`public/assets/dungeon-tileset-ii/`.
-
-## Deployment
-
-The production build is live at
-**[skill-issue-dg.vercel.app](https://skill-issue-dg.vercel.app)**. The
-project is a static Vite build hosted on Vercel.
-
-- **Production branch:** `main`
-- **Staging branch:** `dev`
-- **Build command:** `npm run build`
-- **Output directory:** `dist`
-
-`vercel.json` pins the build command and output directory. No hosting
-credentials live in this repository.
-
-## Debug hooks
-
-Development and e2e builds expose `window.__bootDebug`, `window.__gameDebug`,
-and `window.__audioDebug` for Cypress. Production builds expose none of them.
-The e2e bundle is built with `VITE_E2E=1`.
-
-## Scope
-
-`0.9.0` is the released MVP: one seeded dungeon branch, the run-scoped reward
-loop (skill points, the shop, the healing draught, one-time Vigor, the arena
-gate, and the explicit Warden summon), the single light attack and depth
-curve, and the sealed safe room. Random drops, loot tables, gold, score,
-artifacts, meta-progression, a general floor generator, multiple bosses, and
-saved runs remain deferred.
-
-See [`docs/about-the-project.md`](docs/about-the-project.md) for the product
-direction, [`GOAL.md`](GOAL.md) for the MVP contract, and
-[`STATE.md`](STATE.md) for the current workflow state.
+- [GitHub](https://github.com/Wesley-Nunes/)
+- [LinkedIn](https://www.linkedin.com/in/dev-wesley-nunes)
