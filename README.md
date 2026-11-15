@@ -25,6 +25,7 @@ Death is the only end.
 - [Design & Architecture](#design-and-architecture)
 - [Tech Stack](#tech-stack)
 - [How to Run](#how-to-run)
+- [Demo](#demo)
 - [License](#license)
 - [Author](#author)
 
@@ -211,6 +212,15 @@ Play **[Skill Issue DG](https://skill-issue-dg.vercel.app)** 🎮 (v0.9.0)
 6. Descending generates a new floor, restores 2 HP, and resets spirit, gate,
    boss, and shop state. Skill points, a carried draught, Vigor, and the raised
    maximum HP persist for the run and reset on death.
+
+## <a name="demo">Demo</a>
+
+
+
+https://github.com/user-attachments/assets/f61ea893-5b23-47ae-a241-b376a39daca8
+
+
+
 
 ## <a name="license">License</a>
 
