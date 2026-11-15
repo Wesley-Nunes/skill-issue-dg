@@ -8,18 +8,18 @@ This file is the canonical workflow state for the repository. It is maintained b
 |---|---|
 | Project | skill issue dg |
 | Goal | `0.9.1` combat-integrity hotfix: make a hit reset the rite completely, count every distinct enemy attack, and stop lured mobs from stacking |
-| Current SemVer ID | `0.9.1` (operator-approved 2026-11-15; **in progress**) |
+| Current SemVer ID | `0.9.1` (operator-approved 2026-11-15; **QA passed, release pending**) |
 | Next target version | `—` — no later version approved; discovery required before new scope |
 | Current task ID | `001` |
-| Active phase | `Design decisions` |
-| Active agent | `orchestrator` / `design` |
+| Active phase | `Release` / integration |
+| Active agent | `orchestrator` |
 | Git branch | `feature/0.9.1-001-combat-integrity` (from `dev` at `8ddaac4`) |
-| Last accepted commit | `8ddaac4` (`dev` base for the hotfix branch) |
+| Last accepted commit | `23a1234` (QA report `Passed after fixes`; application at `6538005`, follow-up tests `18a24d2`) |
 | Pushed HEAD | Not pushed yet; the hotfix branch is local |
 | Pull request | None yet |
-| Known issue | The four manual-play findings are the hotfix scope: melee hits discard the rite reset; mob HP is not reset; mobs stack into one body; a shared 0.6 s post-hit i-frame swallows multi-enemy damage. Fix in progress |
+| Known issue | None blocking. The four manual-play findings are fixed and QA-passed. Non-blocking: no fresh human playtest, sub-pixel separation residual, bomb test depends on current spawn/stagger timings, live Warden lure still unscripted |
 | Blocking questions remaining | `0` — the operator approved every-hit damage and the rite reset on 2026-11-15 |
-| Overall status | **In progress.** The `0.9.0` MVP remains the released production build and is unchanged until this hotfix passes QA. `0.9.1` adds no content: it repairs the rite reset (fragments and HP), removes the post-hit i-frame while keeping dodge i-frames, and adds deterministic enemy-body separation. |
+| Overall status | **QA passed after fixes; release pending.** `0.9.1` adds no content: it repairs the rite reset (fragments and HP), removes the post-hit i-frame while keeping dodge i-frames, and adds deterministic enemy-body separation. Typecheck, 210/210 unit tests, build, bundle scan, and 34/34 Chrome e2e pass; hosted CI and Vercel are pending until the branch is pushed. |
 
 Update this snapshot whenever a value changes. Do not leave stale status after a handoff.
 
@@ -41,18 +41,21 @@ The state manager must not invent decisions, change product scope, edit game cod
 
 Populate these links when the version and task have been approved:
 
-### `0.9.1` / `001` (in progress)
+### `0.9.1` / `001` (QA passed after fixes; release pending)
 
 - Product overview: `docs/about-the-project.md` §3.3 and §5.1 record the
   rite-reset, per-enemy damage, and enemy-separation rules.
 - MVP contract amendment: [GOAL.md](GOAL.md) SC2 now requires the mob HP reset
   (operator-approved 2026-11-15).
 - Task package: `docs/tasks/0.9.1/001-design.md`,
-  `001-programmer.md`, `001-qa.md` (orchestrator-authored; no docs subagent is
-  available).
-- Design decisions: `design/0.9.1/design-decisions.md` (pending).
-- Implementation decision log: `programmer/0.9.1/CoT.md` (pending).
-- QA report: `qa/0.9.1/001-report.md` (pending).
+  `001-programmer.md`, `001-qa.md`.
+- Design decisions: [design/0.9.1/design-decisions.md](design/0.9.1/design-decisions.md)
+  (`186bf71`; approved).
+- Implementation decision log: [programmer/0.9.1/CoT.md](programmer/0.9.1/CoT.md)
+  (`8591614`, updated at `30e68ec`).
+- Application implementation: `6538005`; follow-up coverage `18a24d2`.
+- QA report: [qa/0.9.1/001-report.md](qa/0.9.1/001-report.md) (`Passed after
+  fixes`, `23a1234`; supersedes the initial changes-requested pass `dd3731b`).
 - Operator decisions (2026-11-15): every distinct enemy hit damages the player;
   remove the shared post-hit i-frame; keep dodge i-frames; reset fragments and
   HP on every living mob; exclude the Warden from the HP reset; prevent living
@@ -96,6 +99,34 @@ Populate these links when the version and task have been approved:
   `17510eb`, QA `Passed after fixes` (`020c178`).
 - Also merged into `dev`: `0.6.0` via PR #9 (`60318be`), `0.5.0` via PR #5
   (`3c2f62d`).
+
+### Version 0.9.1 scope (operator-approved 2026-11-15) — QA passed after fixes
+
+- **Deliverable:** repair the four combat-integrity defects found in manual
+  play after the MVP confirmation, with no new content.
+- **Why:** a melee hit discarded the rite reset, HP was not reset with the
+  fragments, lured mobs stacked into one body, and a shared post-hit i-frame
+  swallowed the second and third attackers. Each defect undermined the
+  "break the fragments without taking a hit" rule or made being surrounded
+  safer than it should be.
+- **Included:** `updateEnemies` returns the wave so damage is applied after the
+  enemy array is published; `resetEnemyRite` restores fragments and HP for all
+  living mobs and never the Warden; the post-hit i-frame and
+  `PLAYER.damageInvulnerability` are removed while dodge i-frames remain;
+  deterministic post-movement enemy separation with the Warden immovable;
+  melee damage summed into one HP loss and one `player-hit` event;
+  `fragments-restored` renamed to `rite-reset`; unit, engine, and browser
+  regression coverage; version `0.9.1`.
+- **Excluded:** pathfinding, group AI, flanking, new archetypes, room or economy
+  changes, enemy/boss tuning beyond the fixed rules, new HUD, copy, hotkeys,
+  audio, art, or persistence.
+- **Known consequence:** being surrounded is lethal — at depth 5+ three melee
+  hits equal the base 6 HP bar. Separation makes the pile avoidable; the
+  trade-off was accepted by the operator and recorded in the design contract.
+- **Evidence:** implementation `6538005`, follow-up tests `18a24d2`, decision
+  log `30e68ec`, QA `Passed after fixes` `23a1234`; typecheck, 210/210 unit
+  tests, build, bundle scan, and 34/34 Chrome e2e pass. Hosted CI and Vercel
+  remain pending until the branch is pushed.
 
 ### Version 0.9.0 scope (operator-approved 2026-11-14, released)
 
@@ -373,7 +404,12 @@ Append one entry for each meaningful phase transition:
 | 2026-11-14 | 0.9.0/001 | Release → README polish | Orchestrator reviewed `README.md` from a player's perspective and rewrote it: play link, first-floor screenshot (`docs/screenshots/gameplay.png`), requirements, no-save note, accurate seeded-branch wording, and live Vercel deployment section. Committed and pushed to `dev` | `a2d619c` |
 | 2026-11-14 | 0.9.0/001 | Complete | Operator confirmed the MVP on 2026-11-14 after reviewing the polished README. Orchestrator recorded the sign-off, synced `dev` into `main`, and verified hosted CI on the confirmation commit (`2f8cb2b`, run `43600242839`, success); no app code changed | this confirmation commit |
 | 2026-11-15 | 0.9.1/001 | Complete → Docs discovery | Operator found four combat-integrity defects in manual play and approved the hotfix: reset fragments and HP on a hit, count every distinct enemy hit, keep dodge i-frames, and separate enemy bodies. Version `0.9.1` and branch `feature/0.9.1-001-combat-integrity` created from `dev`; task package, product-overview rules, and the SC2 amendment written | this docs commit |
-| 2026-11-15 | 0.9.1/001 | Docs discovery → Design decisions | Design contract authored by the orchestrator: exact rite-reset trigger, Warden exception, every-hit damage with dodge-only i-frames, deterministic separation, and edge cases for QA | this design commit |
+| 2026-11-15 | 0.9.1/001 | Docs discovery → Design decisions | Design contract authored by the orchestrator: exact rite-reset trigger, Warden exception, every-hit damage with dodge-only i-frames, deterministic separation, and edge cases for QA | `186bf71` |
+| 2026-11-15 | 0.9.1/001 | Tooling fix | The repository named `docs`, `design`, `programmer`, and `qa` agents but had no OpenCode agent definitions, so they could not be launched. Added four `mode: subagent` definitions under `.opencode/agents/`; `opencode debug agents` lists all four | `065d64f` |
+| 2026-11-15 | 0.9.1/001 | Design decisions → Implementation → QA verification | Melee damage now applies after the enemy array is published; `resetEnemyRite` restores fragments and HP for living mobs and never the Warden; the post-hit i-frame is removed while dodge i-frames remain; post-movement separation; 207 unit tests, build, and 34/34 Chrome e2e pass | `6538005`, `8591614` |
+| 2026-11-15 | 0.9.1/001 | QA verification → Changes requested | Independent QA found no behavioral defect and every gate green, but rejected the task on required coverage: no bomb-hit reset test and no wall/blocker separation test; two low findings on the dead/dying test and the dev-only hook | `dd3731b` |
+| 2026-11-15 | 0.9.1/001 | Changes requested → Re-verification | Programmer added bomb-reset and blocked-separation tests, extended the dead/dying case, and documented the debug hook; 210/210 unit tests, build, and 34/34 Chrome e2e pass | `18a24d2`, `30e68ec` |
+| 2026-11-15 | 0.9.1/001 | Re-verification → QA passed | Independent QA closed QA-001…QA-004 with mutation checks, confirmed 210/210 unit tests, clean build/bundle, and 34/34 Chrome e2e, and returned `Passed after fixes` | `23a1234` |
 
 ## Status vocabulary
 

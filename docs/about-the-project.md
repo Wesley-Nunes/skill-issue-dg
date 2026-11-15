@@ -792,14 +792,16 @@ the `0.9.0` bundle. The operator confirmed the MVP on 2026-11-14.
 Feature scope is otherwise frozen: no new enemy, room, economy, loot, boss,
 progression, persistence, art, or audio work is part of this slice.
 
-**Status for `0.9.1` (combat-integrity hotfix, in progress):** manual play
+**Status for `0.9.1` (combat-integrity hotfix, QA passed):** manual play
 after the MVP confirmation found that a melee hit discarded the rite reset, that
 mob HP was not reset with the fragments, that enemies could stack into one
 body, and that a shared post-hit i-frame reduced three simultaneous attacks to
 one damage. The operator approved the fix on 2026-11-15: reset fragments and HP
 on every living mob, count every distinct enemy hit, keep dodge i-frames, and
 separate enemy bodies. No new content, archetype, room, economy, art, or audio
-is in scope.
+is in scope. Independent QA returned `Passed after fixes` on 2026-11-15
+(`qa/0.9.1/001-report.md`, `23a1234`); hosted CI and the Vercel deployment
+remain pending until the branch is pushed.
 
 ### Not required for the first MVP
 

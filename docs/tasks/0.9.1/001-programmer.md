@@ -7,7 +7,7 @@
 | Version | `0.9.1` |
 | Task ID | `001` |
 | Owning agent | `programmer` |
-| Status | `Not started` |
+| Status | `Delivered` (`6538005`; follow-up coverage `18a24d2`; log `30e68ec`) |
 | Depends on | `design/0.9.1/design-decisions.md` |
 | Produces | `programmer/0.9.1/CoT.md`, source and test changes, version hygiene |
 | Hands off to | `docs/tasks/0.9.1/001-qa.md` |
