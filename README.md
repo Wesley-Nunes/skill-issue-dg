@@ -1,4 +1,14 @@
+![Node.js](https://img.shields.io/badge/Node.js-0b0a0f?style=for-the-badge&logo=nodedotjs "Node.js")
+![TypeScript](https://img.shields.io/badge/typescript-0b0a0f?style=for-the-badge&logo=typescript "TypeScript")
+![Vite](https://img.shields.io/badge/vite-0b0a0f?style=for-the-badge&logo=vite "Vite")
+![Vitest](https://img.shields.io/badge/vitest-0b0a0f?style=for-the-badge&logo=vitest "Vitest")
+![Cypress](https://img.shields.io/badge/cypress-0b0a0f?style=for-the-badge&logo=cypress "Cypress")
+![Vercel](https://img.shields.io/badge/vercel-0b0a0f?style=for-the-badge&logo=vercel&logoColor=f2e9da "Vercel")
+
 # skill issue dg
+
+[![Unit Tests](https://github.com/Wesley-Nunes/skill-issue-dg/actions/workflows/vitest_tests.yaml/badge.svg)](https://github.com/Wesley-Nunes/skill-issue-dg/actions/workflows/vitest_tests.yaml)
+[![E2E Tests](https://github.com/Wesley-Nunes/skill-issue-dg/actions/workflows/cypress_tests.yaml/badge.svg)](https://github.com/Wesley-Nunes/skill-issue-dg/actions/workflows/cypress_tests.yaml)
 
 **▶ Play in your browser: [skill-issue-dg.vercel.app](https://skill-issue-dg.vercel.app)**
 
@@ -28,20 +38,20 @@ report.
 
 ## Controls
 
-| Input | Action |
-|---|---|
-| `WASD` | Move |
-| Mouse | Aim |
-| Left mouse button | Light attack (one committed swing per press) |
-| `Space` | Dodge (brief invulnerability) |
-| `E` | Interact: browse the shop, summon the Warden |
-| `Q` | Use the carried healing draught |
-| `W` / `S` or `↑` / `↓` | Move the shop selection |
-| `Enter` | Confirm a shop purchase |
-| `Enter` / `Space` / click | Start from the title screen |
-| `Esc` | Pause / resume; close the shop |
-| `M` | Mute / unmute |
-| `R` | Restart after death |
+| Input                     | Action                                       |
+| ------------------------- | -------------------------------------------- |
+| `WASD`                    | Move                                         |
+| Mouse                     | Aim                                          |
+| Left mouse button         | Light attack (one committed swing per press) |
+| `Space`                   | Dodge (brief invulnerability)                |
+| `E`                       | Interact: browse the shop, summon the Warden |
+| `Q`                       | Use the carried healing draught              |
+| `W` / `S` or `↑` / `↓`    | Move the shop selection                      |
+| `Enter`                   | Confirm a shop purchase                      |
+| `Enter` / `Space` / click | Start from the title screen                  |
+| `Esc`                     | Pause / resume; close the shop               |
+| `M`                       | Mute / unmute                                |
+| `R`                       | Restart after death                          |
 
 ## Gameplay loop
 
