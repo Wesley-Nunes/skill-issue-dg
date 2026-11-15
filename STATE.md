@@ -15,7 +15,7 @@ This file is the canonical workflow state for the repository. It is maintained b
 | Active agent | `orchestrator` |
 | Git branch | `feature/0.9.1-001-combat-integrity` (from `dev` at `8ddaac4`) |
 | Last accepted commit | `23a1234` (QA report `Passed after fixes`; application at `6538005`, follow-up tests `18a24d2`) |
-| Pushed HEAD | `8b04b1b` on `origin/feature/0.9.1-001-combat-integrity` (pushed 2026-11-15) |
+| Pushed HEAD | `origin/feature/0.9.1-001-combat-integrity` (pushed 2026-11-15; see `git log` for the tip) |
 | Pull request | None yet — `gh`/PR tooling is unavailable; operator must open the PR. Hosted workflows trigger only on pull requests to `dev`/`main` or pushes to those branches, so no hosted run exists yet |
 | Known issue | None blocking. The four manual-play findings are fixed and QA-passed. Non-blocking: no fresh human playtest, sub-pixel separation residual, bomb test depends on current spawn/stagger timings, live Warden lure still unscripted, hosted CI pending |
 | Blocking questions remaining | `0` — the operator approved every-hit damage and the rite reset on 2026-11-15 |
