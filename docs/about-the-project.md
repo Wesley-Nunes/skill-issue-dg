@@ -42,7 +42,7 @@ The game's identity should emphasize mastery rather than relying only on
 character statistics. Players should be rewarded for playing well,
 avoiding damage, and reading enemy attacks.
 
-The current `0.8.0` slice keeps the dark-fantasy liberation frame: a
+The current slice keeps the dark-fantasy liberation frame: a
 mob is not simply killed. Its spirit fragments must be broken without
 taking a hit, and only then can it be put to rest. Conventional kills
 return the mob, while a completed rite grants spirit toward the floor's
@@ -210,8 +210,10 @@ The `0.2.0` purification rules are operator-approved (2026-11-04):
     The current implementation uses two fragments.
 -   The light attack breaks a fragment when it lands inside the swing's
     arc. A swing can break more than one fragment.
--   Any HP loss restores every broken fragment on every living enemy.
-    Dodges and i-frames that prevent the HP loss are safe.
+-   Any HP loss resets the rite on every living mob: every broken
+    fragment returns and the mob's HP returns to full. The Floor Warden
+    has no fragments and its HP is never reset. Dodges and i-frames that
+    prevent the HP loss are safe.
 -   A mob killed while at least one fragment is intact is a failed rite:
     it respawns at its spawn after about two seconds with full HP and all
     fragments restored.
@@ -239,6 +241,24 @@ replaces the automatic appearance with an explicit summon (operator-approved
 the player chooses when to enter the arena and summon the Warden. Skill
 points return as the run currency, earned by resting mobs and spent in the
 safe-room shop. Random drops remain future work.
+
+The `0.9.1` combat-integrity slice repairs two defects found in manual play
+(operator-approved 2026-11-15) without changing the rite or the roster:
+
+-   A hit from a mob now actually resets the rite. The previous melee damage
+    path discarded the restoration, so a melee hit could leave broken fragments
+    broken. HP now resets with the fragments, closing the exploit where a mob
+    could be whittled down, hit the player, and then be rested with one swing.
+-   Each living enemy's attack is resolved separately. A shared post-hit
+    invulnerability window no longer swallows the second and third hits from a
+    pile of mobs. Dodge i-frames still prevent damage, and one enemy's swing can
+    still hit at most once.
+-   Living mobs keep a minimum body distance from each other, so lured mobs
+    cannot stack into a single combatant. The Warden is too heavy to be moved by
+    this rule. There is no group pathfinding or new AI.
+
+The rule and its verification are recorded in
+`design/0.9.1/design-decisions.md`.
 
 ### 3.4 Health and survivability
 
@@ -442,6 +462,13 @@ and fast remain future archetypes.
 
 Both implemented archetypes carry spirit fragments and follow the
 same purification rules (`0.2.0`, operator-approved 2026-11-04).
+
+Enemy bodies keep space from each other (`0.9.1`, operator-approved
+2026-11-15): lured mobs may chase the player into the same room, but they do
+not occupy the same point or collapse into one attacker. Each living enemy's
+attack damages the player independently; the dodge i-frame is the only shared
+damage-avoidance window. The Warden is immovable by this rule. Pathfinding and
+group tactics remain future work.
 
 Floor composition is fixed (`0.7.0`, `0.8.0`): every floor holds two
 melee mobs and one ranged mob, except the depth-1 teaching floor, which
@@ -764,6 +791,15 @@ The MVP is released: `dev` and `main` carry the same app tree (`main` at
 the `0.9.0` bundle. The operator confirmed the MVP on 2026-11-14.
 Feature scope is otherwise frozen: no new enemy, room, economy, loot, boss,
 progression, persistence, art, or audio work is part of this slice.
+
+**Status for `0.9.1` (combat-integrity hotfix, in progress):** manual play
+after the MVP confirmation found that a melee hit discarded the rite reset, that
+mob HP was not reset with the fragments, that enemies could stack into one
+body, and that a shared post-hit i-frame reduced three simultaneous attacks to
+one damage. The operator approved the fix on 2026-11-15: reset fragments and HP
+on every living mob, count every distinct enemy hit, keep dodge i-frames, and
+separate enemy bodies. No new content, archetype, room, economy, art, or audio
+is in scope.
 
 ### Not required for the first MVP
 
