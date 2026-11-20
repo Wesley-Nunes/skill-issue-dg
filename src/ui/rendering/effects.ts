@@ -150,7 +150,7 @@ export class VisualEffects {
             color: FRAGMENT_COLOR,
           });
           break;
-        case "fragments-restored":
+        case "rite-reset":
           this.sparks.push({
             x: event.x,
             y: event.y,

@@ -121,6 +121,8 @@ async function start(): Promise<void> {
       prepareRite: () => game.debugPrepareRite(),
       weakenBoss: (hp) => game.debugWeakenBoss(hp),
       setPlayerHp: (hp) => game.debugSetPlayerHp(hp),
+      setPlayerInvulnerable: (seconds) =>
+        game.debugSetPlayerInvulnerable(seconds),
       killPlayer: () => game.debugKillPlayer(),
       descend: () => game.debugDescend(),
     };

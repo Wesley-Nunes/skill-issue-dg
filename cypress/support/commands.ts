@@ -264,6 +264,13 @@ Cypress.Commands.add("weakenBoss", (hp = 1) => {
   });
 });
 
+Cypress.Commands.add("setPlayerInvulnerable", (seconds: number) => {
+  cy.window().then((win) => {
+    if (!win.__gameDebug) throw new Error("Game debug hook is unavailable.");
+    win.__gameDebug.setPlayerInvulnerable(seconds);
+  });
+});
+
 Cypress.Commands.add("setPlayerHp", (hp: number) => {
   cy.window().then((win) => {
     if (!win.__gameDebug) throw new Error("Game debug hook is unavailable.");

@@ -61,6 +61,11 @@ export function knockbackEnemy(
   return { ...enemy, x: position.x, y: position.y };
 }
 
+/**
+ * Applies one damage instance. The only shared avoidance window is the dodge
+ * i-frame; a hit never grants post-hit invulnerability, so distinct enemies can
+ * each deal their damage.
+ */
 export function damagePlayer(player: Player, amount: number): PlayerDamageResult {
   if (player.invulnerable > 0 || player.hp <= 0) {
     return { player, applied: false, died: false };
@@ -71,7 +76,6 @@ export function damagePlayer(player: Player, amount: number): PlayerDamageResult
     player: {
       ...player,
       hp,
-      invulnerable: PLAYER.damageInvulnerability,
       hurtFlash: PLAYER.hurtFlash,
     },
     applied: true,

@@ -1,8 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { BOSS, MELEE, RANGED } from "../data/config";
+import { circleOverlapsRect, isCircleWalkable } from "../data/floor";
 import { createBoss, createEnemy } from "../../state/initialState";
 import { scalingForDepth } from "./depth";
-import { updateEnemy } from "./enemy";
+import { separateEnemies, updateEnemy } from "./enemy";
 import { openFloor } from "./testFloor";
 
 const ROOM = openFloor();
@@ -318,4 +319,133 @@ describe("Floor Warden", () => {
     expect(second.damageToPlayer).toBe(0);
   });
 
+});
+
+describe("enemy separation", () => {
+  function stacked(count: number) {
+    return Array.from({ length: count }, (_, index) => ({
+      ...createEnemy({ ...meleeSpawn, id: `melee-${index}` }),
+      x: 300,
+      y: 300,
+    }));
+  }
+
+  it("pushes two superimposed mobs apart", () => {
+    const [a, b] = stacked(2);
+    const [left, right] = separateEnemies([a!, b!], ROOM);
+    const distance = Math.hypot(left!.x - right!.x, left!.y - right!.y);
+    expect(distance).toBeGreaterThanOrEqual(left!.radius + right!.radius - 1e-6);
+  });
+
+  it("settles three mobs stacked on one point", () => {
+    const result = separateEnemies(stacked(3), ROOM);
+
+    for (let left = 0; left < result.length; left += 1) {
+      for (let right = left + 1; right < result.length; right += 1) {
+        const a = result[left]!;
+        const b = result[right]!;
+        const distance = Math.hypot(a.x - b.x, a.y - b.y);
+        expect(distance).toBeGreaterThanOrEqual(
+          a.radius + b.radius - 0.5,
+        );
+      }
+    }
+  });
+
+  it("leaves the Warden in place and pushes the mob clear", () => {
+    const warden = {
+      ...createBoss(ROOM, scalingForDepth(1).boss, 0),
+      x: 300,
+      y: 300,
+    };
+    const mob = { ...createEnemy(meleeSpawn), x: 302, y: 300 };
+    const [bossAfter, mobAfter] = separateEnemies([warden, mob], ROOM);
+
+    expect(bossAfter!.x).toBe(300);
+    expect(bossAfter!.y).toBe(300);
+    const distance = Math.hypot(
+      bossAfter!.x - mobAfter!.x,
+      bossAfter!.y - mobAfter!.y,
+    );
+    expect(distance).toBeGreaterThanOrEqual(warden.radius + mob.radius - 0.5);
+  });
+
+  it("ignores dead and dying bodies", () => {
+    const living = { ...createEnemy(meleeSpawn), x: 300, y: 300 };
+    const dying = {
+      ...createEnemy({ ...meleeSpawn, id: "dying" }),
+      x: 300,
+      y: 300,
+      status: "dying" as const,
+    };
+    const dead = {
+      ...createEnemy({ ...meleeSpawn, id: "dead" }),
+      x: 300,
+      y: 300,
+      status: "dead" as const,
+      hp: 0,
+    };
+
+    const [livingAfter, dyingAfter, deadAfter] = separateEnemies(
+      [living, dying, dead],
+      ROOM,
+    );
+
+    expect([livingAfter!.x, livingAfter!.y]).toEqual([living.x, living.y]);
+    expect([dyingAfter!.x, dyingAfter!.y]).toEqual([dying.x, dying.y]);
+    expect([deadAfter!.x, deadAfter!.y]).toEqual([dead.x, dead.y]);
+  });
+
+  it("keeps a wall-edge push inside the floor geometry", () => {
+    const leftWall = ROOM.rooms[0]!.x;
+    const [a, b] = stacked(2).map((enemy) => ({
+      ...enemy,
+      x: leftWall + 8,
+      y: 200,
+    }));
+
+    const first = separateEnemies([a!, b!], ROOM);
+    const second = separateEnemies([a!, b!], ROOM);
+
+    for (const body of first) {
+      expect(isCircleWalkable(ROOM, body.x, body.y, body.radius)).toBe(true);
+      expect(body.x).toBeGreaterThanOrEqual(leftWall + body.radius);
+      expect(body.y).toBeGreaterThanOrEqual(ROOM.rooms[0]!.y + body.radius);
+    }
+    const distance = Math.hypot(
+      first[0]!.x - first[1]!.x,
+      first[0]!.y - first[1]!.y,
+    );
+    expect(distance).toBeGreaterThan(0);
+    expect(second.map(({ x, y }) => [x, y])).toEqual(
+      first.map(({ x, y }) => [x, y]),
+    );
+  });
+
+  it("keeps a blocked-rect push out of the gate and shop safe zone", () => {
+    // Standing in for the arena gate / shop safe-zone blockers: a circle must
+    // never be pushed into the rect, and the push slides along its face.
+    const blocker = { x: 300, y: 280, width: 16, height: 40 };
+    const [a, b] = stacked(2).map((enemy) => ({ ...enemy, x: 294, y: 300 }));
+
+    const first = separateEnemies([a!, b!], ROOM, [blocker]);
+    const second = separateEnemies([a!, b!], ROOM, [blocker]);
+
+    for (const body of first) {
+      expect(
+        isCircleWalkable(ROOM, body.x, body.y, body.radius, [blocker]),
+      ).toBe(true);
+      expect(
+        circleOverlapsRect(body.x, body.y, body.radius, blocker),
+      ).toBe(false);
+    }
+    const distance = Math.hypot(
+      first[0]!.x - first[1]!.x,
+      first[0]!.y - first[1]!.y,
+    );
+    expect(distance).toBeGreaterThan(0);
+    expect(second.map(({ x, y }) => [x, y])).toEqual(
+      first.map(({ x, y }) => [x, y]),
+    );
+  });
 });

@@ -49,6 +49,8 @@ declare global {
       weakenBoss(hp?: number): Chainable<void>;
       /** Test-only: sets the player's current HP. */
       setPlayerHp(hp: number): Chainable<void>;
+      /** Test-only: grants temporary invulnerability for a scenario. */
+      setPlayerInvulnerable(seconds: number): Chainable<void>;
       /** Test-only: ends the run. */
       killPlayer(): Chainable<void>;
       /** Test-only: descends immediately. */

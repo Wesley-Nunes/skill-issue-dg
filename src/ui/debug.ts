@@ -26,6 +26,8 @@ declare global {
       weakenBoss(hp?: number): void;
       /** Test-only: sets the player's current HP. */
       setPlayerHp(hp: number): void;
+      /** Test-only: grants temporary invulnerability for a scenario. */
+      setPlayerInvulnerable(seconds: number): void;
       /** Test-only: ends the run. */
       killPlayer(): void;
       /** Test-only: descends immediately. */

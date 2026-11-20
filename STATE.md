@@ -7,19 +7,19 @@ This file is the canonical workflow state for the repository. It is maintained b
 | Field | Value |
 |---|---|
 | Project | skill issue dg |
-| Goal | `0.9.0` MVP acceptance: close the safe-room combat exploit, lock the MVP contract, and complete end-to-end acceptance evidence |
-| Current SemVer ID | `0.9.0` (released; **MVP complete and operator-confirmed**) |
+| Goal | `0.9.1` combat-integrity hotfix: make a hit reset the rite completely, count every distinct enemy attack, and stop lured mobs from stacking |
+| Current SemVer ID | `0.9.1` (operator-approved 2026-11-15; **QA passed, release pending**) |
 | Next target version | `—` — no later version approved; discovery required before new scope |
 | Current task ID | `001` |
-| Active phase | `Complete` |
-| Active agent | `operator` / `orchestrator` |
-| Git branch | `main` (production) and `dev` (staging), synced on the confirmation docs |
-| Last accepted commit | The operator-confirmation commit recorded in the history below, merged into `main` |
-| Pushed HEAD | `origin/dev` and `origin/main` carry the confirmation docs; `main` adds only the merge commit on top |
-| Pull request | #14 (implementation), #15 (QA/state closure → `dev`), and #16 (`dev` → `main`) merged |
-| Known issue | None blocking. The safe-room combat exploit is fixed; independent QA passed. F2 (no live Warden lure) and F3 (capture size) remain non-blocking evidence limitations |
-| Blocking questions remaining | `0` |
-| Overall status | **MVP complete.** Operator confirmed the result on 2026-11-14 after reviewing the polished `README.md` (play link, screenshot, requirements, live deployment). `0.9.0` runs from title to Warden, shop, and descent; QA report `qa/0.9.0/001-report.md` passes SC1–SC10; clean-install typecheck, 198 unit tests, build, bundle scan, and 33/33 Chrome e2e pass twice; hosted CI passed on the release heads; Vercel production at `https://skill-issue-dg.vercel.app` serves the `0.9.0` bundle (`index-BxraWZQO.js`, no debug hook). Deferred work is listed in `GOAL.md` and `docs/about-the-project.md`. |
+| Active phase | `Release` / integration |
+| Active agent | `orchestrator` |
+| Git branch | `feature/0.9.1-001-combat-integrity` (from `dev` at `8ddaac4`) |
+| Last accepted commit | `23a1234` (QA report `Passed after fixes`; application at `6538005`, follow-up tests `18a24d2`) |
+| Pushed HEAD | `origin/feature/0.9.1-001-combat-integrity` (pushed 2026-11-15; see `git log` for the tip) |
+| Pull request | None yet — `gh`/PR tooling is unavailable; operator must open the PR. Hosted workflows trigger only on pull requests to `dev`/`main` or pushes to those branches, so no hosted run exists yet |
+| Known issue | None blocking. The four manual-play findings are fixed and QA-passed. Non-blocking: no fresh human playtest, sub-pixel separation residual, bomb test depends on current spawn/stagger timings, live Warden lure still unscripted, hosted CI pending |
+| Blocking questions remaining | `0` — the operator approved every-hit damage and the rite reset on 2026-11-15 |
+| Overall status | **QA passed after fixes; pushed and awaiting PR/hosted CI.** `0.9.1` adds no content: it repairs the rite reset (fragments and HP), removes the post-hit i-frame while keeping dodge i-frames, and adds deterministic enemy-body separation. Local typecheck, 210/210 unit tests, build, bundle scan, and 34/34 Chrome e2e pass; hosted CI and Vercel remain pending. |
 
 Update this snapshot whenever a value changes. Do not leave stale status after a handoff.
 
@@ -40,6 +40,26 @@ The state manager must not invent decisions, change product scope, edit game cod
 ## Active version links
 
 Populate these links when the version and task have been approved:
+
+### `0.9.1` / `001` (QA passed after fixes; release pending)
+
+- Product overview: `docs/about-the-project.md` §3.3 and §5.1 record the
+  rite-reset, per-enemy damage, and enemy-separation rules.
+- MVP contract amendment: [GOAL.md](GOAL.md) SC2 now requires the mob HP reset
+  (operator-approved 2026-11-15).
+- Task package: `docs/tasks/0.9.1/001-design.md`,
+  `001-programmer.md`, `001-qa.md`.
+- Design decisions: [design/0.9.1/design-decisions.md](design/0.9.1/design-decisions.md)
+  (`186bf71`; approved).
+- Implementation decision log: [programmer/0.9.1/CoT.md](programmer/0.9.1/CoT.md)
+  (`8591614`, updated at `30e68ec`).
+- Application implementation: `6538005`; follow-up coverage `18a24d2`.
+- QA report: [qa/0.9.1/001-report.md](qa/0.9.1/001-report.md) (`Passed after
+  fixes`, `23a1234`; supersedes the initial changes-requested pass `dd3731b`).
+- Operator decisions (2026-11-15): every distinct enemy hit damages the player;
+  remove the shared post-hit i-frame; keep dodge i-frames; reset fragments and
+  HP on every living mob; exclude the Warden from the HP reset; prevent living
+  mobs from stacking. No new content.
 
 ### `0.9.0` / `001` (released)
 
@@ -79,6 +99,34 @@ Populate these links when the version and task have been approved:
   `17510eb`, QA `Passed after fixes` (`020c178`).
 - Also merged into `dev`: `0.6.0` via PR #9 (`60318be`), `0.5.0` via PR #5
   (`3c2f62d`).
+
+### Version 0.9.1 scope (operator-approved 2026-11-15) — QA passed after fixes
+
+- **Deliverable:** repair the four combat-integrity defects found in manual
+  play after the MVP confirmation, with no new content.
+- **Why:** a melee hit discarded the rite reset, HP was not reset with the
+  fragments, lured mobs stacked into one body, and a shared post-hit i-frame
+  swallowed the second and third attackers. Each defect undermined the
+  "break the fragments without taking a hit" rule or made being surrounded
+  safer than it should be.
+- **Included:** `updateEnemies` returns the wave so damage is applied after the
+  enemy array is published; `resetEnemyRite` restores fragments and HP for all
+  living mobs and never the Warden; the post-hit i-frame and
+  `PLAYER.damageInvulnerability` are removed while dodge i-frames remain;
+  deterministic post-movement enemy separation with the Warden immovable;
+  melee damage summed into one HP loss and one `player-hit` event;
+  `fragments-restored` renamed to `rite-reset`; unit, engine, and browser
+  regression coverage; version `0.9.1`.
+- **Excluded:** pathfinding, group AI, flanking, new archetypes, room or economy
+  changes, enemy/boss tuning beyond the fixed rules, new HUD, copy, hotkeys,
+  audio, art, or persistence.
+- **Known consequence:** being surrounded is lethal — at depth 5+ three melee
+  hits equal the base 6 HP bar. Separation makes the pile avoidable; the
+  trade-off was accepted by the operator and recorded in the design contract.
+- **Evidence:** implementation `6538005`, follow-up tests `18a24d2`, decision
+  log `30e68ec`, QA `Passed after fixes` `23a1234`; typecheck, 210/210 unit
+  tests, build, bundle scan, and 34/34 Chrome e2e pass. Hosted CI and Vercel
+  remain pending until the branch is pushed.
 
 ### Version 0.9.0 scope (operator-approved 2026-11-14, released)
 
@@ -355,6 +403,14 @@ Append one entry for each meaningful phase transition:
 | 2026-11-14 | 0.9.0/001 | Merged → Released to production | Operator merged PR #16 (`dev` → `main`) as `f2735af`; `origin/dev` and `origin/main` have identical app trees; Vercel production `https://skill-issue-dg.vercel.app` serves `0.9.0` (`index-BxraWZQO.js`, no debug hook); only formal operator confirmation remains | `f2735af`, plus this state commit |
 | 2026-11-14 | 0.9.0/001 | Release → README polish | Orchestrator reviewed `README.md` from a player's perspective and rewrote it: play link, first-floor screenshot (`docs/screenshots/gameplay.png`), requirements, no-save note, accurate seeded-branch wording, and live Vercel deployment section. Committed and pushed to `dev` | `a2d619c` |
 | 2026-11-14 | 0.9.0/001 | Complete | Operator confirmed the MVP on 2026-11-14 after reviewing the polished README. Orchestrator recorded the sign-off, synced `dev` into `main`, and verified hosted CI on the confirmation commit (`2f8cb2b`, run `43600242839`, success); no app code changed | this confirmation commit |
+| 2026-11-15 | 0.9.1/001 | Complete → Docs discovery | Operator found four combat-integrity defects in manual play and approved the hotfix: reset fragments and HP on a hit, count every distinct enemy hit, keep dodge i-frames, and separate enemy bodies. Version `0.9.1` and branch `feature/0.9.1-001-combat-integrity` created from `dev`; task package, product-overview rules, and the SC2 amendment written | this docs commit |
+| 2026-11-15 | 0.9.1/001 | Docs discovery → Design decisions | Design contract authored by the orchestrator: exact rite-reset trigger, Warden exception, every-hit damage with dodge-only i-frames, deterministic separation, and edge cases for QA | `186bf71` |
+| 2026-11-15 | 0.9.1/001 | Tooling fix | The repository named `docs`, `design`, `programmer`, and `qa` agents but had no OpenCode agent definitions, so they could not be launched. Added four `mode: subagent` definitions under `.opencode/agents/`; `opencode debug agents` lists all four | `065d64f` |
+| 2026-11-15 | 0.9.1/001 | Design decisions → Implementation → QA verification | Melee damage now applies after the enemy array is published; `resetEnemyRite` restores fragments and HP for living mobs and never the Warden; the post-hit i-frame is removed while dodge i-frames remain; post-movement separation; 207 unit tests, build, and 34/34 Chrome e2e pass | `6538005`, `8591614` |
+| 2026-11-15 | 0.9.1/001 | QA verification → Changes requested | Independent QA found no behavioral defect and every gate green, but rejected the task on required coverage: no bomb-hit reset test and no wall/blocker separation test; two low findings on the dead/dying test and the dev-only hook | `dd3731b` |
+| 2026-11-15 | 0.9.1/001 | Changes requested → Re-verification | Programmer added bomb-reset and blocked-separation tests, extended the dead/dying case, and documented the debug hook; 210/210 unit tests, build, and 34/34 Chrome e2e pass | `18a24d2`, `30e68ec` |
+| 2026-11-15 | 0.9.1/001 | Re-verification → QA passed | Independent QA closed QA-001…QA-004 with mutation checks, confirmed 210/210 unit tests, clean build/bundle, and 34/34 Chrome e2e, and returned `Passed after fixes` | `23a1234` |
+| 2026-11-15 | 0.9.1/001 | QA passed → Pushed, PR pending | Orchestrator closed the QA gate in `STATE.md`, reconciled task statuses and the product-overview status, and pushed the branch. `gh` is unavailable, so the operator must open the PR; hosted CI stays pending until then | `0527fff`, `8b04b1b` |
 
 ## Status vocabulary
 

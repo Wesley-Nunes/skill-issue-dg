@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { PLAYER } from "../data/config";
+import { DODGE, PLAYER } from "../data/config";
 import { createEnemy, createPlayer } from "../../state/initialState";
 import {
   damageEnemy,
@@ -18,33 +18,33 @@ const meleeSpawn = {
 };
 
 describe("damagePlayer", () => {
-  it("applies damage and starts invulnerability", () => {
+  it("applies damage without a post-hit invulnerability window", () => {
     const result = damagePlayer(createPlayer(ROOM.spawn), 1);
     expect(result.applied).toBe(true);
     expect(result.died).toBe(false);
     expect(result.player.hp).toBe(PLAYER.maxHp - 1);
-    expect(result.player.invulnerable).toBeCloseTo(
-      PLAYER.damageInvulnerability,
-    );
+    expect(result.player.invulnerable).toBe(0);
     expect(result.player.hurtFlash).toBeGreaterThan(0);
   });
 
-  it("blocks a second hit during invulnerability", () => {
+  it("lets a second distinct hit apply immediately", () => {
     const first = damagePlayer(createPlayer(ROOM.spawn), 1);
     const second = damagePlayer(first.player, 1);
-    expect(second.applied).toBe(false);
-    expect(second.player.hp).toBe(first.player.hp);
-  });
-
-  it("accepts damage again after invulnerability expires", () => {
-    const first = damagePlayer(createPlayer(ROOM.spawn), 1);
-    const cleared = tickPlayerTimers(
-      first.player,
-      PLAYER.damageInvulnerability,
-    );
-    const second = damagePlayer(cleared, 1);
     expect(second.applied).toBe(true);
     expect(second.player.hp).toBe(PLAYER.maxHp - 2);
+  });
+
+  it("still blocks damage during dodge invulnerability", () => {
+    const dodging = {
+      ...createPlayer(ROOM.spawn),
+      invulnerable: DODGE.invulnerability,
+    };
+    const result = damagePlayer(dodging, 1);
+    expect(result.applied).toBe(false);
+    expect(result.player.hp).toBe(PLAYER.maxHp);
+
+    const cleared = tickPlayerTimers(dodging, DODGE.invulnerability);
+    expect(damagePlayer(cleared, 1).applied).toBe(true);
   });
 
   it("clamps at zero and reports death", () => {
