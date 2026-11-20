@@ -106,7 +106,7 @@ meta-progression in the MVP.
 | ID | Criterion | Evidence required |
 |---|---|---|
 | SC1 | From the title, the player can move with WASD, aim with the mouse, swing once per press, and dodge with i-frames. | Automated input/state assertions and a recorded playthrough |
-| SC2 | A swing breaks every intact fragment in its arc; taking HP damage restores all broken fragments; a mob killed with intact fragments respawns; a mob killed with none rests permanently and grants spirit and 1 point. | Unit tests plus an end-to-end rite |
+| SC2 | A swing breaks every intact fragment in its arc; taking HP damage resets the rite on every living mob, restoring all broken fragments and the mob's HP (the Warden's HP is never reset); a mob killed with intact fragments respawns; a mob killed with none rests permanently and grants spirit and 1 point. | Unit tests plus an end-to-end rite |
 | SC3 | The player can earn points, buy the draught and Vigor, carry and use the draught, and sees the resulting HP/point/HUD state. | Unit and Cypress coverage of purchase, carry, use, and refusal states |
 | SC4 | Resting every mob opens the arena; the Warden is summoned explicitly; it uses telegraphed melee and bombs and cannot be staggered; defeating it opens the stairs and grants 3 points. | Cypress boss flow plus unit assertions |
 | SC5 | The stairs descend to a new seeded floor, heal 2 HP, raise depth, scale enemy and boss numbers to the depth table, and reset spirit/gate/boss/shop state while run rewards persist. | Unit and Cypress descent coverage |
@@ -115,6 +115,13 @@ meta-progression in the MVP.
 | SC8 | Required states are readable with audio muted; the mute toggle and reduced-motion behavior work; no new HUD element or hotkey is required. | Canvas captures and the existing audio/reduced-motion tests |
 | SC9 | `npm run typecheck`, `npm test`, `npm run build`, and `npm run e2e` pass from a clean install; the production bundle has no debug hook. | CI-equivalent command log and bundle check |
 | SC10 | The full loop in §2 can be completed end to end in one recorded run, including at least one real rest, one real purchase, one real summon, and one descent. | Recorded acceptance run by QA/operator |
+
+**Amendment 2026-11-15 (`0.9.1`, operator-approved):** SC2 now requires a
+damage hit to reset the mob's HP as well as its fragments. The original wording
+("restores all broken fragments") let a damaged mob be rested with one swing
+after the player took a hit, which defeats the "without taking a hit" rule.
+The amendment also records that independent enemy attacks each deal damage and
+that enemy bodies cannot stack; see `design/0.9.1/design-decisions.md`.
 
 ### 5. Technical constraints
 

@@ -223,7 +223,7 @@ export type GameEvent =
   | { type: "projectile-hit"; x: number; y: number }
   | { type: "projectile-blocked"; x: number; y: number }
   | { type: "fragment-broken"; x: number; y: number }
-  | { type: "fragments-restored"; x: number; y: number }
+  | { type: "rite-reset"; x: number; y: number }
   | { type: "enemy-rested"; x: number; y: number; spirit: number }
   | { type: "enemy-respawned"; x: number; y: number }
   | { type: "floor-purified" }

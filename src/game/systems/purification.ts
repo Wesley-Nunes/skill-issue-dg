@@ -56,11 +56,21 @@ export function breakFragmentsInArc(
   return { enemy: { ...enemy, fragments }, broken };
 }
 
-/** Restores every broken fragment on a living enemy. */
-export function restoreFragments(enemy: Enemy): Enemy {
-  if (enemy.status !== "alive") return enemy;
-  if (enemy.fragments.every(Boolean)) return enemy;
-  return { ...enemy, fragments: enemy.fragments.map(() => true) };
+/**
+ * Resets a failed rite on a living mob: every broken fragment returns and its
+ * HP returns to full. The Warden carries no fragments and is never reset.
+ */
+export function resetEnemyRite(enemy: Enemy): Enemy {
+  if (enemy.status !== "alive" || enemy.kind === "boss") return enemy;
+
+  const full = enemy.hp === enemy.maxHp && enemy.fragments.every(Boolean);
+  if (full) return enemy;
+
+  return {
+    ...enemy,
+    hp: enemy.maxHp,
+    fragments: enemy.fragments.map(() => true),
+  };
 }
 
 /** Returns a conventionally killed enemy to its spawn with a fresh rite. */

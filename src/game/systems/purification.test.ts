@@ -8,7 +8,7 @@ import {
   canRest,
   fragmentPosition,
   hasAllFragmentsBroken,
-  restoreFragments,
+  resetEnemyRite,
   reviveEnemy,
   tickRespawn,
 } from "./purification";
@@ -79,16 +79,27 @@ describe("purification", () => {
     expect(result.broken).toHaveLength(0);
   });
 
-  it("restores every broken fragment on a living enemy", () => {
-    const target = enemy({ fragments: [false, false] });
-    const restored = restoreFragments(target);
+  it("resets every broken fragment and the HP of a living mob", () => {
+    const target = enemy({ hp: 4, maxHp: 10, fragments: [false, false] });
+    const reset = resetEnemyRite(target);
 
-    expect(restored.fragments).toEqual([true, true]);
-    expect(restoreFragments(restored)).toBe(restored);
-    expect(restoreFragments({ ...target, status: "dying" })).toEqual({
+    expect(reset.fragments).toEqual([true, true]);
+    expect(reset.hp).toBe(10);
+    expect(resetEnemyRite(reset)).toBe(reset);
+    expect(resetEnemyRite({ ...target, status: "dying" })).toEqual({
       ...target,
       status: "dying",
     });
+  });
+
+  it("resets HP even when every fragment is intact", () => {
+    const target = enemy({ hp: 2, maxHp: 10, fragments: [true, true] });
+    expect(resetEnemyRite(target).hp).toBe(10);
+  });
+
+  it("never resets the Warden", () => {
+    const boss = enemy({ kind: "boss", hp: 5, maxHp: 30 });
+    expect(resetEnemyRite(boss)).toBe(boss);
   });
 
   it("marks a mob as restable only when alive with no fragments", () => {

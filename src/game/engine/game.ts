@@ -32,7 +32,7 @@ import {
 } from "../systems/damage";
 import { scalingForDepth } from "../systems/depth";
 import { startDodge, tickDodgeTimers } from "../systems/dodge";
-import { updateEnemy } from "../systems/enemy";
+import { separateEnemies, updateEnemy } from "../systems/enemy";
 import { movePlayer } from "../systems/movement";
 import {
   advanceProjectile,
@@ -43,7 +43,7 @@ import {
   addSpirit,
   breakFragmentsInArc,
   canRest,
-  restoreFragments,
+  resetEnemyRite,
   tickRespawn,
 } from "../systems/purification";
 import { isInCombat, WARD_MESSAGE } from "../systems/safeRoom";
@@ -226,9 +226,19 @@ export class Game {
     }
 
     // Publish the ticked player before enemy logic so enemy damage applies to
-    // the current position, health, and invulnerability timers.
+    // the current position, health, and dodge invulnerability.
     state.player = player;
-    state.enemies = this.updateEnemies(player, dt, events);
+    const enemyWave = this.updateEnemies(player, dt, events);
+    state.enemies = separateEnemies(
+      enemyWave.enemies,
+      state.floor,
+      this.enemyBlockers(),
+    );
+    // Apply melee damage after the enemy array is published so a rite reset is
+    // not overwritten by the update result.
+    if (enemyWave.damageToPlayer > 0) {
+      this.applyDamageToPlayer(enemyWave.damageToPlayer, events);
+    }
     player = state.player;
 
     if (state.status !== "dead") {
@@ -724,6 +734,14 @@ export class Game {
     };
   }
 
+  /** Test-only: isolates a scenario from incoming damage for a while. */
+  debugSetPlayerInvulnerable(seconds: number): void {
+    this.state.player = {
+      ...this.state.player,
+      invulnerable: Math.max(0, seconds),
+    };
+  }
+
   /** Test-only: ends the run without waiting for enemy damage. */
   debugKillPlayer(): void {
     this.state.player = { ...this.state.player, hp: 0 };
@@ -740,12 +758,13 @@ export class Game {
     player: GameState["player"],
     dt: number,
     events: GameEvent[],
-  ): Enemy[] {
+  ): { enemies: Enemy[]; damageToPlayer: number } {
     const state = this.state;
     const target = { x: player.x, y: player.y };
     const blocked = this.enemyBlockers();
+    let damageToPlayer = 0;
 
-    return state.enemies.map((current) => {
+    const enemies = state.enemies.map((current) => {
       const revived = tickRespawn(current, dt);
       if (revived.respawned) {
         events.push({
@@ -823,12 +842,12 @@ export class Game {
         });
       }
 
-      if (update.damageToPlayer > 0) {
-        this.applyDamageToPlayer(update.damageToPlayer, events);
-      }
+      damageToPlayer += update.damageToPlayer;
 
       return next;
     });
+
+    return { enemies, damageToPlayer };
   }
 
   private updateBombs(dt: number, events: GameEvent[]): void {
@@ -944,7 +963,7 @@ export class Game {
     }
   }
 
-  /** Applies one damage instance, respecting invulnerability and death. */
+  /** Applies one damage instance, respecting dodge i-frames and death. */
   private applyDamageToPlayer(amount: number, events: GameEvent[]): void {
     const state = this.state;
     if (state.status === "dead") return;
@@ -961,17 +980,17 @@ export class Game {
     const damaged = damagePlayer(state.player, amount);
     if (!damaged.applied) return;
 
-    // Losing HP breaks the rite: every broken fragment returns. A dodge or an
-    // i-frame that prevents the HP loss never reaches this point.
+    // Losing HP breaks the rite: every living mob's fragments and HP return to
+    // full. A dodge i-frame that prevents the HP loss never reaches this point.
     state.enemies = state.enemies.map((enemy) => {
-      const restored = restoreFragments(enemy);
-      if (restored === enemy) return enemy;
+      const reset = resetEnemyRite(enemy);
+      if (reset === enemy) return enemy;
       events.push({
-        type: "fragments-restored",
+        type: "rite-reset",
         x: enemy.x,
         y: enemy.y,
       });
-      return restored;
+      return reset;
     });
 
     const player = damaged.player;
